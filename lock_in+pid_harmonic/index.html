@@ -117,19 +117,18 @@
   config_params_txts = 'xmin,xmax,trig_mode,trig_source,trig_edge,trig_delay,trig_level,time_range,time_units,en_avg_at_dec,min_y,'+
                        'max_y,prb_att_ch1,gain_ch1,prb_att_ch2,gain_ch2,gui_xmin,gui_xmax,'+
                        'lock_oscA_sw,lock_oscB_sw,lock_osc1_filt_off,lock_osc2_filt_off,lock_osc_raw_mode,lock_osc_lockin_mode,lock_trig_sw,'+
-                       'lock_out1_sw,lock_out2_sw,lock_slow_out1_sw,lock_slow_out2_sw,lock_slow_out3_sw,lock_slow_out4_sw,lock_lock_control,'+
-                       'lock_lock_trig_val,lock_lock_trig_time_val,lock_lock_trig_sw,lock_rl_error_threshold,lock_rl_signal_sw,lock_rl_signal_threshold,'+
-                       'lock_rl_error_enable,lock_rl_signal_enable,lock_rl_reset,lock_sf_jumpA,lock_sf_jumpB,lock_sf_start,lock_sf_AfrzO,'+
-                       'lock_sf_AfrzI,lock_sf_BfrzO,lock_sf_BfrzI,lock_signal_sw,lock_sg_amp1,lock_sg_amp2,lock_sg_amp3,lock_sg_amp_sq,'+
-                       'lock_lpf_F1_tau,lock_lpf_F1_order,lock_lpf_F2_tau,lock_lpf_F2_order,lock_lpf_F3_tau,lock_lpf_F3_order,lock_lpf_sq_tau,'+
-                       'lock_lpf_sq_order,lock_error_sw,lock_error_offset,lock_gen_mod_phase,lock_gen_mod_phase_sq,lock_gen_mod_hp,lock_gen_mod_sqp,'+
-                       'lock_ramp_step,lock_ramp_low_lim,lock_ramp_hig_lim,lock_ramp_reset,lock_ramp_enable,lock_ramp_direction,lock_ramp_B_factor,'+
-                       'lock_read_ctrl,lock_pidA_sw,lock_pidA_PSR,lock_pidA_ISR,lock_pidA_DSR,lock_pidA_SAT,lock_pidA_sp,lock_pidA_kp,'+
-                       'lock_pidA_ki,lock_pidA_kd,lock_pidA_irst,lock_pidA_freeze,lock_pidA_ifreeze,lock_pidB_sw,lock_pidB_PSR,lock_pidB_ISR,'+
-                       'lock_pidB_DSR,lock_pidB_SAT,lock_pidB_sp,lock_pidB_kp,lock_pidB_ki,lock_pidB_kd,lock_pidB_irst,lock_pidB_freeze,'+
-                       'lock_pidB_ifreeze,lock_aux_A,lock_aux_B,lock_ctrl_aux_lock_now,lock_ctrl_aux_launch_lock_trig,lock_ctrl_aux_pidB_enable_ctrl,'+
-                       'lock_ctrl_aux_pidA_enable_ctrl,lock_ctrl_aux_ramp_enable_ctrl,lock_ctrl_aux_set_pidB_enable,lock_ctrl_aux_set_pidA_enable,'+
-                       'lock_ctrl_aux_set_ramp_enable,lock_ctrl_aux_trig_type,lock_ctrl_aux_lock_trig_rise,lock_mod_sq_on,lock_mod_harmonic_on';
+                       'lock_out1_sw,lock_out2_sw,lock_lock_control,lock_lock_trig_val,lock_lock_trig_time_val,lock_lock_trig_sw,lock_rl_error_threshold,'+
+                       'lock_rl_signal_sw,lock_rl_signal_threshold,lock_rl_error_enable,lock_rl_signal_enable,lock_rl_reset,lock_sf_jumpA,'+
+                       'lock_sf_jumpB,lock_sf_start,lock_sf_AfrzO,lock_sf_AfrzI,lock_sf_BfrzO,lock_sf_BfrzI,lock_signal_sw,lock_sg_amp1,'+
+                       'lock_sg_amp2,lock_sg_amp3,lock_lpf_F1_tau,lock_lpf_F1_order,lock_lpf_F2_tau,lock_lpf_F2_order,lock_lpf_F3_tau,'+
+                       'lock_lpf_F3_order,lock_error_sw,lock_error_offset,lock_gen_mod_phase,lock_gen_mod_hp,lock_ramp_step,lock_ramp_low_lim,'+
+                       'lock_ramp_hig_lim,lock_ramp_reset,lock_ramp_enable,lock_ramp_direction,lock_ramp_B_factor,lock_read_ctrl,lock_pidA_sw,'+
+                       'lock_pidA_PSR,lock_pidA_ISR,lock_pidA_DSR,lock_pidA_SAT,lock_pidA_sp,lock_pidA_kp,lock_pidA_ki,lock_pidA_kd,lock_pidA_irst,'+
+                       'lock_pidA_freeze,lock_pidA_ifreeze,lock_pidB_sw,lock_pidB_PSR,lock_pidB_ISR,lock_pidB_DSR,lock_pidB_SAT,lock_pidB_sp,'+
+                       'lock_pidB_kp,lock_pidB_ki,lock_pidB_kd,lock_pidB_irst,lock_pidB_freeze,lock_pidB_ifreeze,lock_aux_A,lock_aux_B,'+
+                       'lock_ctrl_aux_lock_now,lock_ctrl_aux_launch_lock_trig,lock_ctrl_aux_pidB_enable_ctrl,lock_ctrl_aux_pidA_enable_ctrl,'+
+                       'lock_ctrl_aux_ramp_enable_ctrl,lock_ctrl_aux_set_pidB_enable,lock_ctrl_aux_set_pidA_enable,lock_ctrl_aux_set_ramp_enable,'+
+                       'lock_ctrl_aux_trig_type,lock_ctrl_aux_lock_trig_rise,lock_mod_harmonic_on';
 
   config_params_keys = config_params_txts.split(",");
 
@@ -1162,9 +1161,9 @@
 
     // Number inputs
     var input_number=['lock_lock_trig_val','lock_lock_trig_time_val','lock_rl_error_threshold','lock_rl_signal_threshold','lock_sf_jumpA',
-                      'lock_sf_jumpB','lock_error_offset','lock_gen_mod_phase','lock_gen_mod_phase_sq','lock_gen_mod_hp','lock_gen_mod_sqp',
-                      'lock_ramp_step','lock_ramp_low_lim','lock_ramp_hig_lim','lock_ramp_B_factor','lock_pidA_sp','lock_pidA_kp','lock_pidA_ki',
-                      'lock_pidA_kd','lock_pidB_sp','lock_pidB_kp','lock_pidB_ki','lock_pidB_kd','lock_aux_A','lock_aux_B'];
+                      'lock_sf_jumpB','lock_error_offset','lock_gen_mod_phase','lock_gen_mod_hp','lock_ramp_step','lock_ramp_low_lim','lock_ramp_hig_lim',
+                      'lock_ramp_B_factor','lock_pidA_sp','lock_pidA_kp','lock_pidA_ki','lock_pidA_kd','lock_pidB_sp','lock_pidB_kp','lock_pidB_ki',
+                      'lock_pidB_kd','lock_aux_A','lock_aux_B'];
 
     for(ii in input_number){
       $('#'+input_number[ii])
@@ -1307,7 +1306,7 @@
         lock_ctrl_update();
         //$(this).blur();
     });
-    $('#lock_gen_mod_phase,#lock_gen_mod_hp,#lock_gen_mod_sqp').on('input', function() {
+    $('#lock_gen_mod_phase,#lock_gen_mod_hp').on('input', function() {
         lock_modulation_update();
         //$(this).blur();
     });
@@ -1330,12 +1329,11 @@
 
 
     // Switches
-    var switches=['#lock_oscA_sw','#lock_oscB_sw','#lock_trig_sw','#lock_out1_sw','#lock_out2_sw','#lock_slow_out1_sw','#lock_slow_out2_sw',
-                  '#lock_slow_out3_sw','#lock_slow_out4_sw','#lock_lock_trig_sw','#lock_rl_signal_sw','#lock_signal_sw','#lock_sg_amp1',
-                  '#lock_sg_amp2','#lock_sg_amp3','#lock_sg_amp_sq','#lock_lpf_F1_tau','#lock_lpf_F1_order','#lock_lpf_F2_tau','#lock_lpf_F2_order',
-                  '#lock_lpf_F3_tau','#lock_lpf_F3_order','#lock_lpf_sq_tau','#lock_lpf_sq_order','#lock_error_sw','#lock_read_ctrl','#lock_pidA_sw',
-                  '#lock_pidA_PSR','#lock_pidA_ISR','#lock_pidA_DSR','#lock_pidA_SAT','#lock_pidB_sw','#lock_pidB_PSR','#lock_pidB_ISR',
-                  '#lock_pidB_DSR','#lock_pidB_SAT','#lock_ctrl_aux_trig_type'];
+    var switches=['#lock_oscA_sw','#lock_oscB_sw','#lock_trig_sw','#lock_out1_sw','#lock_out2_sw','#lock_lock_trig_sw','#lock_rl_signal_sw',
+                  '#lock_signal_sw','#lock_sg_amp1','#lock_sg_amp2','#lock_sg_amp3','#lock_lpf_F1_tau','#lock_lpf_F1_order','#lock_lpf_F2_tau',
+                  '#lock_lpf_F2_order','#lock_lpf_F3_tau','#lock_lpf_F3_order','#lock_error_sw','#lock_read_ctrl','#lock_pidA_sw','#lock_pidA_PSR',
+                  '#lock_pidA_ISR','#lock_pidA_DSR','#lock_pidA_SAT','#lock_pidB_sw','#lock_pidB_PSR','#lock_pidB_ISR','#lock_pidB_DSR',
+                  '#lock_pidB_SAT','#lock_ctrl_aux_trig_type'];
     for(ii in switches)
         $(switches[ii]).on('change', function() { onDropdownChange($(this), $(this)[0].id ); });
 
@@ -1344,8 +1342,7 @@
 
     // Buttons
     var input_buttons = '#lock_osc_raw_mode,#lock_osc_lockin_mode,#lock_sf_start,#lock_ctrl_aux_lock_now,#lock_ctrl_aux_launch_lock_trig,'+
-                        '#lock_ctrl_aux_pidB_enable_ctrl,#lock_ctrl_aux_pidA_enable_ctrl,#lock_ctrl_aux_ramp_enable_ctrl,#lock_mod_sq_on,'+
-                        '#lock_mod_harmonic_on';
+                        '#lock_ctrl_aux_pidB_enable_ctrl,#lock_ctrl_aux_pidA_enable_ctrl,#lock_ctrl_aux_ramp_enable_ctrl,#lock_mod_harmonic_on';
     $(input_buttons).on('click', function() {
       $(this).toggleClass('btn-default btn-primary');
       params.local[this.id] = ($(this).is('.btn-primary') ? 1 : 0);
@@ -1366,10 +1363,10 @@
     // More Switches
     $('#lock_ctrl_aux_trig_type').on('change', function() { onDropdownChange($(this), 'lock_ctrl_aux_trig_type'); });
 
-    $('#lock_mod_sq_on').on('click', function() {
-            $('#lock_mod_sq_on').toggleClass('btn-default btn-primary');
-            $("div[data-tag='SquareParams']").toggleClass('in collapse') ;
-        });
+    // $('#lock_mod_sq_on').on('click', function() {
+    //         $('#lock_mod_sq_on').toggleClass('btn-default btn-primary');
+    //         $("div[data-tag='SquareParams']").toggleClass('in collapse') ;
+    //     });
 
     $('#lock_mod_harmonic_on').on('click', function() {
             $('#lock_mod_harmonic_on').toggleClass('btn-default btn-primary');
@@ -1398,20 +1395,20 @@
           }
        });
 
-    $('#btn_disp_sq')
-      .on('click', function() {
-          if(! plot) return;
-          $('#btn_disp_sq').toggleClass('btn-default btn-primary');
-
-          if($('#btn_disp_sq').hasClass('btn-primary')) {
-            $('#btn_disp_sq').data('checked', true);
-            $('#btn_disp_sq').html('Square');
-          }
-          else{
-            $('#btn_disp_sq').data('checked', false);
-            $('#btn_disp_sq').html('Harmonic');
-          }
-       });
+    // $('#btn_disp_sq')
+    //   .on('click', function() {
+    //       if(! plot) return;
+    //       $('#btn_disp_sq').toggleClass('btn-default btn-primary');
+    //
+    //       if($('#btn_disp_sq').hasClass('btn-primary')) {
+    //         $('#btn_disp_sq').data('checked', true);
+    //         $('#btn_disp_sq').html('Square');
+    //       }
+    //       else{
+    //         $('#btn_disp_sq').data('checked', false);
+    //         $('#btn_disp_sq').html('Harmonic');
+    //       }
+    //    });
 
      $('#btn_disp_norm')
       .on('click', function() {
@@ -1562,7 +1559,7 @@
     });
 
     $('#btn_set_trig').prop('disabled', false);
-    $('#btn_disp_sq').data('checked', false);
+    // $('#btn_disp_sq').data('checked', false);
 
     $('label[for="lock_ramp_step"]').on('click', function() {
       showModalHelp("<p>Ramp period param sets the number of clock ticks the ramp control waits before jumping the next ramp value.</p>"+
@@ -1915,29 +1912,29 @@
 
   function lock_modulation_update() {
     lock_gen_mod_phase_arr    = $("#lock_gen_mod_phase"    ).val().trim().split(' ').filter( function(n,i){ return n!=="" } );
-    lock_gen_mod_phase_sq_arr = $("#lock_gen_mod_phase_sq" ).val().trim().split(' ').filter( function(n,i){ return n!=="" } );
+    // lock_gen_mod_phase_sq_arr = $("#lock_gen_mod_phase_sq" ).val().trim().split(' ').filter( function(n,i){ return n!=="" } );
     lock_gen_mod_hp_arr       = $("#lock_gen_mod_hp"       ).val().trim().split(' ').filter( function(n,i){ return n!=="" } );
-    lock_gen_mod_sqp_arr      = $("#lock_gen_mod_sqp"      ).val().trim().split(' ').filter( function(n,i){ return n!=="" } );
+    // lock_gen_mod_sqp_arr      = $("#lock_gen_mod_sqp"      ).val().trim().split(' ').filter( function(n,i){ return n!=="" } );
 
 
 
     if( !$.isNumeric(lock_gen_mod_phase_arr[0])    ||
-        !$.isNumeric(lock_gen_mod_phase_sq_arr[0]) ||
-        !$.isNumeric(lock_gen_mod_hp_arr[0])       ||
-        !$.isNumeric(lock_gen_mod_sqp_arr[0])
+        // !$.isNumeric(lock_gen_mod_phase_sq_arr[0]) ||
+        !$.isNumeric(lock_gen_mod_hp_arr[0])      // ||
+        // !$.isNumeric(lock_gen_mod_sqp_arr[0])
         ) return -1 ;
 
     if (params) if (params.local)
     if( parseLocalFloat(lock_gen_mod_phase_arr[0])    == mod_phase     &&
-        parseLocalFloat(lock_gen_mod_phase_sq_arr[0]) == mod_phase_sq  &&
-        parseLocalFloat(lock_gen_mod_hp_arr[0])       == mod_hp        &&
-        parseLocalFloat(lock_gen_mod_sqp_arr[0])      == mod_sqp
+        // parseLocalFloat(lock_gen_mod_phase_sq_arr[0]) == mod_phase_sq  &&
+        parseLocalFloat(lock_gen_mod_hp_arr[0])       == mod_hp     //   &&
+        // parseLocalFloat(lock_gen_mod_sqp_arr[0])      == mod_sqp
         ) return -1 ;
 
     mod_phase    = Math.abs( parseLocalFloat( lock_gen_mod_phase_arr[0] ) );
-    mod_phase_sq = Math.abs( parseLocalFloat( lock_gen_mod_phase_sq_arr[0] ) );
+    // mod_phase_sq = Math.abs( parseLocalFloat( lock_gen_mod_phase_sq_arr[0] ) );
     mod_hp       = Math.abs( parseLocalFloat( lock_gen_mod_hp_arr[0]   ) );
-    mod_sqp      = Math.abs( parseLocalFloat( lock_gen_mod_sqp_arr[0]  ) );
+    // mod_sqp      = Math.abs( parseLocalFloat( lock_gen_mod_sqp_arr[0]  ) );
 
     if( lock_gen_mod_phase_arr.length === 2) {
       if ( lock_gen_mod_phase_arr[1].toLowerCase()=="g" || lock_gen_mod_phase_arr[1].toLowerCase()=="deg" || lock_gen_mod_phase_arr[1].toLowerCase()=="°" )
@@ -1963,19 +1960,19 @@
       $("#lock_gen_mod_hp").val(""+mod_hp);
     }
 
-    if( lock_gen_mod_sqp_arr.length === 2) {
-      if ( lock_gen_mod_sqp_arr[1].toLowerCase()=="s"  || lock_gen_mod_sqp_arr[1].toLowerCase()=="seg")
-        mod_sqp = Math.round( mod_sqp / 8e-9 /2 )-1;
-      if ( lock_gen_mod_sqp_arr[1].toLowerCase()=="ms"  )
-        mod_sqp = Math.round( mod_sqp / (8e-9 * 2 * 1000) )-1;
-      if ( lock_gen_mod_sqp_arr[1].toLowerCase()=="us"  || lock_gen_mod_sqp_arr[1].toLowerCase()=="μs")
-        mod_sqp = Math.round( mod_sqp / (8e-9 * 2 * 1000000 ) )-1;
-      if ( lock_gen_mod_sqp_arr[1].toLowerCase()=="ns"  )
-        mod_sqp = Math.round( mod_sqp / 8  ) ;
-      mod_sqp = Math.min(  819100 , mod_sqp  ) ;
-      mod_sqp = Math.max(       0 , mod_sqp  ) ;
-      $("#lock_gen_mod_sqp").val(""+mod_sqp);
-    }
+    // if( lock_gen_mod_sqp_arr.length === 2) {
+    //   if ( lock_gen_mod_sqp_arr[1].toLowerCase()=="s"  || lock_gen_mod_sqp_arr[1].toLowerCase()=="seg")
+    //     mod_sqp = Math.round( mod_sqp / 8e-9 /2 )-1;
+    //   if ( lock_gen_mod_sqp_arr[1].toLowerCase()=="ms"  )
+    //     mod_sqp = Math.round( mod_sqp / (8e-9 * 2 * 1000) )-1;
+    //   if ( lock_gen_mod_sqp_arr[1].toLowerCase()=="us"  || lock_gen_mod_sqp_arr[1].toLowerCase()=="μs")
+    //     mod_sqp = Math.round( mod_sqp / (8e-9 * 2 * 1000000 ) )-1;
+    //   if ( lock_gen_mod_sqp_arr[1].toLowerCase()=="ns"  )
+    //     mod_sqp = Math.round( mod_sqp / 8  ) ;
+    //   mod_sqp = Math.min(  819100 , mod_sqp  ) ;
+    //   mod_sqp = Math.max(       0 , mod_sqp  ) ;
+    //   $("#lock_gen_mod_sqp").val(""+mod_sqp);
+    // }
 
 
     $('#lock_gen_mod_phase_text'   ).html( "<small><b>" + (mod_phase   /2520*360).toFixed(1) + "&nbsp;deg&nbsp;|&nbsp;" +   (mod_phase   /2520*2).toFixed(1) + "&nbsp;п&nbsp;rad</b></small>");
@@ -1995,21 +1992,21 @@
 
     $('#lock_gen_mod_hp_text').html( txt   );
 
-    sqp_period=(mod_sqp+1)*8e-9*2;
-    if ( mod_sqp > 0 ){
-      oom = Math.floor(Math.log10(sqp_period)/3);
-      val = sqp_period/Math.pow(10,3*oom);
-      txt = "<small><b>&tau;&nbsp;=&nbsp;" + val.toFixed(3) + "&nbsp;" + units[oom.toString()] + "s</b>";
+    // sqp_period=(mod_sqp+1)*8e-9*2;
+    // if ( mod_sqp > 0 ){
+    //   oom = Math.floor(Math.log10(sqp_period)/3);
+    //   val = sqp_period/Math.pow(10,3*oom);
+    //   txt = "<small><b>&tau;&nbsp;=&nbsp;" + val.toFixed(3) + "&nbsp;" + units[oom.toString()] + "s</b>";
+    //
+    //   oom  = Math.floor(Math.log10(1/sqp_period)/3);
+    //   val  = (1/sqp_period)/Math.pow(10,3*oom);
+    //   txt += " <br> <b>f&nbsp;=&nbsp;" + val.toFixed(3) + "&nbsp;" + units[oom.toString()] + "Hz</b></small>";
+    // }
 
-      oom  = Math.floor(Math.log10(1/sqp_period)/3);
-      val  = (1/sqp_period)/Math.pow(10,3*oom);
-      txt += " <br> <b>f&nbsp;=&nbsp;" + val.toFixed(3) + "&nbsp;" + units[oom.toString()] + "Hz</b></small>";
-    }
+    // $('#lock_gen_mod_sqp_text').html( txt   );
 
-    $('#lock_gen_mod_sqp_text').html( txt   );
-
-    sqp_num = ( mod_sqp > 0 ) ? (mod_sqp-1)*2+4 : 2520 ;
-    $('#lock_gen_mod_phase_sq_text').html( "<small><b>" + (mod_phase_sq/sqp_num*360).toFixed(1) + "&nbsp;deg&nbsp;|&nbsp;" +   (mod_phase_sq/sqp_num*2).toFixed(1) + "&nbsp;п&nbsp;rad</b></small>");
+    // sqp_num = ( mod_sqp > 0 ) ? (mod_sqp-1)*2+4 : 2520 ;
+    // $('#lock_gen_mod_phase_sq_text').html( "<small><b>" + (mod_phase_sq/sqp_num*360).toFixed(1) + "&nbsp;deg&nbsp;|&nbsp;" +   (mod_phase_sq/sqp_num*2).toFixed(1) + "&nbsp;п&nbsp;rad</b></small>");
   }
 
 
@@ -2185,31 +2182,31 @@
       }
     }
 
-    if (disp_fast) {
-      var sqX = params.local.lock_sqX *scl;
-      var sqY = params.local.lock_sqY *scl;
-      var sqR = Math.sqrt( Math.pow(sqX,2)+Math.pow(sqY,2) ) ;
-      var sqFi= Math.atan2(sqY,sqX)*180/Math.PI ;
-      if(set_raw){
-        fixn=3;
-        $('#disp_sqx' ).html( sqX.toFixed(fixn)    );
-        $('#disp_sqy' ).html( sqY.toFixed(fixn)    );
-        $('#disp_sqr' ).html( sqR.toFixed(fixn)    );
-        $('#disp_sqfi').html( sqFi.toFixed(2+fixn) );
-      }else{
-        var fvsq = Math.max( params.local.lock_sqX.toString().length , params.local.lock_sqY.toString().length )  ;
-        $('#disp_sqx' ).html( format_oom(sqX ,'V',fvsq) );
-        $('#disp_sqy' ).html( format_oom(sqY ,'V',fvsq) );
-        $('#disp_sqr' ).html( format_oom(sqR ,'V',fvsq) );
-        $('#disp_sqfi').html( format_oom(sqFi,'deg')   );
-      }
-      if ( (new Date().getTime()) > lasttsp+300 ) {
-        lasttsp=Math.floor((new Date().getTime())/1000);
-        set_bar( 'disp_sqx' ,  sqX);
-        set_bar( 'disp_sqy' ,  sqY);
-      }
-
-    }
+    // if (disp_fast) {
+    //   var sqX = params.local.lock_sqX *scl;
+    //   var sqY = params.local.lock_sqY *scl;
+    //   var sqR = Math.sqrt( Math.pow(sqX,2)+Math.pow(sqY,2) ) ;
+    //   var sqFi= Math.atan2(sqY,sqX)*180/Math.PI ;
+    //   if(set_raw){
+    //     fixn=3;
+    //     $('#disp_sqx' ).html( sqX.toFixed(fixn)    );
+    //     $('#disp_sqy' ).html( sqY.toFixed(fixn)    );
+    //     $('#disp_sqr' ).html( sqR.toFixed(fixn)    );
+    //     $('#disp_sqfi').html( sqFi.toFixed(2+fixn) );
+    //   }else{
+    //     var fvsq = Math.max( params.local.lock_sqX.toString().length , params.local.lock_sqY.toString().length )  ;
+    //     $('#disp_sqx' ).html( format_oom(sqX ,'V',fvsq) );
+    //     $('#disp_sqy' ).html( format_oom(sqY ,'V',fvsq) );
+    //     $('#disp_sqr' ).html( format_oom(sqR ,'V',fvsq) );
+    //     $('#disp_sqfi').html( format_oom(sqFi,'deg')   );
+    //   }
+    //   if ( (new Date().getTime()) > lasttsp+300 ) {
+    //     lasttsp=Math.floor((new Date().getTime())/1000);
+    //     set_bar( 'disp_sqx' ,  sqX);
+    //     set_bar( 'disp_sqy' ,  sqY);
+    //   }
+    //
+    // }
 
     var error_mean = params.local.lock_error_mean;
 
@@ -2942,9 +2939,7 @@
     $('#lock_sf_jumpB'           ).val(params.original.lock_sf_jumpB              );
     $('#lock_error_offset'       ).val(params.original.lock_error_offset          );
     $('#lock_gen_mod_phase'      ).val(params.original.lock_gen_mod_phase         );
-    $('#lock_gen_mod_phase_sq'   ).val(params.original.lock_gen_mod_phase_sq      );
     $('#lock_gen_mod_hp'         ).val(params.original.lock_gen_mod_hp            );
-    $('#lock_gen_mod_sqp'        ).val(params.original.lock_gen_mod_sqp           );
     $('#lock_ramp_step'          ).val(params.original.lock_ramp_step             );
     $('#lock_ramp_low_lim'       ).val(params.original.lock_ramp_low_lim          );
     $('#lock_ramp_hig_lim'       ).val(params.original.lock_ramp_hig_lim          );
@@ -2966,25 +2961,18 @@
     $('#lock_trig_sw'           ).val(params.original.lock_trig_sw              );
     $('#lock_out1_sw'           ).val(params.original.lock_out1_sw              );
     $('#lock_out2_sw'           ).val(params.original.lock_out2_sw              );
-    $('#lock_slow_out1_sw'      ).val(params.original.lock_slow_out1_sw         );
-    $('#lock_slow_out2_sw'      ).val(params.original.lock_slow_out2_sw         );
-    $('#lock_slow_out3_sw'      ).val(params.original.lock_slow_out3_sw         );
-    $('#lock_slow_out4_sw'      ).val(params.original.lock_slow_out4_sw         );
     $('#lock_lock_trig_sw'      ).val(params.original.lock_lock_trig_sw         );
     $('#lock_rl_signal_sw'      ).val(params.original.lock_rl_signal_sw         );
     $('#lock_signal_sw'         ).val(params.original.lock_signal_sw            );
     $('#lock_sg_amp1'           ).val(params.original.lock_sg_amp1              );
     $('#lock_sg_amp2'           ).val(params.original.lock_sg_amp2              );
     $('#lock_sg_amp3'           ).val(params.original.lock_sg_amp3              );
-    $('#lock_sg_amp_sq'         ).val(params.original.lock_sg_amp_sq            );
     $('#lock_lpf_F1_tau'        ).val(params.original.lock_lpf_F1_tau           );
     $('#lock_lpf_F1_order'      ).val(params.original.lock_lpf_F1_order         );
     $('#lock_lpf_F2_tau'        ).val(params.original.lock_lpf_F2_tau           );
     $('#lock_lpf_F2_order'      ).val(params.original.lock_lpf_F2_order         );
     $('#lock_lpf_F3_tau'        ).val(params.original.lock_lpf_F3_tau           );
     $('#lock_lpf_F3_order'      ).val(params.original.lock_lpf_F3_order         );
-    $('#lock_lpf_sq_tau'        ).val(params.original.lock_lpf_sq_tau           );
-    $('#lock_lpf_sq_order'      ).val(params.original.lock_lpf_sq_order         );
     $('#lock_error_sw'          ).val(params.original.lock_error_sw             );
     $('#lock_read_ctrl'         ).val(params.original.lock_read_ctrl            );
     $('#lock_pidA_sw'           ).val(params.original.lock_pidA_sw              );
@@ -3039,11 +3027,6 @@
       $('#lock_ctrl_aux_ramp_enable_ctrl').removeClass('btn-default').addClass('btn-primary').data('checked',true);
     }else{
       $('#lock_ctrl_aux_ramp_enable_ctrl').removeClass('btn-primary').addClass('btn-default').data('checked',false);
-    }
-    if (params.original.lock_mod_sq_on){                    // lock_mod_sq_on
-      $('#lock_mod_sq_on').removeClass('btn-default').addClass('btn-primary').data('checked',true);
-    }else{
-      $('#lock_mod_sq_on').removeClass('btn-primary').addClass('btn-default').data('checked',false);
     }
     if (params.original.lock_mod_harmonic_on){              // lock_mod_harmonic_on
       $('#lock_mod_harmonic_on').removeClass('btn-default').addClass('btn-primary').data('checked',true);
@@ -4290,9 +4273,9 @@
                             <option  value="14">cos_1f</option>
                             <option  value="15">cos_2f</option>
                             <option  value="16">cos_3f</option>
-                            <option  value="17">sq_ref</option>
-                            <option  value="18">sq_quad</option>
-                            <option  value="19">sq_phas</option>
+                            <option  value="17">0</option>
+                            <option  value="18">0</option>
+                            <option  value="19">0</option>
                             <option  value="20">square ref (bin)</option>
                             <option  value="21">signal_i</option>
                             <option  value="22">Xo</option>
@@ -4300,9 +4283,9 @@
                             <option  value="24">F1o</option>
                             <option  value="25">F2o</option>
                             <option  value="26">F3o</option>
-                            <option  value="27">sqXo</option>
-                            <option  value="28">sqYo</option>
-                            <option  value="29">sqFo</option>
+                            <option  value="27">0</option>
+                            <option  value="28">0</option>
+                            <option  value="29">0</option>
                             <!--option value="30">0</option-->
                             <!--option value="31">0</option-->
                           </select>
@@ -4333,9 +4316,9 @@
                             <option  value="14">cos_1f</option>
                             <option  value="15">cos_2f</option>
                             <option  value="16">cos_3f</option>
-                            <option  value="17">sq_ref</option>
-                            <option  value="18">sq_quad</option>
-                            <option  value="19">sq_phas</option>
+                            <option  value="17">0</option>
+                            <option  value="18">0</option>
+                            <option  value="19">0</option>
                             <option  value="20">square ref (bin)</option>
                             <option  value="21">signal_i</option>
                             <option  value="22">Xo</option>
@@ -4343,9 +4326,9 @@
                             <option  value="24">F1o</option>
                             <option  value="25">F2o</option>
                             <option  value="26">F3o</option>
-                            <option  value="27">sqXo</option>
-                            <option  value="28">sqYo</option>
-                            <option  value="29">sqFo</option>
+                            <option  value="27">0</option>
+                            <option  value="28">0</option>
+                            <option  value="29">0</option>
                             <!--option value="30">0</option-->
                             <!--option value="31">0</option-->
                           </select>
@@ -4364,8 +4347,8 @@
                           <select id="lock_trig_sw" class="form-control">
                             <option  value="0" selected="selected">None</option>
                             <option  value="1">Pin</option>
-                            <option  value="2">Ramp floor</option>
-                            <option  value="4">Ramp ceil</option>
+                            <option  value="2">Scan floor</option>
+                            <option  value="4">Scan ceil</option>
                             <option  value="8">harmonic mod.</option>
                             <option  value="16">Square mod.</option>
                             <option  value="32">Out of lock</option>
@@ -4454,9 +4437,9 @@
                             <option  value="5">cos_1f</option>
                             <option  value="6">cos_2f</option>
                             <option  value="7">cos_3f</option>
-                            <option  value="8">sq_ref</option>
-                            <option  value="9">sq_quad</option>
-                            <option  value="10">sq_phas</option>
+                            <option  value="8">0</option>
+                            <option  value="9">0</option>
+                            <option  value="10">0</option>
                             <option  value="11">PID A out</option>
                             <option  value="12">ctrl_A</option>
                             <option  value="13">ctrl_B</option>
@@ -4481,9 +4464,9 @@
                             <option  value="5">cos_1f</option>
                             <option  value="6">cos_2f</option>
                             <option  value="7">cos_3f</option>
-                            <option  value="8">sq_ref</option>
-                            <option  value="9">sq_quad</option>
-                            <option  value="10">sq_phas</option>
+                            <option  value="8">0</option>
+                            <option  value="9">0</option>
+                            <option  value="10">0</option>
                             <option  value="11">PID B out</option>
                             <option  value="12">ctrl_A</option>
                             <option  value="13">ctrl_B</option>
@@ -4521,8 +4504,8 @@
                                 <option  value="5">cos_1f</option>
                                 <option  value="6">cos_2f</option>
                                 <option  value="7">cos_3f</option>
-                                <option  value="8">sq_ref</option>
-                                <option  value="9">sq_phas</option>
+                                <option  value="8">0</option>
+                                <option  value="9">0</option>
                                 <option  value="10">Ramp A</option>
                                 <option  value="11">PID A out</option>
                                 <option  value="12">ctrl_A</option>
@@ -4548,8 +4531,8 @@
                                 <option  value="5">cos_1f</option>
                                 <option  value="6">cos_2f</option>
                                 <option  value="7">cos_3f</option>
-                                <option  value="8">sq_quad</option>
-                                <option  value="9">sq_phas</option>
+                                <option  value="8">0</option>
+                                <option  value="9">0</option>
                                 <option  value="10">Ramp B</option>
                                 <option  value="11">PID A out</option>
                                 <option  value="12">ctrl_A</option>
@@ -4575,8 +4558,8 @@
                                 <option  value="5">cos_1f</option>
                                 <option  value="6">cos_2f</option>
                                 <option  value="7">cos_3f</option>
-                                <option  value="8">sq_ref</option>
-                                <option  value="9">sq_phas</option>
+                                <option  value="8">0</option>
+                                <option  value="9">0</option>
                                 <option  value="10">Ramp A</option>
                                 <option  value="11">PID A out</option>
                                 <option  value="12">ctrl_A</option>
@@ -4602,8 +4585,8 @@
                                 <option  value="5">cos_1f</option>
                                 <option  value="6">cos_2f</option>
                                 <option  value="7">cos_3f</option>
-                                <option  value="8">sq_quad</option>
-                                <option  value="9">sq_phas</option>
+                                <option  value="8">0</option>
+                                <option  value="9">0</option>
                                 <option  value="10">Ramp B</option>
                                 <option  value="11">PID A out</option>
                                 <option  value="12">ctrl_A</option>
@@ -4652,8 +4635,8 @@
                           <option  value="2">in1-in2</option>
                           <option  value="3">sin_ref</option>
                           <option  value="4">cos_1f</option>
-                          <option  value="5">sq_ref</option>
-                          <option  value="6">sq_phas</option>
+                          <option  value="5">0</option>
+                          <option  value="6">0</option>
                           <option  value="7">Ramp A</option>
                           <option  value="8">square ref (bin)</option>
                           <option  value="9">square phas (bin)</option>
@@ -4919,7 +4902,7 @@
 
               <hr style="margin: 7px 7px">
 
-              <!-- Fast square lock-in -------------------------------------->
+              <!-- Fast square lock-in -------------------------------------- >
               <div class="row">
                 <div class="panel-group col-xs-12 col-sm-12 col-md-12">
                   <p class="text-center">
@@ -5033,7 +5016,10 @@
                 </div>
               </div>
 
-              <hr style="margin: 7px 7px">
+              <hr style="margin: 7px 7px"-->
+
+
+
 
               <!-- Aux ---------------------------------------------------->
               <div class="row">
@@ -5178,7 +5164,7 @@
                     <form class="form-horizontal" role="form" onsubmit="return false;">
                       <div class="checkbox" style="padding-bottom: 12px;">
                         <label class="group-label">
-                          <input type="checkbox" id="lock_ramp_reset">Ramp reset
+                          <input type="checkbox" id="lock_ramp_reset">Scan reset
                         </label>
                       </div>
                     </form>
@@ -5187,7 +5173,7 @@
                     <form class="form-horizontal" role="form" onsubmit="return false;">
                       <div class="checkbox" style="padding-bottom: 12px;">
                         <label class="group-label">
-                          <input type="checkbox" id="lock_ramp_enable">Ramp enable
+                          <input type="checkbox" id="lock_ramp_enable">Scan enable
                         </label>
                       </div>
                     </form>
@@ -5196,7 +5182,7 @@
                     <form class="form-horizontal" role="form" onsubmit="return false;">
                       <div class="checkbox" style="padding-bottom: 12px;">
                         <label class="group-label">
-                          <input type="checkbox" id="lock_ramp_direction">Ramp direction
+                          <input type="checkbox" id="lock_ramp_direction">Scan direction
                         </label>
                       </div>
                     </form>
@@ -5241,9 +5227,9 @@
                           <option  value="2">Xo</option>
                           <option  value="3">F1o</option>
                           <option  value="4">F3o</option>
-                          <option  value="5">sqXo</option>
-                          <option  value="6">sqYo</option>
-                          <option  value="7">sqFo</option>
+                          <option  value="5">0</option>
+                          <option  value="6">0</option>
+                          <option  value="7">0</option>
                         </select>
                       </div>
                     </div>
@@ -5290,9 +5276,9 @@
                               <option data-tag="pidA_more" value="3">F1o</option>
                               <option data-tag="pidA_more" value="4">F2o</option>
                               <option data-tag="pidA_more" value="5">F3o</option>
-                              <option data-tag="pidA_more" value="6">sqXo</option>
-                              <option data-tag="pidA_more" value="7">sqYo</option>
-                              <option data-tag="pidA_more" value="8">sqFo</option>
+                              <option data-tag="pidA_more" value="6">0</option>
+                              <option data-tag="pidA_more" value="7">0</option>
+                              <option data-tag="pidA_more" value="8">0</option>
                               <option  value="9">signal_i</option>
                               <option data-tag="pidA_more" value="10">Ramp A</option>
                               <option data-tag="pidA_more" value="11">sin_ref</option>
@@ -5300,9 +5286,9 @@
                               <option data-tag="pidA_more" value="13">cos_1f</option>
                               <option data-tag="pidA_more" value="14">cos_2f</option>
                               <option data-tag="pidA_more" value="15">cos_3f</option>
-                              <option data-tag="pidA_more" value="16">sq_ref</option>
-                              <option data-tag="pidA_more" value="17">sq_quad</option>
-                              <option data-tag="pidA_more" value="18">sq_phas</option>
+                              <option data-tag="pidA_more" value="16">0</option>
+                              <option data-tag="pidA_more" value="17">0</option>
+                              <option data-tag="pidA_more" value="18">0</option>
                               <option data-tag="pidA_more" value="19">aux_A</option>
                               <option data-tag="pidA_more" value="20">aux_B</option>
                               <option data-tag="pidA_more" value="21">test14</option>
@@ -5573,9 +5559,9 @@
                               <option data-tag="pidB_more" value="3">F1o</option>
                               <option data-tag="pidB_more" value="4">F2o</option>
                               <option data-tag="pidB_more" value="5">F3o</option>
-                              <option data-tag="pidB_more" value="6">sqXo</option>
-                              <option data-tag="pidB_more" value="7">sqYo</option>
-                              <option data-tag="pidB_more" value="8">sqFo</option>
+                              <option data-tag="pidB_more" value="6">0</option>
+                              <option data-tag="pidB_more" value="7">0</option>
+                              <option data-tag="pidB_more" value="8">0</option>
                               <option  value="9">signal_i</option>
                               <option data-tag="pidB_more" value="10">Ramp A</option>
                               <option data-tag="pidB_more" value="11">sin_ref</option>
@@ -5583,9 +5569,9 @@
                               <option data-tag="pidB_more" value="13">cos_1f</option>
                               <option data-tag="pidB_more" value="14">cos_2f</option>
                               <option data-tag="pidB_more" value="15">cos_3f</option>
-                              <option data-tag="pidB_more" value="16">sq_ref</option>
-                              <option data-tag="pidB_more" value="17">sq_quad</option>
-                              <option data-tag="pidB_more" value="18">sq_phas</option>
+                              <option data-tag="pidB_more" value="16">0</option>
+                              <option data-tag="pidB_more" value="17">0</option>
+                              <option data-tag="pidB_more" value="18">0</option>
                               <option data-tag="pidB_more" value="19">aux_A</option>
                               <option data-tag="pidB_more" value="20">aux_B</option>
                               <option data-tag="pidB_more" value="21">test14</option>
@@ -6046,7 +6032,7 @@
                       <div class="panel-group col-xs-12">
                         <form class="form-horizontal" role="form" onsubmit="return false;">
                           <div class="form-group text-center">
-                            <button id="lock_ctrl_aux_ramp_enable_ctrl" class="btn btn-primary btn-lg" data-checked="true" disabled>Ramp enable</button>
+                            <button id="lock_ctrl_aux_ramp_enable_ctrl" class="btn btn-primary btn-lg" data-checked="true" disabled>Scan enable</button>
                           </div>
                         </form>
                       </div>
@@ -6107,7 +6093,7 @@
                       <form class="form-horizontal" role="form" onsubmit="return false;">
                         <div class="checkbox" style="padding-bottom: 12px;">
                           <label class="group-label">
-                            <input type="checkbox" id="lock_ctrl_aux_set_ramp_enable">Ramp enable
+                            <input type="checkbox" id="lock_ctrl_aux_set_ramp_enable">Scan enable
                           </label>
                         </div>
                       </form>
@@ -6117,7 +6103,7 @@
                       <form class="form-horizontal" role="form" onsubmit="return false;">
                         <div class="checkbox" style="padding-bottom: 12px;">
                           <label class="group-label">
-                            <input type="checkbox" id="lock_ctrl_aux_set_pidA_enable"checked>PID A enable
+                            <input type="checkbox" id="lock_ctrl_aux_set_pidA_enable" checked>PID A enable
                           </label>
                         </div>
                       </form>
@@ -6127,7 +6113,7 @@
                       <form class="form-horizontal" role="form" onsubmit="return false;">
                         <div class="checkbox" style="padding-bottom: 12px;">
                           <label class="group-label">
-                            <input type="checkbox" id="lock_ctrl_aux_set_pidB_enable"checked>PID B enable
+                            <input type="checkbox" id="lock_ctrl_aux_set_pidB_enable" checked>PID B enable
                           </label>
                         </div>
                       </form>
@@ -6161,9 +6147,9 @@
                               <option  value="3">F1o</option>
                               <option  value="4">F2o</option>
                               <option  value="5">F3o</option>
-                              <option  value="6">sqXo</option>
-                              <option  value="7">sqYo</option>
-                              <option  value="8">sqFo</option>
+                              <option  value="6">0</option>
+                              <option  value="7">0</option>
+                              <option  value="8">0</option>
                               <option  value="9">signal_i</option>
                               <option  value="10">Ramp A</option>
                               <option  value="11">aux_A</option>
@@ -6336,7 +6322,12 @@
 
               </div>
             </div>
-            <div class="panel panel-default">
+
+
+
+
+            <!-- DISABLE square lock-in panel -->
+            <!--div class="panel panel-default">
               <div class="panel-heading">
                 <h4 class="panel-title">
                   <a data-toggle="collapse" href="#fast_lock_in_display">
@@ -6378,7 +6369,11 @@
 
 
               </div>
-            </div>
+            </div-->
+
+
+
+
           </div>
 
         </div>

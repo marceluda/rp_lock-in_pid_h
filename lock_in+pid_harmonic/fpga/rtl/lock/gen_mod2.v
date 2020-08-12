@@ -16,12 +16,12 @@ module gen_mod2
     input           [12-1:0] phase,    // Phase control
     input           [32-1:0] phase_sq, // Phase control
     input           [14-1:0] hp,   // Harmonic period control
-    input           [32-1:0] sqp,  // Square period control
+    // input           [32-1:0] sqp,  // Square period control
     output signed   [14-1:0] sin_ref, //sin_1f, sin_2f, sin_3f,
     output signed   [14-1:0] cos_ref, cos_1f, cos_2f, cos_3f,
     output          [12-1:0] cntu_w,
-    output                   sq_ref, sq_quad, sq_phas,
-    output                   harmonic_trig, square_trig
+    // output                   sq_ref, sq_quad, sq_phas,
+    output                   harmonic_trig//, square_trig
 );
     // Addr for memory slots
     //ERASE wire [12-1:0] r_addr,r_addr2,r_addr3;
@@ -37,23 +37,23 @@ module gen_mod2
     //ERASE  assign phase_b = phase==12'b0 ? 12'd2519 :  phase[12-1:0] - 12'b1 ;
 
     // sq divisor
-    reg  sq_ref_r;
-    wire sq_ref_next;
+    // reg  sq_ref_r;
+    // wire sq_ref_next;
+    //
+    // reg  sq_quad_r;
+    // wire sq_quad_next;
+    //
+    // reg  sq_phas_r;
+    // wire sq_phas_next;
 
-    reg  sq_quad_r;
-    wire sq_quad_next;
+    // wire clksq_equal_sqp, sqp_off;
+    // wire phas_less_than_sqp,clksq_equal_sqp_half;
 
-    reg  sq_phas_r;
-    wire sq_phas_next;
-
-    wire clksq_equal_sqp, sqp_off;
-    wire phas_less_than_sqp,clksq_equal_sqp_half;
-
-    reg  [32-1:0] clk_sq_cnt;
-    wire [33-1:0] clk_sq_cnt_next;
-    wire [32-1:0] sqp_half;
-    wire [33-1:0] sqp_plus_half;
-    wire [33-1:0] phas_sq;
+    // reg  [32-1:0] clk_sq_cnt;
+    // wire [33-1:0] clk_sq_cnt_next;
+    // wire [32-1:0] sqp_half;
+    // wire [33-1:0] sqp_plus_half;
+    // wire [33-1:0] phas_sq;
 
 
 
@@ -324,53 +324,53 @@ module gen_mod2
     assign cos_3f   =  quad_bit3[1]^quad_bit3[0]   ?  $signed(-memory_cos3_r[cnt3])  : memory_cos3_r[cnt3] ;
 
     // Square signal ---------------------------------------------------
-
-    // Counter
-    always @(posedge clk)
-	if (rst)
-        begin
-            clk_sq_cnt <= 0; // {N{1b'0}}
-            sq_ref_r   <= 0;
-            sq_quad_r  <= 0;
-            sq_phas_r  <= 0;
-        end
-	else
-        begin
-            clk_sq_cnt <= sqp_off ? cnt_next : clk_sq_cnt_next[32-1:0];
-            sq_ref_r   <= sq_ref_next ;
-            sq_quad_r  <= sq_quad_next;
-            sq_phas_r  <= sq_phas_next;
-        end
+    //
+    // // Counter
+    // always @(posedge clk)
+	// if (rst)
+    //     begin
+    //         clk_sq_cnt <= 0; // {N{1b'0}}
+    //         sq_ref_r   <= 0;
+    //         sq_quad_r  <= 0;
+    //         sq_phas_r  <= 0;
+    //     end
+	// else
+    //     begin
+    //         clk_sq_cnt <= sqp_off ? cnt_next : clk_sq_cnt_next[32-1:0];
+    //         sq_ref_r   <= sq_ref_next ;
+    //         sq_quad_r  <= sq_quad_next;
+    //         sq_phas_r  <= sq_phas_next;
+    //     end
 
     // Aux signals
 
-
-    assign sqp_half                  = sqp >> 1'b1 ;
-    assign sqp_plus_half             = sqp + sqp_half ;
-    assign phas_sq                   = phas_less_than_sqp ? {1'b0,phase_sq} : (phase_sq - sqp) ;
-
-    assign clksq_equal_sqp           = ( clk_sq_cnt==sqp   );                   // Tells me if clksq == sqp
-    assign clksq_gt_sqp              = ( clk_sq_cnt>=sqp   );                   // Tells me if clksq >= sqp
-
-    assign clksq_equal_sqp_half      = ( clk_sq_cnt==sqp_half ) ;               // Tells me if clksq == sqp + (sqp+1)/2
-    assign clksq_equal_phas          = ( clk_sq_cnt_next==phas_sq[32-1:0] ) ;        // Tells me if clksq == phase_sq
-
-    assign sqp_off                   = ( sqp==32'b00       );                   // Tells me if sq modulation is off
-    assign phas_less_than_sqp        = ( phase_sq < sqp + 1'b1 );
-
-    // Next-state wires
-    assign clk_sq_cnt_next = clksq_gt_sqp              ? 32'b0 : clk_sq_cnt + 32'b001;
-    assign sq_ref_next     = clksq_equal_sqp           ? ~sq_ref_r : sq_ref_r  ;
-    assign sq_quad_next    = clksq_equal_sqp_half      ?  sq_ref_r : sq_quad_r ;
-    assign sq_phas_next    = clksq_equal_phas          ? sq_ref_next^(~phas_less_than_sqp) : sq_phas_r ;
-
-    // outputs
-    assign sq_ref  = sqp_off ? (~cos_ref[13])  : sq_ref_r ;
-    assign sq_quad = sqp_off ? (~sin_ref[13])  : sq_quad_r ;
-    assign sq_phas = sqp_off ? (~cos_1f[13] )  : sq_phas_r ;
+    //
+    // assign sqp_half                  = sqp >> 1'b1 ;
+    // assign sqp_plus_half             = sqp + sqp_half ;
+    // assign phas_sq                   = phas_less_than_sqp ? {1'b0,phase_sq} : (phase_sq - sqp) ;
+    //
+    // assign clksq_equal_sqp           = ( clk_sq_cnt==sqp   );                   // Tells me if clksq == sqp
+    // assign clksq_gt_sqp              = ( clk_sq_cnt>=sqp   );                   // Tells me if clksq >= sqp
+    //
+    // assign clksq_equal_sqp_half      = ( clk_sq_cnt==sqp_half ) ;               // Tells me if clksq == sqp + (sqp+1)/2
+    // assign clksq_equal_phas          = ( clk_sq_cnt_next==phas_sq[32-1:0] ) ;        // Tells me if clksq == phase_sq
+    //
+    // assign sqp_off                   = ( sqp==32'b00       );                   // Tells me if sq modulation is off
+    // assign phas_less_than_sqp        = ( phase_sq < sqp + 1'b1 );
+    //
+    // // Next-state wires
+    // assign clk_sq_cnt_next = clksq_gt_sqp              ? 32'b0 : clk_sq_cnt + 32'b001;
+    // assign sq_ref_next     = clksq_equal_sqp           ? ~sq_ref_r : sq_ref_r  ;
+    // assign sq_quad_next    = clksq_equal_sqp_half      ?  sq_ref_r : sq_quad_r ;
+    // assign sq_phas_next    = clksq_equal_phas          ? sq_ref_next^(~phas_less_than_sqp) : sq_phas_r ;
+    //
+    // // outputs
+    // assign sq_ref  = sqp_off ? (~cos_ref[13])  : sq_ref_r ;
+    // assign sq_quad = sqp_off ? (~sin_ref[13])  : sq_quad_r ;
+    // assign sq_phas = sqp_off ? (~cos_1f[13] )  : sq_phas_r ;
 
     //assign square_trig = clksq_equal_sqp & sq_ref ;
-    assign square_trig = clksq_equal_sqp_half & sq_ref ;
+    // assign square_trig = clksq_equal_sqp_half & sq_ref ;
 
 
     //assign test = sqp_half ;
