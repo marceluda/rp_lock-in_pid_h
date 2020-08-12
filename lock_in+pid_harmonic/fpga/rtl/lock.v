@@ -200,20 +200,20 @@ module lock(
     wire  jump_started,jump_trigger;
     wire signed [14-1:0] sf_jumpA_val,sf_jumpB_val;
 
-    reg  signed [28-1:0] X_28_reg,Y_28_reg,F1_28_reg,F2_28_reg,F3_28_reg,sqX_28_reg,sqY_28_reg,sqF_28_reg;
+    reg  signed [28-1:0] X_28_reg,Y_28_reg,F1_28_reg,F2_28_reg,F3_28_reg;//,sqX_28_reg,sqY_28_reg,sqF_28_reg;
     reg  signed [14-1:0] error_reg,ctrl_A_reg,ctrl_B_reg;
     reg         [50-1:0] cnt,cnt_reg;
     wire        [50-1:0] cnt_next;
     wire                 freeze ;
 
-    wire signed [14-1:0] /*sq_ref*/ 14'b0_mult14, /*sq_quad*/ 14'b0_mult14, /*sq_phas*/ 14'b0_mult14;
+    // wire signed [14-1:0] /*sq_ref*/ 14'b0_mult14, /*sq_quad*/ 14'b0_mult14, /*sq_phas*/ 14'b0_mult14;
 
     // wires for signal processing
-    wire signed  [ 28-1: 0]   sin_ref_mult,  cos_ref_mult,   cos_1f_mult,   cos_2f_mult,   cos_3f_mult,   /*sq_ref*/ 14'b0_mult,  /*sq_quad*/ 14'b0_mult,  /*sq_phas*/ 14'b0_mult;
-    wire signed  [ 28-1: 0]   sin_ref_lpf1,  cos_ref_lpf1,   cos_1f_lpf1,   cos_2f_lpf1,   cos_3f_lpf1,   /*sq_ref*/ 14'b0_lpf1,  /*sq_quad*/ 14'b0_lpf1,  /*sq_phas*/ 14'b0_lpf1;
-    wire signed  [ 28-1: 0]   sin_ref_lpf2,  cos_ref_lpf2,   cos_1f_lpf2,   cos_2f_lpf2,   cos_3f_lpf2,   /*sq_ref*/ 14'b0_lpf2,  /*sq_quad*/ 14'b0_lpf2,  /*sq_phas*/ 14'b0_lpf2;
-    wire signed  [  6-1: 0]       lpf_X_A,      lpf_Y_A,      lpf_F1_A,      lpf_F2_A,      lpf_F3_A;//,     lpf_sqX_A,     lpf_sqY_A,     lpf_sqF_A;
-    wire signed  [  6-1: 0]       lpf_X_B,      lpf_Y_B,      lpf_F1_B,      lpf_F2_B,      lpf_F3_B;//,     lpf_sqX_B,     lpf_sqY_B,     lpf_sqF_B;
+    wire signed  [ 28-1: 0]   sin_ref_mult,  cos_ref_mult,   cos_1f_mult,   cos_2f_mult,   cos_3f_mult;
+    wire signed  [ 28-1: 0]   sin_ref_lpf1,  cos_ref_lpf1,   cos_1f_lpf1,   cos_2f_lpf1,   cos_3f_lpf1;
+    wire signed  [ 28-1: 0]   sin_ref_lpf2,  cos_ref_lpf2,   cos_1f_lpf2,   cos_2f_lpf2,   cos_3f_lpf2;
+    wire signed  [  6-1: 0]       lpf_X_A,      lpf_Y_A,      lpf_F1_A,      lpf_F2_A,      lpf_F3_A;
+    wire signed  [  6-1: 0]       lpf_X_B,      lpf_Y_B,      lpf_F1_B,      lpf_F2_B,      lpf_F3_B;
 
 
     //ERASE wire signed [14-1:0] LPF_A_in  , LPF_B_in  ;
@@ -260,7 +260,7 @@ module lock(
         .in12 ( sin_ref ),   .in13 ( cos_ref ),
         .in14 ( cos_1f ),    .in15 ( cos_2f ),   .in16 ( cos_3f  ),
         .in17 ( /*sq_ref*/ 14'b0  ),   .in18 ( /*sq_quad*/ 14'b0  ), .in19 ( /*sq_phas*/ 14'b0 ),
-        .in20 ( {1'b0,/*sq_ref*/ 14'b0_b,12'b0} ),   .in21 ( signal_i ),
+        .in20 ( 14'b0 ),   .in21 ( signal_i ),
         .in22 ( Xo      ),   .in23 ( Yo    ),
         .in24 ( F1o     ),   .in25 ( F2o   ),  .in26 ( F3o   ),
         .in27 ( /*sqXo */ 14'b0   ),   .in28 ( /*sqYo */ 14'b0 ),  .in29 ( /*sqFo */ 14'b0 ),
@@ -284,7 +284,7 @@ module lock(
         .in12 ( sin_ref ),   .in13 ( cos_ref ),
         .in14 ( cos_1f ),    .in15 ( cos_2f ),   .in16 ( cos_3f  ),
         .in17 ( /*sq_ref*/ 14'b0  ),   .in18 ( /*sq_quad*/ 14'b0  ), .in19 ( /*sq_phas*/ 14'b0 ),
-        .in20 ( {1'b0,/*sq_ref*/ 14'b0_b,12'b0} ),   .in21 ( signal_i ),
+        .in20 (  14'b0 ),   .in21 ( signal_i ),
         .in22 ( Xo      ),   .in23 ( Yo    ),
         .in24 ( F1o     ),   .in25 ( F2o   ),  .in26 ( F3o    ),
         .in27 ( /*sqXo */ 14'b0   ),   .in28 ( /*sqYo */ 14'b0 ),  .in29 ( /*sqFo */ 14'b0  ),
@@ -380,32 +380,7 @@ module lock(
 
 
     // test an debug
-    /* ERASE
-    muxer5  #(.RES(14)) i_test_mux (
-        // input
-        .sel  ( test_sw ), // select cable
-        .in0  ( 14'b0 ),
-        .in1  ( sin_ref_mult[27-1:13]  ),    .in2  ( sin_ref_lpf2[27-1:13]  ), .in3  ( Xo  ),
-        .in4  ( cos_ref_mult[27-1:13]  ),    .in5  ( cos_ref_lpf2[27-1:13]  ), .in6  ( Yo  ),
-        .in7  ( cos_1f_mult[27-1:13]   ),    .in8  ( cos_1f_lpf2[27-1:13]   ), .in9  ( F1  ),
-        .in10 ( cos_2f_mult[27-1:13]   ),    .in11 ( cos_2f_lpf2[27-1:13]   ), .in12 ( F2  ),
-        .in13 ( cos_3f_mult[27-1:13]   ),    .in14 ( cos_3f_lpf2[27-1:13]   ), .in15 ( F3  ),
-        .in16 ( /*sq_ref*/ 14'b0_mult[27-1:13]   ),    .in17 ( /*sq_ref*/ 14'b0_lpf2[27-1:13]   ), .in18 ( sqx ),
-        .in19 ( /*sq_quad*/ 14'b0_mult[27-1:13]  ),    .in20 ( /*sq_quad*/ 14'b0_lpf2[27-1:13]  ), .in21 ( sqy ),
-        .in22 ( aux_A ), // in22
-        .in23 ( aux_B ), // in23
-        .in24 ( 14'b0 ), // in24
-        .in25 ( 14'b0 ), // in25
-        .in26 ( 14'b0 ), // in26
-        .in27 ( 14'b0 ), // in27
-        .in28 ( 14'b0 ), // in28
-        .in29 ( 14'b0 ), // in29
-        .in30 ( 14'b0 ), // in30
-        .in31 ( 14'b0 ), // in31
-        // output
-        .out ( test14  )
-    );
-    */
+
 
 
     // Slow DACs outputs *************
@@ -449,8 +424,8 @@ module lock(
         .in5  ( cos_1f            ), // in5
         .in6  ( cos_2f            ), // in6
         .in7  ( cos_3f            ), // in7
-        .in8  ( /*sq_ref*/ 14'b0            ), // in8
-        .in9  ( /*sq_phas*/ 14'b0           ), // in9
+        .in8  (  14'b0            ), // in8
+        .in9  (  14'b0           ), // in9
         .in10 ( ramp_A            ), // in10
         .in11 ( pidA_out          ), // in11
         .in12 ( ctrl_A            ), // in12
@@ -472,8 +447,8 @@ module lock(
         .in5  ( cos_1f            ), // in5
         .in6  ( cos_2f            ), // in6
         .in7  ( cos_3f            ), // in7
-        .in8  ( /*sq_quad*/ 14'b0           ), // in8
-        .in9  ( /*sq_phas*/ 14'b0           ), // in9
+        .in8  ( /*sq_quad 14'b0           ), // in8
+        .in9  ( /*sq_phas 14'b0           ), // in9
         .in10 ( ramp_B            ), // in10
         .in11 ( pidA_out          ), // in11
         .in12 ( ctrl_A            ), // in12
@@ -553,8 +528,8 @@ module lock(
         .in5  ( /*sq_ref*/ 14'b0 ), // in5
         .in6  ( /*sq_phas*/ 14'b0 ), // in6
         .in7  ( ramp_A ), // in7
-        .in8  ( {1'b0, /*sq_ref*/ 14'b0_b  , 12'b0  } ), // in8
-        .in9  ( {1'b0, /*sq_phas*/ 14'b0_b , 12'b0  } ), // in9
+        .in8  ( 14'b0 ), // in8
+        .in9  (14'b0 ), // in9
         .in10 ( aux_A ), // in10
         .in11 ( aux_B ), // in11
         .in12 ( 14'b0 ), // in12
@@ -655,7 +630,7 @@ module lock(
     // assign /*sq_quad*/ 14'b0 = { ~/*sq_quad*/ 14'b0_b , 1'b1, 12'b0 };
     // assign /*sq_phas*/ 14'b0 = { ~/*sq_phas*/ 14'b0_b , 1'b1, 12'b0 };
 
-    assign digital_modulation = /*sq_ref*/ 14'b0_b ;
+    assign digital_modulation = 1'b0 ;
 
     /* end function generator *****************************************/
 
@@ -817,9 +792,9 @@ module lock(
     // sq_mult    i_sq_mult_/*sq_quad*/ 14'b0 (.clk(clk),.rst(rst), .ref( /*sq_quad*/ 14'b0_b  ), .in( signal_i ),.out( /*sq_quad*/ 14'b0_mult14  ) );
     // sq_mult    i_sq_mult_/*sq_phas*/ 14'b0 (.clk(clk),.rst(rst), .ref( /*sq_phas*/ 14'b0_b  ), .in( signal_i ),.out( /*sq_phas*/ 14'b0_mult14  ) );
 
-    assign /*sq_ref*/ 14'b0_mult  = {   {6{/*sq_ref*/ 14'b0_mult14[13]}} , /*sq_ref*/ 14'b0_mult14  , 12'b0 } ;
-    assign /*sq_quad*/ 14'b0_mult = {  {6{/*sq_quad*/ 14'b0_mult14[13]}} , /*sq_quad*/ 14'b0_mult14 , 12'b0 } ;
-    assign /*sq_phas*/ 14'b0_mult = {  {6{/*sq_phas*/ 14'b0_mult14[13]}} , /*sq_phas*/ 14'b0_mult14 , 12'b0 } ;
+    // assign /*sq_ref*/ 14'b0_mult  = {   {6{/*sq_ref*/ 14'b0_mult14[13]}} , /*sq_ref*/ 14'b0_mult14  , 12'b0 } ;
+    // assign /*sq_quad*/ 14'b0_mult = {  {6{/*sq_quad*/ 14'b0_mult14[13]}} , /*sq_quad*/ 14'b0_mult14 , 12'b0 } ;
+    // assign /*sq_phas*/ 14'b0_mult = {  {6{/*sq_phas*/ 14'b0_mult14[13]}} , /*sq_phas*/ 14'b0_mult14 , 12'b0 } ;
 
 
 
@@ -854,9 +829,9 @@ module lock(
     assign F1_28  = cos_1f_lpf2  ;
     assign F2_28  = cos_2f_lpf2  ;
     assign F3_28  = cos_3f_lpf2  ;
-    assign sqX_28 = /*sq_ref*/ 14'b0_lpf2  ;
-    assign sqY_28 = /*sq_quad*/ 14'b0_lpf2 ;
-    assign sqF_28 = /*sq_phas*/ 14'b0_lpf2 ;
+    // assign sqX_28 = /*sq_ref*/ 14'b0_lpf2  ;
+    // assign sqY_28 = /*sq_quad*/ 14'b0_lpf2 ;
+    // assign sqF_28 = /*sq_phas*/ 14'b0_lpf2 ;
 
 
     assign Xo_37    = ( X_28   <<< sg_amp1  );
@@ -889,9 +864,9 @@ module lock(
             F1_28_reg   <=  28'b0;
             F2_28_reg   <=  28'b0;
             F3_28_reg   <=  28'b0;
-            sqX_28_reg  <=  28'b0;
-            sqY_28_reg  <=  28'b0;
-            sqF_28_reg  <=  28'b0;
+            // sqX_28_reg  <=  28'b0;
+            // sqY_28_reg  <=  28'b0;
+            // sqF_28_reg  <=  28'b0;
             error_reg   <=  14'b0;
             ctrl_A_reg  <=  14'b0;
             ctrl_B_reg  <=  14'b0;
@@ -905,9 +880,9 @@ module lock(
                 F1_28_reg   <=  F1_28_reg;
                 F2_28_reg   <=  F2_28_reg;
                 F3_28_reg   <=  F3_28_reg;
-                sqX_28_reg  <=  sqX_28_reg;
-                sqY_28_reg  <=  sqY_28_reg;
-                sqF_28_reg  <=  sqF_28_reg;
+                // sqX_28_reg  <=  sqX_28_reg;
+                // sqY_28_reg  <=  sqY_28_reg;
+                // sqF_28_reg  <=  sqF_28_reg;
                 error_reg   <=  error_reg;
                 ctrl_A_reg  <=  ctrl_A_reg;
                 ctrl_B_reg  <=  ctrl_B_reg;
@@ -919,9 +894,9 @@ module lock(
                 F1_28_reg   <=  F1_28;
                 F2_28_reg   <=  F2_28;
                 F3_28_reg   <=  F3_28;
-                sqX_28_reg  <=  sqX_28;
-                sqY_28_reg  <=  sqY_28;
-                sqF_28_reg  <=  sqF_28;
+                // sqX_28_reg  <=  sqX_28;
+                // sqY_28_reg  <=  sqY_28;
+                // sqF_28_reg  <=  sqF_28;
                 error_reg   <=  error;
                 ctrl_A_reg  <=  ctrl_A;
                 ctrl_B_reg  <=  ctrl_B;
@@ -1013,9 +988,9 @@ module lock(
         .in2  ( in1_m_in2[14-1:0] ), // in1-in2
         .in3  ( sin_ref ), // in3
         .in4  ( cos_2f ), // in3
-        .in5  ( /*sq_ref*/ 14'b0 ), // in4
+        .in5  ( /*sq_ref/ 14'b0 ), // in4
         .in6  ( ramp_A ), // in5
-        .in7  ( {1'b0, /*sq_ref*/ 14'b0_b  , 12'b0  } ), // in6
+        .in7  ( {1'b0, /*sq_ref/ 14'b0_b  , 12'b0  } ), // in6
         .in8  ( aux_A ), // in7
         .in9  ( Xo ), // in8
         .in10 ( pidA_out ), // in9
@@ -1038,9 +1013,9 @@ module lock(
         .in2  ( in1_m_in2[14-1:0] ), // in1-in2
         .in3  ( cos_1f ), // in3
         .in4  ( cos_3f ), // in3
-        .in5  ( /*sq_phas*/ 14'b0 ), // in4
+        .in5  ( /*sq_phas/ 14'b0 ), // in4
         .in6  ( ramp_A ), // in5
-        .in7  ( {1'b0, /*sq_quad*/ 14'b0_b  , 12'b0  } ), // in6
+        .in7  ( {1'b0, /*sq_quad/ 14'b0_b  , 12'b0  } ), // in6
         .in8  ( aux_B ), // in7
         .in9  ( F1 ), // in8
         .in10 ( pidA_out ), // in9
