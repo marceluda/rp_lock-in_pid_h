@@ -1682,8 +1682,8 @@
 
   function lpf_update(){
 
-    var lpfs={0:'lock_lpf_F1_tau'   , 1:'lock_lpf_F2_tau'  , 2:'lock_lpf_F3_tau'  , 3:'lock_lpf_sq_tau',
-              4:'lock_lpf_F1_order' , 5:'lock_lpf_F2_order', 6:'lock_lpf_F3_order', 7:'lock_lpf_sq_order'   };
+    var lpfs={0:'lock_lpf_F1_tau'   , 1:'lock_lpf_F2_tau'  , 2:'lock_lpf_F3_tau'  , 3:'lock_lpf_F3_tau',
+              4:'lock_lpf_F1_order' , 5:'lock_lpf_F2_order', 6:'lock_lpf_F3_order', 7:'lock_lpf_F3_order'   };
 
     if (params.local){
         for ( i in lpfs){
@@ -2734,7 +2734,7 @@
 
     if ( $.inArray( param_name, [ 'lock_pidA_PSR', 'lock_pidA_ISR', 'lock_pidA_DSR', 'lock_pidA_SAT' ] )>-1 ) lock_pidA_update() ;
     if ( $.inArray( param_name, [ 'lock_pidB_PSR', 'lock_pidB_ISR', 'lock_pidB_DSR', 'lock_pidB_SAT' ] )>-1 ) lock_pidB_update() ;
-    if ( $.inArray( param_name, [ 'lock_lpf_F1_tau', 'lock_lpf_F1_order', 'lock_lpf_F2_tau', 'lock_lpf_F2_order', 'lock_lpf_F3_tau', 'lock_lpf_F3_order', 'lock_lpf_sq_tau', 'lock_lpf_sq_order' ] )>-1 ) lpf_update();
+    if ( $.inArray( param_name, [ 'lock_lpf_F1_tau', 'lock_lpf_F1_order', 'lock_lpf_F2_tau', 'lock_lpf_F2_order', 'lock_lpf_F3_tau', 'lock_lpf_F3_order' ] )>-1 ) lpf_update();
 
     params.local[param_name] = parseInt(that.val());
     sendParams(do_get);
