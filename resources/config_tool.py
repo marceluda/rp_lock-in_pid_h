@@ -35,7 +35,7 @@ from datetime import datetime
 
 PWD = os.environ['PWD']
 
-if PWD.find('rp_lock-in_pid')>0:
+if PWD.find('rp_lock-in_pid_h')>0:
     folder = PWD[:PWD.find('rp_lock-in_pid_h')+len('rp_lock-in_pid_h')]
 
 APP='lock_in+pid_harmonic'
@@ -48,6 +48,7 @@ do_py      = True
 #folder=''
 #folder='/home/lolo/Dropbox/Doctorado/github/rp_lock-in_pid'
 
+# do_verilog, do_main, do_html, do_py = False, False, False, False
 
 #%%
 
@@ -174,6 +175,10 @@ f.add( name="error"              , group=grp , val=    0, rw=False,  nbits=14, m
 f.add( name="error_mean"         , group=grp , val=    0, rw=False,  nbits=32, min_val=-2147483648, max_val= 2147483647, fpga_update=False, signed=True , desc="1 sec error mean val" )
 f.add( name="error_std"          , group=grp , val=    0, rw=False,  nbits=32, min_val=-2147483648, max_val= 2147483647, fpga_update=False, signed=True , desc="1 sec error square sum val" )
 #f.add( name="error_abs"          , group=grp , val=    0, rw=False,  nbits=13, min_val=          0, max_val=       8191, fpga_update=False, signed=True , desc="error absolute value" )
+
+f.add( name="mod_out1"         , group=grp , val=   -1, rw=True ,  nbits=14, min_val=      -8192, max_val=       8191, fpga_update=True , signed=True , desc="Modulation amplitud for out1" )
+f.add( name="mod_out2"         , group=grp , val=   -1, rw=True ,  nbits=14, min_val=      -8192, max_val=       8191, fpga_update=True , signed=True , desc="Modulation amplitud for out2" )
+
 
 # Modulation Generator
 grp='gen_mod'
@@ -741,6 +746,8 @@ r=m["lock_error_mean"  ]; r.c_update='((float) ( g_lock_reg->{:s} >= 0 ? g_lock_
 m.add( name="lock_error_std"          , fpga_reg="error_std"          , val=0    , rw=False, nbits=32, min_val=-2147483648, max_val=2147483647, fpga_update=False, signed=True , group="lock-in"        , desc="1 sec error square sum val")
 r=m["lock_error_std"  ]; r.c_update='lock_error_var<0 ? -1 : sqrt( lock_error_var ) '.format(r.fpga_reg , m["lock_error_mean"].cdef)
 
+m.add( name="lock_mod_out1"           , fpga_reg="mod_out1"           , val=-1   , rw=True , nbits=14, min_val=-1      , max_val=8191      , fpga_update=True , signed=True , group="lock-in"        , desc="Modulation amplitud for out1")
+m.add( name="lock_mod_out2"           , fpga_reg="mod_out2"           , val=-1   , rw=True , nbits=14, min_val=-1      , max_val=8191      , fpga_update=True , signed=True , group="lock-in"        , desc="Modulation amplitud for out2")
 
 # group: gen_mod
 m.add( name="lock_gen_mod_phase" , fpga_reg="gen_mod_phase" , val=0    , rw=True , nbits=12, min_val=0         , max_val=2519      , fpga_update=True , signed=False, group="gen_mod"        , desc="phase relation of cos_?f signals")
@@ -1260,8 +1267,11 @@ h['lock_lpf_F2_order'             ].type = 'select'
 h['lock_lpf_F3_tau'               ].type = 'select'
 h['lock_lpf_F3_order'             ].type = 'select'
 h['lock_error_sw'                 ].type = 'select'
-
 h['lock_error_offset'             ].type = 'number'
+h['lock_mod_out1'                 ].type = 'number'
+h['lock_mod_out2'                 ].type = 'number'
+
+
 
 h['lock_gen_mod_phase'            ].type = 'number'
 
@@ -1497,6 +1507,11 @@ h['lock_rl_signal_threshold'      ].control.text = 'Signal Thr'
 h['lock_rl_error_enable'          ].control.text = 'Error Enable'
 h['lock_rl_signal_enable'         ].control.text = 'Signal Enable'
 h['lock_rl_reset'                 ].control.text = 'RL reset'
+
+h['lock_mod_out1'          ].control.text = 'A&nbsp;Out1'
+h['lock_mod_out2'          ].control.text = 'A&nbsp;Out2'
+
+
 
 h['lock_pidA_ifreeze'].control.text='freeze integral'
 h['lock_pidB_ifreeze'].control.text='freeze integral'

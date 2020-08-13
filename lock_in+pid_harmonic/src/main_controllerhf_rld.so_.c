@@ -345,6 +345,8 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { "lock_error"                    ,      0, 0, 1,        -8192,         8191 }, /** error signal value **/
     { "lock_error_mean"               ,      0, 0, 1,  -0x80000000,   0x7fffffff }, /** 1 sec error mean val **/
     { "lock_error_std"                ,      0, 0, 1,  -0x80000000,   0x7fffffff }, /** 1 sec error square sum val **/
+    { "lock_mod_out1"                 ,     -1, 1, 0,           -1,         8191 }, /** Modulation amplitud for out1 **/
+    { "lock_mod_out2"                 ,     -1, 1, 0,           -1,         8191 }, /** Modulation amplitud for out2 **/
     { "lock_gen_mod_phase"            ,      0, 1, 0,            0,         2519 }, /** phase relation of cos_?f signals **/
     { "lock_gen_mod_hp"               ,      0, 1, 0,            0,        16383 }, /** harmonic period set **/
     { "lock_ramp_A"                   ,      0, 0, 1,        -8192,         8191 }, /** ramp signal A **/

@@ -31,9 +31,6 @@
   <link rel="stylesheet" href="css/bootstrap.css" type="text/css">
   <link rel="stylesheet" href="css/style.css"     type="text/css">
 
-  <!--  ERASE ON NEXT COMMIT
-  For Cookies https://github.com/js-cookie/js-cookie/releases/tag/v2.1.4 >
-  <script src="js/js.cookie.min.js"></script-->
 
   <script src="js/jquery.mousewheel.js"></script>
 
@@ -118,14 +115,14 @@
                        'lock_rl_signal_sw,lock_rl_signal_threshold,lock_rl_error_enable,lock_rl_signal_enable,lock_rl_reset,lock_sf_jumpA,'+
                        'lock_sf_jumpB,lock_sf_start,lock_sf_AfrzO,lock_sf_AfrzI,lock_sf_BfrzO,lock_sf_BfrzI,lock_signal_sw,lock_sg_amp1,'+
                        'lock_sg_amp2,lock_sg_amp3,lock_lpf_F1_tau,lock_lpf_F1_order,lock_lpf_F2_tau,lock_lpf_F2_order,lock_lpf_F3_tau,'+
-                       'lock_lpf_F3_order,lock_error_sw,lock_error_offset,lock_gen_mod_phase,lock_gen_mod_hp,lock_ramp_step,lock_ramp_low_lim,'+
-                       'lock_ramp_hig_lim,lock_ramp_reset,lock_ramp_enable,lock_ramp_direction,lock_ramp_B_factor,lock_read_ctrl,lock_pidA_sw,'+
-                       'lock_pidA_PSR,lock_pidA_ISR,lock_pidA_DSR,lock_pidA_SAT,lock_pidA_sp,lock_pidA_kp,lock_pidA_ki,lock_pidA_kd,lock_pidA_irst,'+
-                       'lock_pidA_freeze,lock_pidA_ifreeze,lock_pidB_sw,lock_pidB_PSR,lock_pidB_ISR,lock_pidB_DSR,lock_pidB_SAT,lock_pidB_sp,'+
-                       'lock_pidB_kp,lock_pidB_ki,lock_pidB_kd,lock_pidB_irst,lock_pidB_freeze,lock_pidB_ifreeze,lock_aux_A,lock_aux_B,'+
-                       'lock_ctrl_aux_lock_now,lock_ctrl_aux_launch_lock_trig,lock_ctrl_aux_pidB_enable_ctrl,lock_ctrl_aux_pidA_enable_ctrl,'+
-                       'lock_ctrl_aux_ramp_enable_ctrl,lock_ctrl_aux_set_pidB_enable,lock_ctrl_aux_set_pidA_enable,lock_ctrl_aux_set_ramp_enable,'+
-                       'lock_ctrl_aux_trig_type,lock_ctrl_aux_lock_trig_rise,lock_mod_harmonic_on';
+                       'lock_lpf_F3_order,lock_error_sw,lock_error_offset,lock_mod_out1,lock_mod_out2,lock_gen_mod_phase,lock_gen_mod_hp,'+
+                       'lock_ramp_step,lock_ramp_low_lim,lock_ramp_hig_lim,lock_ramp_reset,lock_ramp_enable,lock_ramp_direction,lock_ramp_B_factor,'+
+                       'lock_read_ctrl,lock_pidA_sw,lock_pidA_PSR,lock_pidA_ISR,lock_pidA_DSR,lock_pidA_SAT,lock_pidA_sp,lock_pidA_kp,'+
+                       'lock_pidA_ki,lock_pidA_kd,lock_pidA_irst,lock_pidA_freeze,lock_pidA_ifreeze,lock_pidB_sw,lock_pidB_PSR,lock_pidB_ISR,'+
+                       'lock_pidB_DSR,lock_pidB_SAT,lock_pidB_sp,lock_pidB_kp,lock_pidB_ki,lock_pidB_kd,lock_pidB_irst,lock_pidB_freeze,'+
+                       'lock_pidB_ifreeze,lock_aux_A,lock_aux_B,lock_ctrl_aux_lock_now,lock_ctrl_aux_launch_lock_trig,lock_ctrl_aux_pidB_enable_ctrl,'+
+                       'lock_ctrl_aux_pidA_enable_ctrl,lock_ctrl_aux_ramp_enable_ctrl,lock_ctrl_aux_set_pidB_enable,lock_ctrl_aux_set_pidA_enable,'+
+                       'lock_ctrl_aux_set_ramp_enable,lock_ctrl_aux_trig_type,lock_ctrl_aux_lock_trig_rise,lock_mod_harmonic_on';
 
   config_params_keys = config_params_txts.split(",");
 
@@ -1158,9 +1155,9 @@
 
     // Number inputs
     var input_number=['lock_lock_trig_val','lock_lock_trig_time_val','lock_rl_error_threshold','lock_rl_signal_threshold','lock_sf_jumpA', 
-                      'lock_sf_jumpB','lock_error_offset','lock_gen_mod_phase','lock_gen_mod_hp','lock_ramp_step','lock_ramp_low_lim','lock_ramp_hig_lim', 
-                      'lock_ramp_B_factor','lock_pidA_sp','lock_pidA_kp','lock_pidA_ki','lock_pidA_kd','lock_pidB_sp','lock_pidB_kp','lock_pidB_ki', 
-                      'lock_pidB_kd','lock_aux_A','lock_aux_B'];
+                      'lock_sf_jumpB','lock_error_offset','lock_mod_out1','lock_mod_out2','lock_gen_mod_phase','lock_gen_mod_hp','lock_ramp_step', 
+                      'lock_ramp_low_lim','lock_ramp_hig_lim','lock_ramp_B_factor','lock_pidA_sp','lock_pidA_kp','lock_pidA_ki','lock_pidA_kd', 
+                      'lock_pidB_sp','lock_pidB_kp','lock_pidB_ki','lock_pidB_kd','lock_aux_A','lock_aux_B'];
 
     for(ii in input_number){
       $('#'+input_number[ii])
@@ -2801,6 +2798,8 @@
     $('#lock_sf_jumpA'           ).val(params.original.lock_sf_jumpA              );
     $('#lock_sf_jumpB'           ).val(params.original.lock_sf_jumpB              );
     $('#lock_error_offset'       ).val(params.original.lock_error_offset          );
+    $('#lock_mod_out1'           ).val(params.original.lock_mod_out1              );
+    $('#lock_mod_out2'           ).val(params.original.lock_mod_out2              );
     $('#lock_gen_mod_phase'      ).val(params.original.lock_gen_mod_phase         );
     $('#lock_gen_mod_hp'         ).val(params.original.lock_gen_mod_hp            );
     $('#lock_ramp_step'          ).val(params.original.lock_ramp_step             );
@@ -4776,7 +4775,8 @@
                   </p>
                 </div>
                 <div class="panel-group col-xs-12 col-sm-12 col-md-12 collapse" id="aux_lock_in_hide">
-                  <div class="row">
+
+                  <div class="row"><!-- Auxiliar values -->
                     <div class="panel-group col-xs-12 col-sm-12 col-md-12">
                       <form class="form-horizontal" role="form" onsubmit="return false;">
                         <div class="form-group">
@@ -4804,6 +4804,39 @@
                       </form>
                     </div>
                   </div>
+                  <hr style="margin: 7px 7px">
+                  <div class="row"><!-- Modulation amplitude for outputs values -->
+                      <div class="panel-group col-xs-12 col-sm-12 col-md-12 text-center">
+                        <p>Modulation Amplitude</p>
+                      </div>
+                    <div class="panel-group col-xs-12 col-sm-12 col-md-12">
+                      <form class="form-horizontal" role="form" onsubmit="return false;">
+                        <div class="form-group">
+                          <label for="lock_mod_out1" class="col-xs-4 control-label">A&nbsp;Out1:</label>
+                          <div class="col-xs-4 col-sm-8">
+                            <input type="number" autocomplete="off" class="form-control" value="-1" id="lock_mod_out1" step="1" min="-1" max="8191">
+                            <span style="display: none;" class="input-group-btn" id="lock_mod_out1_apply">
+                              <button type="button" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-ok-circle"></span></button>
+                            </span>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                    <div class="panel-group col-xs-12 col-sm-12 col-md-12">
+                      <form class="form-horizontal" role="form" onsubmit="return false;">
+                        <div class="form-group">
+                          <label for="lock_mod_out2" class="col-xs-4 control-label">A&nbsp;Out2:</label>
+                          <div class="col-xs-4 col-sm-8">
+                            <input type="number" autocomplete="off" class="form-control" value="-1" id="lock_mod_out2" step="1" min="-1" max="8191">
+                            <span style="display: none;" class="input-group-btn" id="lock_mod_out2_apply">
+                              <button type="button" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-ok-circle"></span></button>
+                            </span>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+
                 </div>
               </div>
 
