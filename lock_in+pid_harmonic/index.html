@@ -4135,19 +4135,19 @@
                             <option  value="14">cos_1f</option>
                             <option  value="15">cos_2f</option>
                             <option  value="16">cos_3f</option>
-                            <option  value="17">/*sq_ref*/ 14'b0</option>
-                            <option  value="18">/*sq_quad*/ 14'b0</option>
-                            <option  value="19">/*sq_phas*/ 14'b0</option>
-                            <option  value="20">0</option>
-                            <option  value="21">signal_i</option>
-                            <option  value="22">Xo</option>
-                            <option  value="23">Yo</option>
-                            <option  value="24">F1o</option>
-                            <option  value="25">F2o</option>
-                            <option  value="26">F3o</option>
-                            <option  value="27">/*sqXo */ 14'b0</option>
-                            <option  value="28">/*sqYo */ 14'b0</option>
-                            <option  value="29">/*sqFo */ 14'b0</option>
+                            <option  value="17">Xo</option>
+                            <option  value="18">Yo</option>
+                            <option  value="19">F1o</option>
+                            <option  value="20">F2o</option>
+                            <option  value="21">F3o</option>
+                            <option  value="22">signal_i</option>
+                            <option  value="23">out1</option>
+                            <option  value="24">out2</option>
+                            <!--option value="25">0</option-->
+                            <!--option value="26">0</option-->
+                            <!--option value="27">0</option-->
+                            <!--option value="28">0</option-->
+                            <!--option value="29">0</option-->
                             <!--option value="30">0</option-->
                             <!--option value="31">0</option-->
                           </select>
@@ -4178,19 +4178,19 @@
                             <option  value="14">cos_1f</option>
                             <option  value="15">cos_2f</option>
                             <option  value="16">cos_3f</option>
-                            <option  value="17">/*sq_ref*/ 14'b0</option>
-                            <option  value="18">/*sq_quad*/ 14'b0</option>
-                            <option  value="19">/*sq_phas*/ 14'b0</option>
-                            <option  value="20">0</option>
-                            <option  value="21">signal_i</option>
-                            <option  value="22">Xo</option>
-                            <option  value="23">Yo</option>
-                            <option  value="24">F1o</option>
-                            <option  value="25">F2o</option>
-                            <option  value="26">F3o</option>
-                            <option  value="27">/*sqXo */ 14'b0</option>
-                            <option  value="28">/*sqYo */ 14'b0</option>
-                            <option  value="29">/*sqFo */ 14'b0</option>
+                            <option  value="17">Xo</option>
+                            <option  value="18">Yo</option>
+                            <option  value="19">F1o</option>
+                            <option  value="20">F2o</option>
+                            <option  value="21">F3o</option>
+                            <option  value="22">signal_i</option>
+                            <option  value="23">out1</option>
+                            <option  value="24">out2</option>
+                            <!--option value="25">0</option-->
+                            <!--option value="26">0</option-->
+                            <!--option value="27">0</option-->
+                            <!--option value="28">0</option-->
+                            <!--option value="29">0</option-->
                             <!--option value="30">0</option-->
                             <!--option value="31">0</option-->
                           </select>
@@ -4295,18 +4295,18 @@
                             <option  value="1">in1</option>
                             <option  value="2">in2</option>
                             <option  value="3">in1-in2</option>
-                            <option  value="4">sin_ref</option>
+                            <option  value="4">error</option>
                             <option  value="5">cos_1f</option>
                             <option  value="6">cos_2f</option>
                             <option  value="7">cos_3f</option>
-                            <option  value="8">/*sq_ref*/ 14'b0</option>
-                            <option  value="9">/*sq_quad*/ 14'b0</option>
-                            <option  value="10">/*sq_phas*/ 14'b0</option>
-                            <option  value="11">PID A out</option>
+                            <option  value="8">cos_ref</option>
+                            <option  value="9">sin_ref</option>
+                            <option  value="10">PID A out</option>
+                            <option  value="11">PID B out</option>
                             <option  value="12">ctrl_A</option>
                             <option  value="13">ctrl_B</option>
-                            <option  value="14">error</option>
-                            <option  value="15">aux_A</option>
+                            <option  value="14">aux_A</option>
+                            <option  value="15">aux_B</option>
                           </select>
                         </div>
                       </div>
@@ -4322,17 +4322,17 @@
                             <option  value="1">in1</option>
                             <option  value="2">in2</option>
                             <option  value="3">in1-in2</option>
-                            <option  value="4">cos_ref</option>
+                            <option  value="4">error</option>
                             <option  value="5">cos_1f</option>
                             <option  value="6">cos_2f</option>
                             <option  value="7">cos_3f</option>
-                            <option  value="8">/*sq_ref*/ 14'b0</option>
-                            <option  value="9">/*sq_quad*/ 14'b0</option>
-                            <option  value="10">/*sq_phas*/ 14'b0</option>
+                            <option  value="8">cos_ref</option>
+                            <option  value="9">sin_ref</option>
+                            <option  value="10">PID A out</option>
                             <option  value="11">PID B out</option>
                             <option  value="12">ctrl_A</option>
                             <option  value="13">ctrl_B</option>
-                            <option  value="14">error</option>
+                            <option  value="14">aux_A</option>
                             <option  value="15">aux_B</option>
                           </select>
                         </div>
@@ -4495,19 +4495,11 @@
                           <option  value="0" selected="selected">in1</option>
                           <option  value="1">in2</option>
                           <option  value="2">in1-in2</option>
-                          <option  value="3">sin_ref</option>
-                          <option  value="4">cos_1f</option>
-                          <option  value="5">/*sq_ref*/ 14'b0</option>
-                          <option  value="6">/*sq_phas*/ 14'b0</option>
+                          <option  value="3">cos_ref</option>
+                          <option  value="4">sin_ref</option>
+                          <option  value="5">cos_1f</option>
+                          <option  value="6">aux_A</option>
                           <option  value="7">Ramp A</option>
-                          <option  value="8">0</option>
-                          <option  value="9">0</option>
-                          <option  value="10">aux_A</option>
-                          <option  value="11">aux_B</option>
-                          <!--option value="12">0</option-->
-                          <!--option value="13">0</option-->
-                          <!--option value="14">0</option-->
-                          <!--option value="15">0</option-->
                         </select>
                       </div>
                     </div>
@@ -4806,9 +4798,9 @@
                   </div>
                   <hr style="margin: 7px 7px">
                   <div class="row"><!-- Modulation amplitude for outputs values -->
-                      <div class="panel-group col-xs-12 col-sm-12 col-md-12 text-center">
-                        <p>Modulation Amplitude</p>
-                      </div>
+                    <div class="panel-group col-xs-12 col-sm-12 col-md-12 text-center">
+                      <p>Modulation Amplitude</p>
+                    </div>
                     <div class="panel-group col-xs-12 col-sm-12 col-md-12">
                       <form class="form-horizontal" role="form" onsubmit="return false;">
                         <div class="form-group">
@@ -5001,13 +4993,13 @@
                       <div class="col-xs-8">
                         <select id="lock_error_sw" class="form-control">
                           <option  value="0" selected="selected">0</option>
-                          <option  value="1">in1</option>
-                          <option  value="2">Xo</option>
+                          <option  value="1">Xo</option>
+                          <option  value="2">Y0</option>
                           <option  value="3">F1o</option>
-                          <option  value="4">F3o</option>
-                          <option  value="5">/*sqXo */ 14'b0</option>
-                          <option  value="6">/*sqYo */ 14'b0</option>
-                          <option  value="7">/*sqFo */ 14'b0</option>
+                          <option  value="4">F2o</option>
+                          <option  value="5">F3o</option>
+                          <option  value="6">in1</option>
+                          <option  value="7">in1-in2</option>
                         </select>
                       </div>
                     </div>
@@ -5054,32 +5046,16 @@
                               <option data-tag="pidA_more" value="3">F1o</option>
                               <option data-tag="pidA_more" value="4">F2o</option>
                               <option data-tag="pidA_more" value="5">F3o</option>
-                              <option data-tag="pidA_more" value="6">/*sqXo */ 14'b0</option>
-                              <option data-tag="pidA_more" value="7">/*sqYo */ 14'b0</option>
-                              <option data-tag="pidA_more" value="8">/*sqFo */ 14'b0</option>
-                              <option  value="9">signal_i</option>
-                              <option data-tag="pidA_more" value="10">Ramp A</option>
-                              <option data-tag="pidA_more" value="11">sin_ref</option>
-                              <option data-tag="pidA_more" value="12">cos_ref</option>
-                              <option data-tag="pidA_more" value="13">cos_1f</option>
-                              <option data-tag="pidA_more" value="14">cos_2f</option>
-                              <option data-tag="pidA_more" value="15">cos_3f</option>
-                              <option data-tag="pidA_more" value="16">/*sq_ref*/ 14'b0</option>
-                              <option data-tag="pidA_more" value="17">/*sq_quad*/ 14'b0</option>
-                              <option data-tag="pidA_more" value="18">/*sq_phas*/ 14'b0</option>
-                              <option data-tag="pidA_more" value="19">aux_A</option>
-                              <option data-tag="pidA_more" value="20">aux_B</option>
-                              <option data-tag="pidA_more" value="21">test14</option>
-                              <option  value="22">in1</option>
-                              <option  value="23">in2</option>
-                              <option  value="24">in1-in2</option>
-                              <!--option value="25">0</option-->
-                              <!--option value="26">0</option-->
-                              <!--option value="27">0</option-->
-                              <!--option value="28">0</option-->
-                              <!--option value="29">0</option-->
-                              <!--option value="30">0</option-->
-                              <!--option value="31">0</option-->
+                              <option data-tag="pidA_more" value="6">signal_i</option>
+                              <option data-tag="pidA_more" value="7">Ramp A</option>
+                              <option data-tag="pidA_more" value="8">in1-in2</option>
+                              <option  value="9">in1</option>
+                              <option data-tag="pidA_more" value="10">in2</option>
+                              <option data-tag="pidA_more" value="11">aux_A</option>
+                              <option data-tag="pidA_more" value="12">aux_B</option>
+                              <option data-tag="pidA_more" value="13">cos_ref</option>
+                              <option data-tag="pidA_more" value="14">sin_ref</option>
+                              <option data-tag="pidA_more" value="15">0</option>
                             </select>
                           </div>
                         </div>
@@ -5337,32 +5313,16 @@
                               <option data-tag="pidB_more" value="3">F1o</option>
                               <option data-tag="pidB_more" value="4">F2o</option>
                               <option data-tag="pidB_more" value="5">F3o</option>
-                              <option data-tag="pidB_more" value="6">/*sqXo */ 14'b0</option>
-                              <option data-tag="pidB_more" value="7">/*sqYo */ 14'b0</option>
-                              <option data-tag="pidB_more" value="8">/*sqFo */ 14'b0</option>
-                              <option  value="9">signal_i</option>
-                              <option data-tag="pidB_more" value="10">Ramp A</option>
-                              <option data-tag="pidB_more" value="11">sin_ref</option>
-                              <option data-tag="pidB_more" value="12">cos_ref</option>
-                              <option data-tag="pidB_more" value="13">cos_1f</option>
-                              <option data-tag="pidB_more" value="14">cos_2f</option>
-                              <option data-tag="pidB_more" value="15">cos_3f</option>
-                              <option data-tag="pidB_more" value="16">/*sq_ref*/ 14'b0</option>
-                              <option data-tag="pidB_more" value="17">/*sq_quad*/ 14'b0</option>
-                              <option data-tag="pidB_more" value="18">/*sq_phas*/ 14'b0</option>
-                              <option data-tag="pidB_more" value="19">aux_A</option>
-                              <option data-tag="pidB_more" value="20">aux_B</option>
-                              <option data-tag="pidB_more" value="21">test14</option>
-                              <option  value="22">in1</option>
-                              <option  value="23">in2</option>
-                              <option  value="24">in1-in2</option>
-                              <!--option value="25">0</option-->
-                              <!--option value="26">0</option-->
-                              <!--option value="27">0</option-->
-                              <!--option value="28">0</option-->
-                              <!--option value="29">0</option-->
-                              <!--option value="30">0</option-->
-                              <!--option value="31">0</option-->
+                              <option data-tag="pidB_more" value="6">signal_i</option>
+                              <option data-tag="pidB_more" value="7">Ramp A</option>
+                              <option data-tag="pidB_more" value="8">in1-in2</option>
+                              <option  value="9">in1</option>
+                              <option data-tag="pidB_more" value="10">in2</option>
+                              <option data-tag="pidB_more" value="11">aux_A</option>
+                              <option data-tag="pidB_more" value="12">aux_B</option>
+                              <option data-tag="pidB_more" value="13">cos_ref</option>
+                              <option data-tag="pidB_more" value="14">sin_ref</option>
+                              <option data-tag="pidB_more" value="15">0</option>
                             </select>
                           </div>
                         </div>

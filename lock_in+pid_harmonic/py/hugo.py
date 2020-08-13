@@ -352,6 +352,8 @@ li.add( fpga_reg(name='aux_B'              , index= 91, rw=True , nbits=14,signe
 
 
 
+
+
 #%%
 
 if __name__ == '__main__':

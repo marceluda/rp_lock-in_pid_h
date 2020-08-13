@@ -1669,8 +1669,8 @@ if False:
     for i,v in enumerate(h['lock_pidA_sw'].control.items):
         print('{:2d} {:}'.format(i,v))
 
-h['lock_oscA_sw'].control.enable = [True]*30 + [False]*2
-h['lock_oscB_sw'].control.enable = [True]*30 + [False]*2
+h['lock_oscA_sw'].control.enable = [True]*25 + [False]*7
+h['lock_oscB_sw'].control.enable = [True]*25 + [False]*7
 
 h['lock_pidA_sw'].control.enable = [True]*25 + [False]*7
 h['lock_pidB_sw'].control.enable = [True]*25 + [False]*7
