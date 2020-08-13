@@ -1,22 +1,22 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
+// Company:
+// Engineer:
+//
 // Create Date: 17.02.2017 12:03:25
-// Design Name: 
+// Design Name:
 // Module Name: LP_filter3
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
+// Project Name:
+// Target Devices:
+// Tool Versions:
+// Description:
+//
+// Dependencies:
+//
 // Revision:
 // Revision 0.01 - File Created
 // Additional Comments:
-// 
+//
 //////////////////////////////////////////////////////////////////////////////////
 
 
@@ -27,41 +27,41 @@ module LP_filter3 #(parameter R=14)
     input  signed [ R-1:0] in,
     output signed [ R-1:0] out
     );
-    
-    // R resolution of input and output signals
-    // Low Pass Filter characteristi time is: 8 ns * 2**tau
+
+    // R resolution of input and output signals (aka: bus width)
+    // Low Pass Filter characteristic time is: 8 ns * 2**tau
     // max tau value = 62-R . For R=14, max tau=48
     //                        For R=28, max tau=34
-    
+
     localparam S=58; // 45 works great
-    
+
     reg  signed [S-1 :0] sum;
     wire signed [S   :0] sum_next;
-    wire signed [31-1:0] sum_div;
+    wire signed [41-1:0] sum_div;
 
     reg                 step;
     wire                step_next;
 
-    
+
     always @(posedge clk) begin
        if (rst) begin
            sum    <=    {S{1'b0}}    ;
-        end 
+        end
         else begin
-           if ( sum_next[S:S-1] == 2'b01  )  // positive overflow 
+           if ( sum_next[S:S-1] == 2'b01  )  // positive overflow
               sum    <=  {1'b0, {S-1{1'b1}} } ;
-           else if ( sum_next[S:S-1] == 2'b10  )  // negative overflow 
+           else if ( sum_next[S:S-1] == 2'b10  )  // negative overflow
               sum    <=  {1'b1, {S-1{1'b0}} } ;
            else
               sum    <=  sum_next[S-1:0] ;
         end
     end
-    
+
     assign sum_next =  $signed(in)  - $signed( sum_div ) + $signed(sum)  ;
     assign sum_div  =  $signed(sum[S-1:14] ) >>> tau[4-1:0]  ;
-    
+
     assign out = ( |tau[5:4] ) ? in : sum_div[R-1:0] ;
-    
+
 endmodule
 
 
@@ -91,7 +91,7 @@ LP_filter3 #(.R(14)) NAME (.clk(clk),.rst(rst), .tau( 14'd18   ), .in(  IN  ),.o
   *   |  15  |    4.29  s  |   37.06 mHz  |
   *
   */
-  
+
 
 
 /*
@@ -103,7 +103,7 @@ N=arange(41)
 
 tau=8e-9 * 2**N
 
-units={ -3: 'n', 
+units={ -3: 'n',
         -2: 'u',
         -1: 'm',
          0: ' ',

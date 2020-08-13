@@ -159,9 +159,10 @@ f.add( name="sf_config"          , group=grp , val=    0, rw=True ,  nbits= 5, m
 
 # Lock-in control
 grp='lock-in'
-f.add( name="signal_sw"          , group=grp , val=    0, rw=True ,  nbits= 4, min_val=          0, max_val=         15, fpga_update=True , signed=False, desc="Input selector for signal_i" )
+f.add( name="signal_sw"          , group=grp , val=    0, rw=True ,  nbits= 3, min_val=          0, max_val=          7, fpga_update=True , signed=False, desc="Input selector for signal_i" )
 f.add( name="signal_i"           , group=grp , val=    0, rw=False,  nbits=14, min_val=      -8192, max_val=       8191, fpga_update=False, signed=True , desc="signal for demodulation" )
-f.add( name="sg_amp1"            , group=grp , val=    0, rw=True ,  nbits= 4, min_val=          0, max_val=         15, fpga_update=True , signed=False, desc="amplification of Xo, Yo and F1o" )
+f.add( name="sg_amp0"            , group=grp , val=    0, rw=True ,  nbits= 5, min_val=          0, max_val=         31, fpga_update=True , signed=False, desc="amplification of Xo, Yo" )
+f.add( name="sg_amp1"            , group=grp , val=    0, rw=True ,  nbits= 4, min_val=          0, max_val=         15, fpga_update=True , signed=False, desc="amplification F1o" )
 f.add( name="sg_amp2"            , group=grp , val=    0, rw=True ,  nbits= 4, min_val=          0, max_val=         15, fpga_update=True , signed=False, desc="amplification of F2o" )
 f.add( name="sg_amp3"            , group=grp , val=    0, rw=True ,  nbits= 4, min_val=          0, max_val=         15, fpga_update=True , signed=False, desc="amplification of F3o" )
 
@@ -712,9 +713,10 @@ r=f["sf_config"            ]; r.c_update='(((int)params[{:s}].value) << 4 ) +(((
 
 
 # group: lock-in
-m.add( name="lock_signal_sw"     , fpga_reg="signal_sw"     , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="Input selector for signal_i")
+m.add( name="lock_signal_sw"     , fpga_reg="signal_sw"     , val=0    , rw=True , nbits=3 , min_val=0         , max_val=7        , fpga_update=True , signed=False, group="lock-in"        , desc="Input selector for signal_i")
 m.add( name="lock_signal_i"      , fpga_reg="signal_i"      , val=0    , rw=False, nbits=14, min_val=-8192     , max_val=8191      , fpga_update=False, signed=True , group="lock-in"        , desc="signal for demodulation")
-m.add( name="lock_sg_amp1"       , fpga_reg="sg_amp1"       , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="amplification of Xo, Yo and F1o")
+m.add( name="lock_sg_amp0"       , fpga_reg="sg_amp0"       , val=0    , rw=True , nbits=5 , min_val=0         , max_val=31        , fpga_update=True , signed=False, group="lock-in"        , desc="amplification of Xo, Yo")
+m.add( name="lock_sg_amp1"       , fpga_reg="sg_amp1"       , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="amplification of F1o")
 m.add( name="lock_sg_amp2"       , fpga_reg="sg_amp2"       , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="amplification of F2o")
 m.add( name="lock_sg_amp3"       , fpga_reg="sg_amp3"       , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="amplification of F3o")
 
@@ -1256,6 +1258,7 @@ h['lock_sf_BfrzO'                 ].type = 'checkbox'
 h['lock_sf_BfrzI'                 ].type = 'checkbox'
 
 h['lock_signal_sw'                ].type = 'select'
+h['lock_sg_amp0'                  ].type = 'select'
 h['lock_sg_amp1'                  ].type = 'select'
 h['lock_sg_amp2'                  ].type = 'select'
 h['lock_sg_amp3'                  ].type = 'select'
@@ -1636,6 +1639,7 @@ h['lock_trig_sw'  ].control = select(idd="lock_trig_sw"   ,
                      vals =[    0 ,    1 ,          2 ,         4 ,             8 ,          16 ,            32 ,           64 ,               128  ]
                      )
 
+h["lock_sg_amp0"  ].control = select(idd="lock_sg_amp0"   ,items=['x1','x2','x4','x8','x16','x32','x64','x128','x256','x512','x1k', 'x2k', 'x4k', 'x8k', 'x16k', 'x32k', 'x64k', 'x128k', 'x256k', 'x512k'])
 h["lock_sg_amp1"  ].control = select(idd="lock_sg_amp1"   ,items=['x1','x2','x4','x8','x16','x32','x64','x128','x256','x512'])
 h["lock_sg_amp2"  ].control = select(idd="lock_sg_amp2"   ,items=['x1','x2','x4','x8','x16','x32','x64','x128','x256','x512'])
 h["lock_sg_amp3"  ].control = select(idd="lock_sg_amp3"   ,items=['x1','x2','x4','x8','x16','x32','x64','x128','x256','x512'])
@@ -1683,7 +1687,7 @@ h['lock_pidA_sw'].control.hide_group = 'pidA_more'
 h['lock_pidB_sw'].control.hide_group = 'pidB_more'
 
 
-h["lock_signal_sw"].control.enable = [True]*12+[False]*4
+h["lock_signal_sw"].control.enable = [True]*8
 
 
 #%%
