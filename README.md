@@ -65,3 +65,12 @@ Replace `rp-XXXXXX.local` by your RP localname or IP address
 
 Also, you can use your own SSH client and upload the lock_in+pid_harmonic folder the the
 RedPiaya folder: `/opt/redpitaya/www/apps`
+
+
+# TODO
+
+ - add modulation with arbitrary amplitud on output chanels [DONE]
+ - Rip-off square lock-in [DONE]
+ - RE-ORDER signals on switches
+ - Add more amplification on lock-in
+ - Synchronized trigger for ramp module
