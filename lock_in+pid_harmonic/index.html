@@ -1157,9 +1157,9 @@
     // [LOLO DOCK PAGELOAD]
 
     // Number inputs
-    var input_number=['lock_lock_trig_val','lock_lock_trig_time_val','lock_rl_error_threshold','lock_rl_signal_threshold','lock_sf_jumpA',
-                      'lock_sf_jumpB','lock_error_offset','lock_gen_mod_phase','lock_gen_mod_hp','lock_ramp_step','lock_ramp_low_lim','lock_ramp_hig_lim',
-                      'lock_ramp_B_factor','lock_pidA_sp','lock_pidA_kp','lock_pidA_ki','lock_pidA_kd','lock_pidB_sp','lock_pidB_kp','lock_pidB_ki',
+    var input_number=['lock_lock_trig_val','lock_lock_trig_time_val','lock_rl_error_threshold','lock_rl_signal_threshold','lock_sf_jumpA', 
+                      'lock_sf_jumpB','lock_error_offset','lock_gen_mod_phase','lock_gen_mod_hp','lock_ramp_step','lock_ramp_low_lim','lock_ramp_hig_lim', 
+                      'lock_ramp_B_factor','lock_pidA_sp','lock_pidA_kp','lock_pidA_ki','lock_pidA_kd','lock_pidB_sp','lock_pidB_kp','lock_pidB_ki', 
                       'lock_pidB_kd','lock_aux_A','lock_aux_B'];
 
     for(ii in input_number){
@@ -2792,7 +2792,7 @@
     $('#lock_ctrl_aux_set_pidA_enable').prop('checked', (params.original.lock_ctrl_aux_set_pidA_enable    ? true : false));
     $('#lock_ctrl_aux_set_ramp_enable').prop('checked', (params.original.lock_ctrl_aux_set_ramp_enable    ? true : false));
     $('#lock_ctrl_aux_lock_trig_rise' ).prop('checked', (params.original.lock_ctrl_aux_lock_trig_rise     ? true : false));
-
+    
     // Numbers
     $('#lock_lock_trig_val'      ).val(params.original.lock_lock_trig_val         );
     $('#lock_lock_trig_time_val' ).val(params.original.lock_lock_trig_time_val    );
@@ -2817,7 +2817,7 @@
     $('#lock_pidB_kd'            ).val(params.original.lock_pidB_kd               );
     $('#lock_aux_A'              ).val(params.original.lock_aux_A                 );
     $('#lock_aux_B'              ).val(params.original.lock_aux_B                 );
-
+    
     // Switches
     $('#lock_oscA_sw'           ).val(params.original.lock_oscA_sw              );
     $('#lock_oscB_sw'           ).val(params.original.lock_oscB_sw              );
@@ -2849,7 +2849,7 @@
     $('#lock_pidB_DSR'          ).val(params.original.lock_pidB_DSR             );
     $('#lock_pidB_SAT'          ).val(params.original.lock_pidB_SAT             );
     $('#lock_ctrl_aux_trig_type').val(params.original.lock_ctrl_aux_trig_type   );
-
+    
     // Buttons
     if (params.original.lock_osc_raw_mode){                 // lock_osc_raw_mode
       $('#lock_osc_raw_mode').removeClass('btn-default').addClass('btn-primary').data('checked',true);
@@ -2896,7 +2896,7 @@
     }else{
       $('#lock_mod_harmonic_on').removeClass('btn-primary').addClass('btn-default').data('checked',false);
     }
-
+    
     // [LOLO DOCK LOADPARAMS END]
 
 
@@ -4136,19 +4136,19 @@
                             <option  value="14">cos_1f</option>
                             <option  value="15">cos_2f</option>
                             <option  value="16">cos_3f</option>
-                            <option  value="17">0</option>
-                            <option  value="18">0</option>
-                            <option  value="19">0</option>
-                            <option  value="20">square ref (bin)</option>
+                            <option  value="17">/*sq_ref*/ 14'b0</option>
+                            <option  value="18">/*sq_quad*/ 14'b0</option>
+                            <option  value="19">/*sq_phas*/ 14'b0</option>
+                            <option  value="20">0</option>
                             <option  value="21">signal_i</option>
                             <option  value="22">Xo</option>
                             <option  value="23">Yo</option>
                             <option  value="24">F1o</option>
                             <option  value="25">F2o</option>
                             <option  value="26">F3o</option>
-                            <option  value="27">0</option>
-                            <option  value="28">0</option>
-                            <option  value="29">0</option>
+                            <option  value="27">/*sqXo */ 14'b0</option>
+                            <option  value="28">/*sqYo */ 14'b0</option>
+                            <option  value="29">/*sqFo */ 14'b0</option>
                             <!--option value="30">0</option-->
                             <!--option value="31">0</option-->
                           </select>
@@ -4179,19 +4179,19 @@
                             <option  value="14">cos_1f</option>
                             <option  value="15">cos_2f</option>
                             <option  value="16">cos_3f</option>
-                            <option  value="17">0</option>
-                            <option  value="18">0</option>
-                            <option  value="19">0</option>
-                            <option  value="20">square ref (bin)</option>
+                            <option  value="17">/*sq_ref*/ 14'b0</option>
+                            <option  value="18">/*sq_quad*/ 14'b0</option>
+                            <option  value="19">/*sq_phas*/ 14'b0</option>
+                            <option  value="20">0</option>
                             <option  value="21">signal_i</option>
                             <option  value="22">Xo</option>
                             <option  value="23">Yo</option>
                             <option  value="24">F1o</option>
                             <option  value="25">F2o</option>
                             <option  value="26">F3o</option>
-                            <option  value="27">0</option>
-                            <option  value="28">0</option>
-                            <option  value="29">0</option>
+                            <option  value="27">/*sqXo */ 14'b0</option>
+                            <option  value="28">/*sqYo */ 14'b0</option>
+                            <option  value="29">/*sqFo */ 14'b0</option>
                             <!--option value="30">0</option-->
                             <!--option value="31">0</option-->
                           </select>
@@ -4300,9 +4300,9 @@
                             <option  value="5">cos_1f</option>
                             <option  value="6">cos_2f</option>
                             <option  value="7">cos_3f</option>
-                            <option  value="8">0</option>
-                            <option  value="9">0</option>
-                            <option  value="10">0</option>
+                            <option  value="8">/*sq_ref*/ 14'b0</option>
+                            <option  value="9">/*sq_quad*/ 14'b0</option>
+                            <option  value="10">/*sq_phas*/ 14'b0</option>
                             <option  value="11">PID A out</option>
                             <option  value="12">ctrl_A</option>
                             <option  value="13">ctrl_B</option>
@@ -4327,9 +4327,9 @@
                             <option  value="5">cos_1f</option>
                             <option  value="6">cos_2f</option>
                             <option  value="7">cos_3f</option>
-                            <option  value="8">0</option>
-                            <option  value="9">0</option>
-                            <option  value="10">0</option>
+                            <option  value="8">/*sq_ref*/ 14'b0</option>
+                            <option  value="9">/*sq_quad*/ 14'b0</option>
+                            <option  value="10">/*sq_phas*/ 14'b0</option>
                             <option  value="11">PID B out</option>
                             <option  value="12">ctrl_A</option>
                             <option  value="13">ctrl_B</option>
@@ -4498,11 +4498,11 @@
                           <option  value="2">in1-in2</option>
                           <option  value="3">sin_ref</option>
                           <option  value="4">cos_1f</option>
-                          <option  value="5">0</option>
-                          <option  value="6">0</option>
+                          <option  value="5">/*sq_ref*/ 14'b0</option>
+                          <option  value="6">/*sq_phas*/ 14'b0</option>
                           <option  value="7">Ramp A</option>
-                          <option  value="8">square ref (bin)</option>
-                          <option  value="9">square phas (bin)</option>
+                          <option  value="8">0</option>
+                          <option  value="9">0</option>
                           <option  value="10">aux_A</option>
                           <option  value="11">aux_B</option>
                           <!--option value="12">0</option-->
@@ -4972,9 +4972,9 @@
                           <option  value="2">Xo</option>
                           <option  value="3">F1o</option>
                           <option  value="4">F3o</option>
-                          <option  value="5">0</option>
-                          <option  value="6">0</option>
-                          <option  value="7">0</option>
+                          <option  value="5">/*sqXo */ 14'b0</option>
+                          <option  value="6">/*sqYo */ 14'b0</option>
+                          <option  value="7">/*sqFo */ 14'b0</option>
                         </select>
                       </div>
                     </div>
@@ -5021,9 +5021,9 @@
                               <option data-tag="pidA_more" value="3">F1o</option>
                               <option data-tag="pidA_more" value="4">F2o</option>
                               <option data-tag="pidA_more" value="5">F3o</option>
-                              <option data-tag="pidA_more" value="6">0</option>
-                              <option data-tag="pidA_more" value="7">0</option>
-                              <option data-tag="pidA_more" value="8">0</option>
+                              <option data-tag="pidA_more" value="6">/*sqXo */ 14'b0</option>
+                              <option data-tag="pidA_more" value="7">/*sqYo */ 14'b0</option>
+                              <option data-tag="pidA_more" value="8">/*sqFo */ 14'b0</option>
                               <option  value="9">signal_i</option>
                               <option data-tag="pidA_more" value="10">Ramp A</option>
                               <option data-tag="pidA_more" value="11">sin_ref</option>
@@ -5031,9 +5031,9 @@
                               <option data-tag="pidA_more" value="13">cos_1f</option>
                               <option data-tag="pidA_more" value="14">cos_2f</option>
                               <option data-tag="pidA_more" value="15">cos_3f</option>
-                              <option data-tag="pidA_more" value="16">0</option>
-                              <option data-tag="pidA_more" value="17">0</option>
-                              <option data-tag="pidA_more" value="18">0</option>
+                              <option data-tag="pidA_more" value="16">/*sq_ref*/ 14'b0</option>
+                              <option data-tag="pidA_more" value="17">/*sq_quad*/ 14'b0</option>
+                              <option data-tag="pidA_more" value="18">/*sq_phas*/ 14'b0</option>
                               <option data-tag="pidA_more" value="19">aux_A</option>
                               <option data-tag="pidA_more" value="20">aux_B</option>
                               <option data-tag="pidA_more" value="21">test14</option>
@@ -5304,9 +5304,9 @@
                               <option data-tag="pidB_more" value="3">F1o</option>
                               <option data-tag="pidB_more" value="4">F2o</option>
                               <option data-tag="pidB_more" value="5">F3o</option>
-                              <option data-tag="pidB_more" value="6">0</option>
-                              <option data-tag="pidB_more" value="7">0</option>
-                              <option data-tag="pidB_more" value="8">0</option>
+                              <option data-tag="pidB_more" value="6">/*sqXo */ 14'b0</option>
+                              <option data-tag="pidB_more" value="7">/*sqYo */ 14'b0</option>
+                              <option data-tag="pidB_more" value="8">/*sqFo */ 14'b0</option>
                               <option  value="9">signal_i</option>
                               <option data-tag="pidB_more" value="10">Ramp A</option>
                               <option data-tag="pidB_more" value="11">sin_ref</option>
@@ -5314,9 +5314,9 @@
                               <option data-tag="pidB_more" value="13">cos_1f</option>
                               <option data-tag="pidB_more" value="14">cos_2f</option>
                               <option data-tag="pidB_more" value="15">cos_3f</option>
-                              <option data-tag="pidB_more" value="16">0</option>
-                              <option data-tag="pidB_more" value="17">0</option>
-                              <option data-tag="pidB_more" value="18">0</option>
+                              <option data-tag="pidB_more" value="16">/*sq_ref*/ 14'b0</option>
+                              <option data-tag="pidB_more" value="17">/*sq_quad*/ 14'b0</option>
+                              <option data-tag="pidB_more" value="18">/*sq_phas*/ 14'b0</option>
                               <option data-tag="pidB_more" value="19">aux_A</option>
                               <option data-tag="pidB_more" value="20">aux_B</option>
                               <option data-tag="pidB_more" value="21">test14</option>
@@ -5892,9 +5892,9 @@
                               <option  value="3">F1o</option>
                               <option  value="4">F2o</option>
                               <option  value="5">F3o</option>
-                              <option  value="6">0</option>
-                              <option  value="7">0</option>
-                              <option  value="8">0</option>
+                              <option  value="6">/*sqXo */ 14'b0</option>
+                              <option  value="7">/*sqYo */ 14'b0</option>
+                              <option  value="8">/*sqFo */ 14'b0</option>
                               <option  value="9">signal_i</option>
                               <option  value="10">Ramp A</option>
                               <option  value="11">aux_A</option>
