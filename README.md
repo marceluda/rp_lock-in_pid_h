@@ -71,6 +71,6 @@ RedPiaya folder: `/opt/redpitaya/www/apps`
 
  - add modulation with arbitrary amplitud on output chanels [DONE]
  - Rip-off square lock-in [DONE]
- - RE-ORDER signals on switches
+ - RE-ORDER signals on switches [PARTIAL]
  - Add more amplification on lock-in
  - Synchronized trigger for ramp module
