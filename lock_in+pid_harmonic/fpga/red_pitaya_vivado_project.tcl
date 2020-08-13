@@ -73,7 +73,7 @@ add_files                      $path_rtl/lock/muxer_reg3.v
 add_files                      $path_rtl/lock/muxer_reg4.v
 add_files                      $path_rtl/lock/muxer_reg5.v
 #add_files                      $path_rtl/lock/gen_mod.v
-add_files                      $path_rtl/lock/gen_mod2.v
+add_files                      $path_rtl/lock/gen_mod_h.v
 add_files                      $path_rtl/lock/gen_ramp.v
 add_files                      $path_rtl/lock/gen_ramp_relock.v
 add_files                      $path_rtl/lock/lock_ctrl.v
