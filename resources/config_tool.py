@@ -163,12 +163,10 @@ f.add( name="signal_i"           , group=grp , val=    0, rw=False,  nbits=14, m
 f.add( name="sg_amp1"            , group=grp , val=    0, rw=True ,  nbits= 4, min_val=          0, max_val=         15, fpga_update=True , signed=False, desc="amplification of Xo, Yo and F1o" )
 f.add( name="sg_amp2"            , group=grp , val=    0, rw=True ,  nbits= 4, min_val=          0, max_val=         15, fpga_update=True , signed=False, desc="amplification of F2o" )
 f.add( name="sg_amp3"            , group=grp , val=    0, rw=True ,  nbits= 4, min_val=          0, max_val=         15, fpga_update=True , signed=False, desc="amplification of F3o" )
-# f.add( name="sg_amp_sq"          , group=grp , val=    0, rw=True ,  nbits= 4, min_val=          0, max_val=         15, fpga_update=True , signed=False, desc="amplification of SQo" )
 
 f.add( name="lpf_F1"             , group=grp , val=   32, rw=True ,  nbits= 6, min_val=          0, max_val=         63, fpga_update=True , signed=False, desc="Low Pass Filter of X, Y and F1" )
 f.add( name="lpf_F2"             , group=grp , val=   32, rw=True ,  nbits= 6, min_val=          0, max_val=         63, fpga_update=True , signed=False, desc="Low Pass Filter of F2" )
 f.add( name="lpf_F3"             , group=grp , val=   32, rw=True ,  nbits= 6, min_val=          0, max_val=         63, fpga_update=True , signed=False, desc="Low Pass Filter of F3" )
-# f.add( name="lpf_sq"             , group=grp , val=   32, rw=True ,  nbits= 6, min_val=          0, max_val=         63, fpga_update=True , signed=False, desc="Low Pass Filter of SQ" )
 
 f.add( name="error_sw"           , group=grp , val=    0, rw=True ,  nbits= 3, min_val=          0, max_val=          7, fpga_update=True , signed=False, desc="select error signal" )
 f.add( name="error_offset"       , group=grp , val=    0, rw=True ,  nbits=14, min_val=      -8192, max_val=       8191, fpga_update=True , signed=True , desc="offset for the error signal" )
@@ -180,9 +178,7 @@ f.add( name="error_std"          , group=grp , val=    0, rw=False,  nbits=32, m
 # Modulation Generator
 grp='gen_mod'
 f.add( name="gen_mod_phase"      , group=grp , val=    0, rw=True ,  nbits=12, min_val=          0, max_val=       2519, fpga_update=True , signed=False, desc="phase relation of cos_?f signals" )
-# f.add( name="gen_mod_phase_sq"   , group=grp , val=    0, rw=True ,  nbits=32, min_val=          0, max_val= 4294967295, fpga_update=True , signed=False, desc="phase relation of sqf signal" )
 f.add( name="gen_mod_hp"         , group=grp , val=    0, rw=True ,  nbits=14, min_val=          0, max_val=      16383, fpga_update=True , signed=False, desc="harmonic period set" )
-# f.add( name="gen_mod_sqp"        , group=grp , val=    0, rw=True ,  nbits=32, min_val=          0, max_val= 4294967295, fpga_update=True , signed=False, desc="square signal period" )
 
 # Ramp control
 grp='gen_ramp'
@@ -204,12 +200,6 @@ f.add( name="cos_ref"            , group=grp , val=    0, rw=False,  nbits=14, m
 f.add( name="cos_1f"             , group=grp , val=    0, rw=False,  nbits=14, min_val=      -8192, max_val=       8191, fpga_update=True , signed=True , desc="lock-in modulation sinus harmonic signal with phase relation to reference" )
 f.add( name="cos_2f"             , group=grp , val=    0, rw=False,  nbits=14, min_val=      -8192, max_val=       8191, fpga_update=True , signed=True , desc="lock-in modulation sinus harmonic signal with phase relation to reference and double frequency" )
 f.add( name="cos_3f"             , group=grp , val=    0, rw=False,  nbits=14, min_val=      -8192, max_val=       8191, fpga_update=True , signed=True , desc="lock-in modulation sinus harmonic signal with phase relation to reference and triple frequency" )
-# f.add( name="sq_ref_b"           , group=grp , val=    0, rw=False,  nbits= 1, min_val=          0, max_val=          1, fpga_update=True , signed=False, desc="lock-in modulation binary reference" )
-# f.add( name="sq_quad_b"          , group=grp , val=    0, rw=False,  nbits= 1, min_val=          0, max_val=          1, fpga_update=True , signed=False, desc="lock-in modulation binary quadrature" )
-# f.add( name="sq_phas_b"          , group=grp , val=    0, rw=False,  nbits= 1, min_val=          0, max_val=          1, fpga_update=True , signed=False, desc="lock-in modulation binary with phase respect to reference" )
-# f.add( name="sq_ref"             , group=grp , val=    0, rw=False,  nbits=14, min_val=      -8192, max_val=       8191, fpga_update=True , signed=True , desc="lock-in modulation square signal reference" )
-# f.add( name="sq_quad"            , group=grp , val=    0, rw=False,  nbits=14, min_val=      -8192, max_val=       8191, fpga_update=True , signed=True , desc="lock-in modulation square signal quadrature" )
-# f.add( name="sq_phas"            , group=grp , val=    0, rw=False,  nbits=14, min_val=      -8192, max_val=       8191, fpga_update=True , signed=True , desc="lock-in modulation square signal with phase relation to reference" )
 
 # Other signals
 grp='inout'
@@ -230,9 +220,6 @@ f.add( name="Y_28"               , group=grp , val=    0, rw=False,  nbits=28, m
 f.add( name="F1_28"              , group=grp , val=    0, rw=False,  nbits=28, min_val= -134217728, max_val=  134217727, fpga_update=True , signed=True , desc="Demodulated signal from cos_1f" )
 f.add( name="F2_28"              , group=grp , val=    0, rw=False,  nbits=28, min_val= -134217728, max_val=  134217727, fpga_update=True , signed=True , desc="Demodulated signal from cos_2f" )
 f.add( name="F3_28"              , group=grp , val=    0, rw=False,  nbits=28, min_val= -134217728, max_val=  134217727, fpga_update=True , signed=True , desc="Demodulated signal from cos_3f" )
-# f.add( name="sqX_28"             , group=grp , val=    0, rw=False,  nbits=28, min_val= -134217728, max_val=  134217727, fpga_update=True , signed=True , desc="Demodulated signal from sq_ref" )
-# f.add( name="sqY_28"             , group=grp , val=    0, rw=False,  nbits=28, min_val= -134217728, max_val=  134217727, fpga_update=True , signed=True , desc="Demodulated signal from sq_quad" )
-# f.add( name="sqF_28"             , group=grp , val=    0, rw=False,  nbits=28, min_val= -134217728, max_val=  134217727, fpga_update=True , signed=True , desc="Demodulated signal from sq_phas" )
 f.add( name="cnt_clk"            , group=grp , val=    0, rw=False,  nbits=32, min_val=          0, max_val= 4294967295, fpga_update=False, signed=False, desc="Clock count" )
 f.add( name="cnt_clk2"           , group=grp , val=    0, rw=False,  nbits=32, min_val=          0, max_val= 4294967295, fpga_update=False, signed=False, desc="Clock count" )
 f.add( name="read_ctrl"          , group=grp , val=    0, rw=True ,  nbits= 3, min_val=          0, max_val=          7, fpga_update=True , signed=False, desc="[unused,start_clk,Freeze]" )
@@ -295,7 +282,6 @@ for i in ['osc_ctrl','in1','in2','out1','out2']:
 
 # Set read-only to same registers
 for i in ['X_28', 'Y_28', 'F1_28', 'F2_28', 'F3_28',
-          # 'sqX_28', 'sqY_28', 'sqF_28',
           'error', 'ctrl_A', 'ctrl_B']:
     f[i].reg_read=True
 
@@ -726,7 +712,6 @@ m.add( name="lock_signal_i"      , fpga_reg="signal_i"      , val=0    , rw=Fals
 m.add( name="lock_sg_amp1"       , fpga_reg="sg_amp1"       , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="amplification of Xo, Yo and F1o")
 m.add( name="lock_sg_amp2"       , fpga_reg="sg_amp2"       , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="amplification of F2o")
 m.add( name="lock_sg_amp3"       , fpga_reg="sg_amp3"       , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="amplification of F3o")
-# m.add( name="lock_sg_amp_sq"     , fpga_reg="sg_amp_sq"     , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="amplification of SQo")
 
 m.add( name="lock_lpf_F1_tau"    , fpga_reg="lpf_F1"        , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="Low Pass Filter TAU of X, Y and F1")
 m.add( name="lock_lpf_F1_order"  , fpga_reg="lpf_F1"        , val=2    , rw=True , nbits=2 , min_val=0         , max_val=2         , fpga_update=True , signed=False, group="lock-in"        , desc="Low Pass Filter order / off")
@@ -748,13 +733,6 @@ r=m["lock_lpf_F3_order"]; r.c_update='(float) ((g_lock_reg->{:s} >> 4 )& 0x03)'.
 r=f["lpf_F3"]; r.c_update='(((int)params[{:s}].value)<<4) + (((int)params[{:s}].value))'.format( m["lock_lpf_F3_order"].cdef , m["lock_lpf_F3_tau"].cdef )
 
 
-# m.add( name="lock_lpf_sq_tau"    , fpga_reg="lpf_sq"        , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="Low Pass Filter TAU of Square")
-# m.add( name="lock_lpf_sq_order"  , fpga_reg="lpf_sq"        , val=2    , rw=True , nbits=2 , min_val=0         , max_val=2         , fpga_update=True , signed=False, group="lock-in"        , desc="Low Pass Filter order / off")
-# r=m["lock_lpf_sq_tau"  ]; r.c_update='(float) ((g_lock_reg->{:s}      )& 0x0f)'.format(r.fpga_reg)
-# r=m["lock_lpf_sq_order"]; r.c_update='(float) ((g_lock_reg->{:s} >> 4 )& 0x03)'.format(r.fpga_reg)
-# r=f["lpf_sq"]; r.c_update='(((int)params[{:s}].value)<<4) + ((int)params[{:s}].value)'.format( m["lock_lpf_sq_order"].cdef , m["lock_lpf_sq_tau"].cdef )
-
-
 m.add( name="lock_error_sw"      , fpga_reg="error_sw"      , val=0    , rw=True , nbits=3 , min_val=0         , max_val=7         , fpga_update=True , signed=False, group="lock-in"        , desc="select error signal")
 m.add( name="lock_error_offset"  , fpga_reg="error_offset"  , val=0    , rw=True , nbits=14, min_val=-8192     , max_val=8191      , fpga_update=True , signed=True , group="lock-in"        , desc="offset for the error signal")
 m.add( name="lock_error"         , fpga_reg="error"         , val=0    , rw=False, nbits=14, min_val=-8192     , max_val=8191      , fpga_update=False, signed=True , group="lock-in"        , desc="error signal value")
@@ -766,9 +744,7 @@ r=m["lock_error_std"  ]; r.c_update='lock_error_var<0 ? -1 : sqrt( lock_error_va
 
 # group: gen_mod
 m.add( name="lock_gen_mod_phase" , fpga_reg="gen_mod_phase" , val=0    , rw=True , nbits=12, min_val=0         , max_val=2519      , fpga_update=True , signed=False, group="gen_mod"        , desc="phase relation of cos_?f signals")
-# m.add( name="lock_gen_mod_phase_sq", fpga_reg="gen_mod_phase_sq",val=0 , rw=True , nbits=32, min_val=0         , max_val=4294967295, fpga_update=True , signed=False, group="gen_mod"        , desc="phase relation of sq_phas signal")
 m.add( name="lock_gen_mod_hp"    , fpga_reg="gen_mod_hp"    , val=0    , rw=True , nbits=14, min_val=0         , max_val=16383     , fpga_update=True , signed=False, group="gen_mod"        , desc="harmonic period set")
-# m.add( name="lock_gen_mod_sqp"   , fpga_reg="gen_mod_sqp"   , val=0    , rw=True , nbits=32, min_val=0         , max_val=4294967295, fpga_update=True , signed=False, group="gen_mod"        , desc="square signal period")
 
 # group: gen_ramp
 m.add( name="lock_ramp_A"        , fpga_reg="ramp_A"        , val=0    , rw=False, nbits=14, min_val=-8192     , max_val=8191      , fpga_update=False, signed=True , group="gen_ramp"       , desc="ramp signal A")
@@ -787,22 +763,13 @@ m.add( name="lock_cos_ref"       , fpga_reg="cos_ref"       , val=0    , rw=Fals
 m.add( name="lock_cos_1f"        , fpga_reg="cos_1f"        , val=0    , rw=False, nbits=14, min_val=-8192     , max_val=8191      , fpga_update=False, signed=True , group="modulation"     , desc="lock-in modulation sinus harmonic signal with phase relation to reference")
 m.add( name="lock_cos_2f"        , fpga_reg="cos_2f"        , val=0    , rw=False, nbits=14, min_val=-8192     , max_val=8191      , fpga_update=False, signed=True , group="modulation"     , desc="lock-in modulation sinus harmonic signal with phase relation to reference and double frequency")
 m.add( name="lock_cos_3f"        , fpga_reg="cos_3f"        , val=0    , rw=False, nbits=14, min_val=-8192     , max_val=8191      , fpga_update=False, signed=True , group="modulation"     , desc="lock-in modulation sinus harmonic signal with phase relation to reference and triple frequency")
-# m.add( name="lock_sq_ref_b"      , fpga_reg="sq_ref_b"      , val=0    , rw=False, nbits=1 , min_val=0         , max_val=1         , fpga_update=False, signed=False, group="modulation"     , desc="lock-in modulation binary reference")
-# m.add( name="lock_sq_quad_b"     , fpga_reg="sq_quad_b"     , val=0    , rw=False, nbits=1 , min_val=0         , max_val=1         , fpga_update=False, signed=False, group="modulation"     , desc="lock-in modulation binary quadrature")
-# m.add( name="lock_sq_phas_b"     , fpga_reg="sq_phas_b"     , val=0    , rw=False, nbits=1 , min_val=0         , max_val=1         , fpga_update=False, signed=False, group="modulation"     , desc="lock-in modulation binary with phase respect to reference")
-# m.add( name="lock_sq_ref"        , fpga_reg="sq_ref"        , val=0    , rw=False, nbits=14, min_val=-8192     , max_val=8191      , fpga_update=False, signed=True , group="modulation"     , desc="lock-in modulation square signal reference")
-# m.add( name="lock_sq_quad"       , fpga_reg="sq_quad"       , val=0    , rw=False, nbits=14, min_val=-8192     , max_val=8191      , fpga_update=False, signed=True , group="modulation"     , desc="lock-in modulation square signal quadrature")
-# m.add( name="lock_sq_phas"       , fpga_reg="sq_phas"       , val=0    , rw=False, nbits=14, min_val=-8192     , max_val=8191      , fpga_update=False, signed=True , group="modulation"     , desc="lock-in modulation square signal with phase relation to reference")
+
 
 # group: inout
 m.add( name="lock_in1"           , fpga_reg="in1"           , val=0    , rw=False, nbits=14, min_val=-8192     , max_val=8191      , fpga_update=False, signed=True , group="inout"          , desc="Input signal IN1")
 m.add( name="lock_in2"           , fpga_reg="in2"           , val=0    , rw=False, nbits=14, min_val=-8192     , max_val=8191      , fpga_update=False, signed=True , group="inout"          , desc="Input signal IN2")
 m.add( name="lock_out1"          , fpga_reg="out1"          , val=0    , rw=False, nbits=14, min_val=-8192     , max_val=8191      , fpga_update=False, signed=True , group="inout"          , desc="signal for RP RF DAC Out1")
 m.add( name="lock_out2"          , fpga_reg="out2"          , val=0    , rw=False, nbits=14, min_val=-8192     , max_val=8191      , fpga_update=False, signed=True , group="inout"          , desc="signal for RP RF DAC Out2")
-# m.add( name="lock_slow_out1"     , fpga_reg="slow_out1"     , val=0    , rw=False, nbits=12, min_val=-2048     , max_val=2047      , fpga_update=False, signed=False, group="inout"          , desc="signal for RP slow DAC 1")
-# m.add( name="lock_slow_out2"     , fpga_reg="slow_out2"     , val=0    , rw=False, nbits=12, min_val=-2048     , max_val=2047      , fpga_update=False, signed=False, group="inout"          , desc="signal for RP slow DAC 2")
-# m.add( name="lock_slow_out3"     , fpga_reg="slow_out3"     , val=0    , rw=False, nbits=12, min_val=-2048     , max_val=2047      , fpga_update=False, signed=False, group="inout"          , desc="signal for RP slow DAC 3")
-# m.add( name="lock_slow_out4"     , fpga_reg="slow_out4"     , val=0    , rw=False, nbits=12, min_val=-2048     , max_val=2047      , fpga_update=False, signed=False, group="inout"          , desc="signal for RP slow DAC 4")
 m.add( name="lock_oscA"          , fpga_reg="oscA"          , val=0    , rw=False, nbits=14, min_val=-8192     , max_val=8191      , fpga_update=False, signed=True , group="inout"          , desc="signal for Oscilloscope Channel A")
 m.add( name="lock_oscB"          , fpga_reg="oscB"          , val=0    , rw=False, nbits=14, min_val=-8192     , max_val=8191      , fpga_update=False, signed=True , group="inout"          , desc="signal for Oscilloscope Channel B")
 
@@ -812,9 +779,6 @@ m.add( name="lock_Y_28"         , fpga_reg="Y_28"         , val=0    , rw=False,
 m.add( name="lock_F1_28"         , fpga_reg="F1_28"         , val=0    , rw=False, nbits=28, min_val=-134217728, max_val=134217727 , fpga_update=False, signed=True , group="product_signals", desc="Demodulated signal from cos_1f")
 m.add( name="lock_F2_28"         , fpga_reg="F2_28"         , val=0    , rw=False, nbits=28, min_val=-134217728, max_val=134217727 , fpga_update=False, signed=True , group="product_signals", desc="Demodulated signal from cos_2f")
 m.add( name="lock_F3_28"         , fpga_reg="F3_28"         , val=0    , rw=False, nbits=28, min_val=-134217728, max_val=134217727 , fpga_update=False, signed=True , group="product_signals", desc="Demodulated signal from cos_3f")
-# m.add( name="lock_sqX_28"        , fpga_reg="sqX_28"        , val=0    , rw=False, nbits=28, min_val=-134217728, max_val=134217727 , fpga_update=False, signed=True , group="product_signals", desc="Demodulated signal from sq_ref")
-# m.add( name="lock_sqY_28"        , fpga_reg="sqY_28"        , val=0    , rw=False, nbits=28, min_val=-134217728, max_val=134217727 , fpga_update=False, signed=True , group="product_signals", desc="Demodulated signal from sq_quad")
-# m.add( name="lock_sqF_28"        , fpga_reg="sqF_28"        , val=0    , rw=False, nbits=28, min_val=-134217728, max_val=134217727 , fpga_update=False, signed=True , group="product_signals", desc="Demodulated signal from sq_phas")
 m.add( name="lock_cnt_clk"       , fpga_reg="cnt_clk"       , val=0    , rw=False, nbits=32, min_val=0          , max_val=4294967295, fpga_update=False, signed=False, group="product_signals", desc="Clock count")
 m.add( name="lock_cnt_clk2"      , fpga_reg="cnt_clk2"      , val=0    , rw=False, nbits=32, min_val=0          , max_val=4294967295, fpga_update=False, signed=False, group="product_signals", desc="Clock count")
 m.add( name="lock_read_ctrl"     , fpga_reg="read_ctrl"     , val=0    , rw=True , nbits=3 , min_val=0          , max_val=7         , fpga_update=True , signed=False, group="product_signals", desc="[unused,start_clk,Freeze]")
@@ -897,9 +861,7 @@ m['lock_ctrl_aux_trig_type'       ].c_update='(float) (( g_lock_reg->lock_feedba
 m['lock_ctrl_aux_lock_trig_rise'  ].c_update='(float) (( g_lock_reg->lock_feedback >>10 ) & 0x01 )'
 
 
-# m.add(name="lock_mod_sq_on"       , val=0 , max_val=1 , fpga_update=False, fpga_reg=None)
 m.add(name="lock_mod_harmonic_on" , val=1 , max_val=1 , fpga_update=False, fpga_reg=None)
-# m['lock_mod_sq_on'      ].c_update=' params['+m['lock_mod_sq_on'      ].cdef+'].value '
 m['lock_mod_harmonic_on'].c_update=' params['+m['lock_mod_harmonic_on'].cdef+'].value '
 
 
@@ -1228,10 +1190,6 @@ for i in m:
 
 
 
-#h.add(name='lock_mod_sq_on'      , val=0, rw=True, min_val=0 , max_val=1, signed=False, fpga_update=False, desc='Show Square Modulation')
-#h.add(name='lock_mod_harmonic_on', val=1, rw=True, min_val=0 , max_val=1, signed=False, fpga_update=False, desc='Show Harmonic Modulation')
-
-
 
 #%%
 
@@ -1294,7 +1252,6 @@ h['lock_signal_sw'                ].type = 'select'
 h['lock_sg_amp1'                  ].type = 'select'
 h['lock_sg_amp2'                  ].type = 'select'
 h['lock_sg_amp3'                  ].type = 'select'
-# h['lock_sg_amp_sq'                ].type = 'select'
 
 h['lock_lpf_F1_tau'               ].type = 'select'
 h['lock_lpf_F1_order'             ].type = 'select'
@@ -1302,17 +1259,13 @@ h['lock_lpf_F2_tau'               ].type = 'select'
 h['lock_lpf_F2_order'             ].type = 'select'
 h['lock_lpf_F3_tau'               ].type = 'select'
 h['lock_lpf_F3_order'             ].type = 'select'
-# h['lock_lpf_sq_tau'               ].type = 'select'
-# h['lock_lpf_sq_order'             ].type = 'select'
 h['lock_error_sw'                 ].type = 'select'
 
 h['lock_error_offset'             ].type = 'number'
 
 h['lock_gen_mod_phase'            ].type = 'number'
-# h['lock_gen_mod_phase_sq'         ].type = 'number'
 
 h['lock_gen_mod_hp'               ].type = 'number'
-# h['lock_gen_mod_sqp'              ].type = 'number'
 
 
 h['lock_ramp_step'                ].type = 'number'
@@ -1367,7 +1320,6 @@ h['lock_ctrl_aux_trig_type'       ].type = 'select'
 h['lock_ctrl_aux_lock_trig_rise'  ].type = 'checkbox'
 
 
-# h['lock_mod_sq_on'        ].type = 'button'
 h['lock_mod_harmonic_on'  ].type = 'button'
 
 
@@ -1571,7 +1523,6 @@ h['lock_osc_lockin_mode'          ].control.text = 'R|Phase&nbsp;Mode'
 
 
 
-# h['lock_mod_sq_on'        ].control.text = 'Square'
 h['lock_mod_harmonic_on'  ].control.text = 'Harmonic'
 
 h['lock_sf_start'        ].control.text = 'Start Step Responce'
@@ -1582,85 +1533,6 @@ h['lock_sf_BfrzI'        ].control.text = 'B int'
 h['lock_sf_BfrzO'        ].control.text = 'B out'
 
 
-
-
-## Print all number inputs
-#selhtml=[]
-#with open(filename, 'r') as input:
-#    for line in input:
-#        if bool(re.match('[ ]*<select.*id=[\'"]lock.*',line)):
-#            out=True
-#            #print(re.search('[ ]*(<select[^>]+>).*',line).group(1))
-#            #print(re.search('[ ]*<select[^>]*id=[\'"]+(\w+)[\'"]+.*>.*',line).group(1))
-#            selhtml.append(re.search('[ ]*<select[^>]*id=[\'"]+(\w+)[\'"]+.*>.*',line).group(1))
-
-## Print all checkbox inputs
-#chkhtml=[]
-#with open(filename, 'r') as input:
-#    for line in input:
-#        if bool(re.match('[ ]*<input.*id=[\'"]lock.*',line)) and bool(re.match('[ ]*<input.*checkbox.*',line)):
-#            print(re.search('[ ]*(<input[^>]+>.*)',line).group(1))
-#            chkhtml.append(re.search('[ ]*<input[^>]*id=[\'"]+(\w+)[\'"]+.*>.*',line).group(1))
-
-#buthtml=[]
-#with open(filename, 'r') as input:
-#    for line in input:
-#        if bool(re.match('[ ]*<button.*id=[\'"]lock.*',line)):
-#            print(re.search('[ ]*(<button[^>]+>.*)',line).group(1))
-#            buthtml.append(re.search('[ ]*<button[^>]*id=[\'"]+(\w+)[\'"]+.*>.*',line).group(1))
-
-#for i in numhtml:
-#    if not i in [ y.name for y in filter( lambda x: x.type=='number' , h) ]:
-#        print(i)
-#
-#for i in [ y.name for y in filter( lambda x: x.type=='number' , h) ]:
-#    if not i in numhtml:
-#        print(i)
-#
-#for r in h:
-#    if r.type=='number':
-#        print(r.name)
-#
-#for r in h:
-#    if r.type=='select':
-#        print(r.name)
-#
-
-#
-#for r in h:
-#    if r.rw and not (r.name in selhtml or r.name in numhtml):
-#        print(r.name+' '+ r.type + ' val=' + str(r.val))
-#
-
-
-#aaa=select(idd='lock_oscA_sw',
-#           #vals  = list(range(32)),
-#           items = ['0','in1','in2','sin_ref','cos_ref','sin_1f ','sin_2f',
-#                    'sin_3f','sq_ref','sq_quad','sq_fase','ramp_signal',
-#                    'Lock-in input','signal_a','Xo','Yo','F1','F2','F3',
-#                    'sqx','sqy','sqf','pidA_in','pidB_in','pidA_out',
-#                    'pidB_out','sq_ref_b','test14','PID A + scan','PID B + scan']
-#           )
-
-#for i in [ y.name for y in filter( lambda x: x.type=='select' , h) ]:
-#    print('h["{:s}"].control = select(idd="{:s}",items=[])'.format(i,i))
-
-
-
-#%%
-
-#values=[
-#         ['in1_m_in2[14-1:0]','in1-in2'],
-#         ['pidA_out_cache','PID A out'],
-#         ['pidB_out_cache','PID B out'],
-#         ["14'b0",'0'],
-#         ["{1'b0, sq_ref_b  , 12'b0  }",'sq_ref_b'],
-#         ["14'b10000000000000",'0'],
-#         ["{1'b0, sq_phas_b , 12'b0  }",'sq_phas_b'],
-#         ['ramp_A','Scan A'],
-#         ['ramp_A','Scan B'],
-#         ['error_reg', 'error']
-#     ]
 
 
 
@@ -1744,121 +1616,6 @@ for i in [ y.name for y in filter( lambda x: x.type=='select' , h) ]:
 
 
 
-#%%
-# if False:
-#     # get_muxer(filename,"lock_trig_sw")
-#     h["lock_lock_trig_sw"].control = select(idd='lock_lock_trig_sw',
-#                  items=get_muxer(filename,"lock_trig_sw") );
-#
-#     # get_muxer(filename,"signal_sw")
-#     h["lock_signal_sw"].control = select(idd="lock_signal_sw",
-#                  items=get_muxer(filename,"lock_trig_sw"))
-#
-#     # get_muxer(filename,"oscA_sw")
-#     h["lock_oscA_sw"].control = select(idd="lock_oscA_sw",
-#                  items=["14'b0","in1","in2","sin_ref","cos_ref","sin_1f","sin_2f","sin_3f",
-#                         "sq_ref","sq_quad","sq_phas","ramp_A","signal_i","signal_i","Xo","Yo","F1o","F2o","F3o","sqXo","sqYo","sqFo","pidA_in","pidB_in","pidA_out_cache","pidB_out_cache","{1'b0, sq_ref_b  , 12'b0  }","test14","ctrl_A","ctrl_B","14'b0","14'b0"])
-#
-#     # get_muxer(filename,"oscB_sw")
-#     h["lock_oscB_sw"].control = select(idd="lock_oscB_sw",
-#                  items=['0','in1','in2','sin_ref','cos_ref','sin_1f ','sin_2f','sin_3f',
-#                         'sq_ref','sq_quad','sq_fase','ramp_signal','Lock-in input','signal_a',
-#                         'Xo','Yo','F1','F2','F3','sqx','sqy','sqf','pidA_in','pidB_in',
-#                         'pidA_out','pidB_out','sq_ref_b','test14','PID A + ramp','PID B + ramp'])
-#
-#
-#     h["lock_out1_sw"].control = select(idd="lock_out1_sw",
-#                  items=['0','in1','in2','sin_ref','cos_ref','sin_1f ','sin_2f','sin_3f',
-#                         'sq_ref','sq_quad','sq_fase','ramp_signal','Lock-in input','signal_a',
-#                         'Xo','Yo','F1','F2','F3','sqx','sqy','sqf','pidA_in','pidB_in',
-#                         'pidA_out','pidB_out','sq_ref_b','test14','PID A + ramp','PID B + ramp','Aux A'])
-#
-#     h["lock_out2_sw"].control = select(idd="lock_out2_sw",
-#                  items=['0','in1','in2','sin_ref','cos_ref','sin_1f ','sin_2f','sin_3f','sq_ref',
-#                         'sq_quad','sq_fase','ramp_signal','Lock-in input','signal_a','Xo','Yo',
-#                         'F1','F2','F3','sqx','sqy','sqf','pidA_in','pidB_in','pidA_out',
-#                         'pidB_out','sq_ref_b','test14','PID A + ramp','PID B + ramp','Aux B'])
-#
-#     h["lock_slow_out1_sw"].control = select(idd="lock_slow_out1_sw",
-#                  items=['0','in1','in2','sin_ref','cos_ref','sin_1f ','sin_2f','sin_3f',
-#                         'sq_ref','sq_quad','sq_fase','ramp_signal','Lock-in input','signal_a'
-#                         ,'Xo','Yo','F1','F2','F3','sqx','sqy','sqf','pidA_in','pidB_in',
-#                         'pidA_out','pidB_out','sq_ref_b','test14','PID A + ramp','PID B + ramp'])
-#
-#
-#     h["lock_slow_out2_sw"].control = select(idd="lock_slow_out2_sw",
-#                  items=['0','in1','in2','sin_ref','cos_ref','sin_1f ','sin_2f','sin_3f',
-#                         'sq_ref','sq_quad','sq_fase','ramp_signal','Lock-in input','signal_a',
-#                         'Xo','Yo','F1','F2','F3','sqx','sqy','sqf','pidA_in','pidB_in',
-#                         'pidA_out','pidB_out','sq_ref_b','test14','PID A + ramp','PID B + ramp'])
-#
-#     h["lock_slow_out3_sw"].control = select(idd="lock_slow_out3_sw",
-#                  items=['0','in1','in2','sin_ref','cos_ref','sin_1f ','sin_2f','sin_3f',
-#                         'sq_ref','sq_quad','sq_fase','ramp_signal','Lock-in input','signal_a'
-#                         ,'Xo','Yo','F1','F2','F3','sqx','sqy','sqf','pidA_in','pidB_in',
-#                         'pidA_out','pidB_out','sq_ref_b','test14','PID A + scan','PID B + scan'])
-#
-#
-#     h["lock_slow_out4_sw"].control = select(idd="lock_slow_out4_sw",
-#                  items=['0','in1','in2','sin_ref','cos_ref','sin_1f ','sin_2f','sin_3f',
-#                         'sq_ref','sq_quad','sq_fase','ramp_signal','Lock-in input','signal_a',
-#                         'Xo','Yo','F1','F2','F3','sqx','sqy','sqf','pidA_in','pidB_in',
-#                         'pidA_out','pidB_out','sq_ref_b','test14','PID A + scan','PID B + scan'])
-#
-#
-#     h["lock_test_sw"].control = select(idd="lock_test_sw",
-#                  items=['0','sin_ref_mult[27-1:13]','sin_ref_lpf2[27-1:13]','Xo',
-#                         'cos_ref_mult[27-1:13]','cos_ref_lpf2[27-1:13]','Yo','sin_1f_mult[27-1:13]',
-#                         'sin_1f_lpf2[27-1:13]','F1','sin_2f_mult[27-1:13]','sin_2f_lpf2[27-1:13]',
-#                         'F2','sin_3f_mult[27-1:13]','sin_3f_lpf2[27-1:13]','F3','sq_ref_mult[27-1:13]',
-#                         'sq_ref_lpf2[27-1:13]','sqx','sq_quad_mult[27-1:13]','sq_quad_lpf2[27-1:13]',
-#                         'sqy','Aux A','Aux B'])
-#
-#     h["lock_pidA_sw"].control = select(idd="lock_pidA_sw",
-#                  items=['0','Xo','Yo','F1','F2','F3','sqx','sqy','sqf','signal_a','ramp_signal',
-#                         'sin_ref','cos_ref','sin_1f','sin_2f','sin_3f','sq_ref','sq_quad',
-#                         'sq_fase','aux_A','aux_B','test14','IN1','IN2','IN1-IN2'])
-#
-#     h["lock_pidA_PSR"].control = select(idd="lock_pidA_PSR",items=['/1','/8','/64','/1024','/4096'])
-#     h["lock_pidA_ISR"].control = select(idd="lock_pidA_ISR",items=['8 ns','64 ns','512 ns','8 us','6 us','524 us','8 ms','67 ms','537 ms','9 s'])
-#     h["lock_pidA_DSR"].control = select(idd="lock_pidA_DSR",items=[' 0',' 3',' 6','10','13','16'])
-#     h["lock_pidA_SAT"].control = select(idd="lock_pidA_SAT",items=['&plusmn;122uV','&plusmn;244uV','&plusmn;488uV','&plusmn;977uV','&plusmn;2mV','&plusmn;4mV','&plusmn;8mV','&plusmn;16mV','&plusmn;31mV','&plusmn;62mV','&plusmn;125mV','&plusmn;250mV','&plusmn;500mV','&plusmn;1 V'])
-#
-#     h["lock_pidB_sw"].control = select(idd="lock_pidB_sw",
-#                  items=['0','Xo','Yo','F1','F2','F3','sqx','sqy','sqf','signal_a','ramp_signal',
-#                         'sin_ref','cos_ref','sin_1f','sin_2f','sin_3f','sq_ref','sq_quad',
-#                         'sq_fase','aux_A','aux_B','test14','IN1','IN2','IN1-IN2'])
-#
-#     h["lock_pidB_PSR"].control = select(idd="lock_pidB_PSR",items=['/1','/8','/64','/1024','/4096'])
-#     h["lock_pidB_ISR"].control = select(idd="lock_pidB_ISR",items=['8 ns','64 ns','512 ns','8 us','6 us','524 us','8 ms','67 ms','537 ms','9 s'])
-#     h["lock_pidB_DSR"].control = select(idd="lock_pidB_DSR",items=[' 0',' 3',' 6','10','13','16'])
-#     h["lock_pidB_SAT"].control = select(idd="lock_pidB_SAT",items=['&plusmn;122uV','&plusmn;244uV','&plusmn;488uV','&plusmn;977uV','&plusmn;2mV','&plusmn;4mV','&plusmn;8mV','&plusmn;16mV','&plusmn;31mV','&plusmn;62mV','&plusmn;125mV','&plusmn;250mV','&plusmn;500mV','&plusmn;1 V'])
-#
-#     h["lock_LPF_A_sw"].control = select(idd="lock_LPF_A_sw",items=['in1','in2','in1_m_in2','sin_ref','sin_2f','sq_ref','ramp_signal','sq_ref_b','aux_A','Xo','pidA_out','pidB_out'])
-#     h["lock_LPF_B_sw"].control = select(idd="lock_LPF_B_sw",items=['in1','in2','in1_m_in2','sin_1f','sin_3f','sq_fase','ramp_signal','sq_quad_b','aux_B','F1','pidA_out','pidB_out'])
-#
-#     h["lock_lpf_F1_aux"].control = select(idd="lock_lpf_F1_aux",items=['2nd order','1st order','None','OFF'])
-#     h["lock_lpf_F1_aux"].control.enable=[True, True, False, True]
-#
-#     h["lock_lpf_F2_aux"].control = select(idd="lock_lpf_F2_aux",items=['2nd order','1st order','None','OFF'])
-#     h["lock_lpf_F2_aux"].control.enable=[True, True, False, True]
-#
-#     h["lock_lpf_F3_aux"].control = select(idd="lock_lpf_F3_aux",items=['2nd order','1st order','None','OFF'])
-#     h["lock_lpf_F3_aux"].control.enable=[True, True, False, True]
-#
-#     h["lock_lpf_sq_aux"].control = select(idd="lock_lpf_sq_aux",items=['2nd order','1st order','None','OFF'])
-#     h["lock_lpf_sq_aux"].control.enable=[True, True, False, True]
-#
-#
-#     h["lock_sg_amp_in"].control = select(idd="lock_sg_amp_in" ,items=['x1','x2','x4','x8','x16','x32','x64','x128','x256','x512'])
-#     h["lock_lpf_F1"   ].control = select(idd="lock_lpf_F1"    ,items=['131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz',' 34ms | 29.8 Hz',' 67ms | 14.9 Hz','134ms |  7.5 Hz','268ms |  3.7 Hz','537ms |  1.9 Hz','  1 s | 931.3mHz','  2 s | 465.7mHz','  4 s | 232.8mHz'])
-#     h["lock_lpf_F2"   ].control = select(idd="lock_lpf_F2"    ,items=['131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz',' 34ms | 29.8 Hz',' 67ms | 14.9 Hz','134ms |  7.5 Hz','268ms |  3.7 Hz','537ms |  1.9 Hz','  1 s | 931.3mHz','  2 s | 465.7mHz','  4 s | 232.8mHz'])
-#     h["lock_lpf_F3"   ].control = select(idd="lock_lpf_F3"    ,items=['131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz',' 34ms | 29.8 Hz',' 67ms | 14.9 Hz','134ms |  7.5 Hz','268ms |  3.7 Hz','537ms |  1.9 Hz','  1 s | 931.3mHz','  2 s | 465.7mHz','  4 s | 232.8mHz'])
-#     h["lock_lpf_sq"   ].control = select(idd="lock_lpf_sq"    ,items=['512ns |  2.0MHz','  1us | 976.6kHz','  2us | 488.3kHz','  4us | 244.1kHz','  8us | 122.1kHz',' 16us | 61.0kHz',' 33us | 30.5kHz',' 66us | 15.3kHz','131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz'])
-#     h["lock_LPF_A_tau"].control = select(idd="lock_LPF_A_tau" ,items=['  8.00 ns | 19.89 MHz  ',' 16.00 ns |  9.95 MHz  ',' 32.00 ns |  4.97 MHz  ',' 64.00 ns |  2.49 MHz  ','128.00 ns |  1.24 MHz  ','256.00 ns |621.70 kHz  ','512.00 ns |310.85 kHz  ','  1.02 us |155.42 kHz  ','  2.05 us | 77.71 kHz  ','  4.10 us | 38.86 kHz  ','  8.19 us | 19.43 kHz  ',' 16.38 us |  9.71 kHz  ',' 32.77 us |  4.86 kHz  ',' 65.54 us |  2.43 kHz  ','131.07 us |  1.21 kHz  ','262.14 us |607.13  Hz  ','524.29 us |303.56  Hz  ','  1.05 ms |151.78  Hz  ','  2.10 ms | 75.89  Hz  ','  4.19 ms | 37.95  Hz  ','  8.39 ms | 18.97  Hz  ',' 16.78 ms |  9.49  Hz  ',' 33.55 ms |  4.74  Hz  ',' 67.11 ms |  2.37  Hz  ','134.22 ms |  1.19  Hz  ','268.44 ms |592.90 mHz  ','536.87 ms |296.45 mHz  ','  1.07  s |148.22 mHz  ','  2.15  s | 74.11 mHz  ','  4.29  s | 37.06 mHz  ','  8.59  s | 18.53 mHz  ',' 17.18  s |  9.26 mHz  '])
-#     h["lock_LPF_B_tau"].control = select(idd="lock_LPF_B_tau" ,items=['  8.00 ns | 19.89 MHz  ',' 16.00 ns |  9.95 MHz  ',' 32.00 ns |  4.97 MHz  ',' 64.00 ns |  2.49 MHz  ','128.00 ns |  1.24 MHz  ','256.00 ns |621.70 kHz  ','512.00 ns |310.85 kHz  ','  1.02 us |155.42 kHz  ','  2.05 us | 77.71 kHz  ','  4.10 us | 38.86 kHz  ','  8.19 us | 19.43 kHz  ',' 16.38 us |  9.71 kHz  ',' 32.77 us |  4.86 kHz  ',' 65.54 us |  2.43 kHz  ','131.07 us |  1.21 kHz  ','262.14 us |607.13  Hz  ','524.29 us |303.56  Hz  ','  1.05 ms |151.78  Hz  ','  2.10 ms | 75.89  Hz  ','  4.19 ms | 37.95  Hz  ','  8.39 ms | 18.97  Hz  ',' 16.78 ms |  9.49  Hz  ',' 33.55 ms |  4.74  Hz  ',' 67.11 ms |  2.37  Hz  ','134.22 ms |  1.19  Hz  ','268.44 ms |592.90 mHz  ','536.87 ms |296.45 mHz  ','  1.07  s |148.22 mHz  ','  2.15  s | 74.11 mHz  ','  4.29  s | 37.06 mHz  ','  8.59  s | 18.53 mHz  ',' 17.18  s |  9.26 mHz  '])
-
-
 h['lock_trig_sw'  ].control = select(idd="lock_trig_sw"   ,
                      items=['None', 'Pin','Scan floor','Scan ceil','harmonic mod.','Square mod.','Out of lock'  ,'Jump trigger','Lock control trig'],
                      vals =[    0 ,    1 ,          2 ,         4 ,             8 ,          16 ,            32 ,           64 ,               128  ]
@@ -1872,12 +1629,10 @@ h["lock_sg_amp3"  ].control = select(idd="lock_sg_amp3"   ,items=['x1','x2','x4'
 h["lock_lpf_F1_tau"   ].control = select(idd="lock_lpf_F1_tau"    ,items=['131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz',' 34ms | 29.8 Hz',' 67ms | 14.9 Hz','134ms |  7.5 Hz','268ms |  3.7 Hz','537ms |  1.9 Hz','  1 s | 931.3mHz','  2 s | 465.7mHz','  4 s | 232.8mHz'])
 h["lock_lpf_F2_tau"   ].control = select(idd="lock_lpf_F2_tau"    ,items=['131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz',' 34ms | 29.8 Hz',' 67ms | 14.9 Hz','134ms |  7.5 Hz','268ms |  3.7 Hz','537ms |  1.9 Hz','  1 s | 931.3mHz','  2 s | 465.7mHz','  4 s | 232.8mHz'])
 h["lock_lpf_F3_tau"   ].control = select(idd="lock_lpf_F3_tau"    ,items=['131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz',' 34ms | 29.8 Hz',' 67ms | 14.9 Hz','134ms |  7.5 Hz','268ms |  3.7 Hz','537ms |  1.9 Hz','  1 s | 931.3mHz','  2 s | 465.7mHz','  4 s | 232.8mHz'])
-# h["lock_lpf_sq_tau"   ].control = select(idd="lock_lpf_sq_tau"    ,items=['512ns |  2.0MHz','  1us | 976.6kHz','  2us | 488.3kHz','  4us | 244.1kHz','  8us | 122.1kHz',' 16us | 61.0kHz',' 33us | 30.5kHz',' 66us | 15.3kHz','131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz'])
 
 h["lock_lpf_F1_order"   ].control = select(idd="lock_lpf_F1_order"    ,items=['OFF', '1', '2'])
 h["lock_lpf_F2_order"   ].control = select(idd="lock_lpf_F2_order"    ,items=['OFF', '1', '2'])
 h["lock_lpf_F3_order"   ].control = select(idd="lock_lpf_F3_order"    ,items=['OFF', '1', '2'])
-# h["lock_lpf_sq_order"   ].control = select(idd="lock_lpf_sq_order"    ,items=['OFF', '1', '2'])
 
 h["lock_pidA_PSR"].control = select(idd="lock_pidA_PSR",items=['/1','/8','/64','/1024','/4096'])
 h["lock_pidA_ISR"].control = select(idd="lock_pidA_ISR",items=['8 ns','64 ns','512 ns','8 us','6 us','524 us','8 ms','67 ms','537 ms','9 s'])
@@ -1919,26 +1674,6 @@ h["lock_signal_sw"].control.enable = [True]*12+[False]*4
 #%%
 
 
-#update_html(filename,h)
-
-#
-#test='[ ]*<select.*id=[\'"]+'+'lock_LPF_B_tau'+'[\'"]+[^>]+>.*'
-#
-#with open(filename, 'r') as input:
-#    out=False
-#    for line in input:
-#        if bool(re.match(test,line)):
-#            out=True
-#        if bool(re.match('[ ]*</select.*',line)) and out==True:
-#            out=False
-#            print(line,end='')
-#        if out:
-#            print('\'',end='')
-#            print(re.search('[ ]*<option[ ]*value="(\d+)"[^>]*>([^<]*)</option>.*|$',line).group(2),end='')
-#            print('\',',end='')
-#            #print(line)
-#    print('')
-#
 
 if False:
     test='[ ]*<select.*id=[\'"]+'+'lock_ctrl_aux_trig_type'+'[\'"]+[^>]+>.*'

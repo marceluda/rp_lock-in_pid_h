@@ -43,9 +43,6 @@
 
   var app_id = 'lock_in+pid_harmonic';
   var root_url = '';
-  //var root_url = 'http://10.0.1.221';      // Test local
-  //var root_url = 'http://192.168.53.133';  // Test remote and local
-  //var root_url = 'http://192.168.1.100';   // Default RedPitaya IP
 
   var app_version = 'VERSION';
   var start_app_url = root_url + '/bazaar?start=' + app_id;
@@ -1281,15 +1278,6 @@
         event.stopPropagation();
         event.preventDefault();
         //user_editing = user_editing_old ;
-        /*if(cmd_timestamp< + new Date()-10000) {
-            console.log('new delayed');
-            cmd_timestamp=+ new Date();
-            delayed_send(id);
-        }else{
-            console.log('delay');
-            cmd_timestamp=+ new Date();
-        }*/
-
         params.local[id] = $currVal;
         sendParams(true,true,true,true);
         //console.log('currVal='+$currVal);
@@ -1323,10 +1311,6 @@
         lock_ramp_step_update();
         //$(this).blur();
     });
-    /*$('#lock_aux_A,#lock_aux_B,#lock_osc_ctrl').on('change', function() {
-        $(this).blur();
-    });*/
-
 
     // Switches
     var switches=['#lock_oscA_sw','#lock_oscB_sw','#lock_trig_sw','#lock_out1_sw','#lock_out2_sw','#lock_lock_trig_sw','#lock_rl_signal_sw',
@@ -1395,20 +1379,6 @@
           }
        });
 
-    // $('#btn_disp_sq')
-    //   .on('click', function() {
-    //       if(! plot) return;
-    //       $('#btn_disp_sq').toggleClass('btn-default btn-primary');
-    //
-    //       if($('#btn_disp_sq').hasClass('btn-primary')) {
-    //         $('#btn_disp_sq').data('checked', true);
-    //         $('#btn_disp_sq').html('Square');
-    //       }
-    //       else{
-    //         $('#btn_disp_sq').data('checked', false);
-    //         $('#btn_disp_sq').html('Harmonic');
-    //       }
-    //    });
 
      $('#btn_disp_norm')
       .on('click', function() {
@@ -1912,29 +1882,20 @@
 
   function lock_modulation_update() {
     lock_gen_mod_phase_arr    = $("#lock_gen_mod_phase"    ).val().trim().split(' ').filter( function(n,i){ return n!=="" } );
-    // lock_gen_mod_phase_sq_arr = $("#lock_gen_mod_phase_sq" ).val().trim().split(' ').filter( function(n,i){ return n!=="" } );
     lock_gen_mod_hp_arr       = $("#lock_gen_mod_hp"       ).val().trim().split(' ').filter( function(n,i){ return n!=="" } );
-    // lock_gen_mod_sqp_arr      = $("#lock_gen_mod_sqp"      ).val().trim().split(' ').filter( function(n,i){ return n!=="" } );
-
 
 
     if( !$.isNumeric(lock_gen_mod_phase_arr[0])    ||
-        // !$.isNumeric(lock_gen_mod_phase_sq_arr[0]) ||
         !$.isNumeric(lock_gen_mod_hp_arr[0])      // ||
-        // !$.isNumeric(lock_gen_mod_sqp_arr[0])
         ) return -1 ;
 
     if (params) if (params.local)
     if( parseLocalFloat(lock_gen_mod_phase_arr[0])    == mod_phase     &&
-        // parseLocalFloat(lock_gen_mod_phase_sq_arr[0]) == mod_phase_sq  &&
         parseLocalFloat(lock_gen_mod_hp_arr[0])       == mod_hp     //   &&
-        // parseLocalFloat(lock_gen_mod_sqp_arr[0])      == mod_sqp
         ) return -1 ;
 
     mod_phase    = Math.abs( parseLocalFloat( lock_gen_mod_phase_arr[0] ) );
-    // mod_phase_sq = Math.abs( parseLocalFloat( lock_gen_mod_phase_sq_arr[0] ) );
     mod_hp       = Math.abs( parseLocalFloat( lock_gen_mod_hp_arr[0]   ) );
-    // mod_sqp      = Math.abs( parseLocalFloat( lock_gen_mod_sqp_arr[0]  ) );
 
     if( lock_gen_mod_phase_arr.length === 2) {
       if ( lock_gen_mod_phase_arr[1].toLowerCase()=="g" || lock_gen_mod_phase_arr[1].toLowerCase()=="deg" || lock_gen_mod_phase_arr[1].toLowerCase()=="°" )
@@ -1960,20 +1921,6 @@
       $("#lock_gen_mod_hp").val(""+mod_hp);
     }
 
-    // if( lock_gen_mod_sqp_arr.length === 2) {
-    //   if ( lock_gen_mod_sqp_arr[1].toLowerCase()=="s"  || lock_gen_mod_sqp_arr[1].toLowerCase()=="seg")
-    //     mod_sqp = Math.round( mod_sqp / 8e-9 /2 )-1;
-    //   if ( lock_gen_mod_sqp_arr[1].toLowerCase()=="ms"  )
-    //     mod_sqp = Math.round( mod_sqp / (8e-9 * 2 * 1000) )-1;
-    //   if ( lock_gen_mod_sqp_arr[1].toLowerCase()=="us"  || lock_gen_mod_sqp_arr[1].toLowerCase()=="μs")
-    //     mod_sqp = Math.round( mod_sqp / (8e-9 * 2 * 1000000 ) )-1;
-    //   if ( lock_gen_mod_sqp_arr[1].toLowerCase()=="ns"  )
-    //     mod_sqp = Math.round( mod_sqp / 8  ) ;
-    //   mod_sqp = Math.min(  819100 , mod_sqp  ) ;
-    //   mod_sqp = Math.max(       0 , mod_sqp  ) ;
-    //   $("#lock_gen_mod_sqp").val(""+mod_sqp);
-    // }
-
 
     $('#lock_gen_mod_phase_text'   ).html( "<small><b>" + (mod_phase   /2520*360).toFixed(1) + "&nbsp;deg&nbsp;|&nbsp;" +   (mod_phase   /2520*2).toFixed(1) + "&nbsp;п&nbsp;rad</b></small>");
 
@@ -1992,21 +1939,6 @@
 
     $('#lock_gen_mod_hp_text').html( txt   );
 
-    // sqp_period=(mod_sqp+1)*8e-9*2;
-    // if ( mod_sqp > 0 ){
-    //   oom = Math.floor(Math.log10(sqp_period)/3);
-    //   val = sqp_period/Math.pow(10,3*oom);
-    //   txt = "<small><b>&tau;&nbsp;=&nbsp;" + val.toFixed(3) + "&nbsp;" + units[oom.toString()] + "s</b>";
-    //
-    //   oom  = Math.floor(Math.log10(1/sqp_period)/3);
-    //   val  = (1/sqp_period)/Math.pow(10,3*oom);
-    //   txt += " <br> <b>f&nbsp;=&nbsp;" + val.toFixed(3) + "&nbsp;" + units[oom.toString()] + "Hz</b></small>";
-    // }
-
-    // $('#lock_gen_mod_sqp_text').html( txt   );
-
-    // sqp_num = ( mod_sqp > 0 ) ? (mod_sqp-1)*2+4 : 2520 ;
-    // $('#lock_gen_mod_phase_sq_text').html( "<small><b>" + (mod_phase_sq/sqp_num*360).toFixed(1) + "&nbsp;deg&nbsp;|&nbsp;" +   (mod_phase_sq/sqp_num*2).toFixed(1) + "&nbsp;п&nbsp;rad</b></small>");
   }
 
 
@@ -2182,31 +2114,6 @@
       }
     }
 
-    // if (disp_fast) {
-    //   var sqX = params.local.lock_sqX *scl;
-    //   var sqY = params.local.lock_sqY *scl;
-    //   var sqR = Math.sqrt( Math.pow(sqX,2)+Math.pow(sqY,2) ) ;
-    //   var sqFi= Math.atan2(sqY,sqX)*180/Math.PI ;
-    //   if(set_raw){
-    //     fixn=3;
-    //     $('#disp_sqx' ).html( sqX.toFixed(fixn)    );
-    //     $('#disp_sqy' ).html( sqY.toFixed(fixn)    );
-    //     $('#disp_sqr' ).html( sqR.toFixed(fixn)    );
-    //     $('#disp_sqfi').html( sqFi.toFixed(2+fixn) );
-    //   }else{
-    //     var fvsq = Math.max( params.local.lock_sqX.toString().length , params.local.lock_sqY.toString().length )  ;
-    //     $('#disp_sqx' ).html( format_oom(sqX ,'V',fvsq) );
-    //     $('#disp_sqy' ).html( format_oom(sqY ,'V',fvsq) );
-    //     $('#disp_sqr' ).html( format_oom(sqR ,'V',fvsq) );
-    //     $('#disp_sqfi').html( format_oom(sqFi,'deg')   );
-    //   }
-    //   if ( (new Date().getTime()) > lasttsp+300 ) {
-    //     lasttsp=Math.floor((new Date().getTime())/1000);
-    //     set_bar( 'disp_sqx' ,  sqX);
-    //     set_bar( 'disp_sqy' ,  sqY);
-    //   }
-    //
-    // }
 
     var error_mean = params.local.lock_error_mean;
 
@@ -2860,50 +2767,6 @@
       $('#btn_avg').removeClass('btn-primary').addClass('btn-default');
     }
 
-
-    /*
-    $('#lock_lpf_F1_tau').val( params.original.lock_lpf_F1 % 16 );
-    $('#lock_lpf_F2_tau').val( params.original.lock_lpf_F2 % 16 );
-    $('#lock_lpf_F3_tau').val( params.original.lock_lpf_F3 % 16 );
-    $('#lock_lpf_sq_tau').val( params.original.lock_lpf_sq % 16 );
-
-    $('#lock_lpf_F1_order').val( params.original.lock_lpf_F1_order % 4 );
-    $('#lock_lpf_F2_order').val( params.original.lock_lpf_F2_order % 4 );
-    $('#lock_lpf_F3_order').val( params.original.lock_lpf_F3_order % 4 );
-    $('#lock_lpf_sq_order').val( params.original.lock_lpf_sq_order % 4 );
-
-
-    $('#lock_ctrl_aux_set_pidA_enable').prop('checked', (params.original.lock_ctrl_aux_set_pidA_enable ? true : false));
-    $('#lock_ctrl_aux_set_pidB_enable').prop('checked', (params.original.lock_ctrl_aux_set_pidB_enable ? true : false));
-    $('#lock_ctrl_aux_set_ramp_enable').prop('checked', (params.original.lock_ctrl_aux_set_ramp_enable ? true : false));
-
-    if (params.original.lock_ctrl_aux_ramp_enable_ctrl)
-      $('#lock_ctrl_aux_ramp_enable_ctrl').removeClass('btn-default').addClass('btn-primary');
-    else
-      $('#lock_ctrl_aux_ramp_enable_ctrl').removeClass('btn-primary').addClass('btn-default');
-
-    if (params.original.lock_ctrl_aux_pidA_enable_ctrl)
-      $('#lock_ctrl_aux_pidA_enable_ctrl').removeClass('btn-default').addClass('btn-primary');
-    else
-      $('#lock_ctrl_aux_pidA_enable_ctrl').removeClass('btn-primary').addClass('btn-default');
-
-    if (params.original.lock_ctrl_aux_pidB_enable_ctrl)
-      $('#lock_ctrl_aux_pidB_enable_ctrl').removeClass('btn-default').addClass('btn-primary');
-    else
-      $('#lock_ctrl_aux_pidB_enable_ctrl').removeClass('btn-primary').addClass('btn-default');
-
-    if (params.original.lock_ctrl_aux_lock_now)
-      $('#lock_ctrl_aux_lock_now').removeClass('btn-default').addClass('btn-primary');
-    else
-      $('#lock_ctrl_aux_lock_now').removeClass('btn-primary').addClass('btn-default');
-
-    if (params.original.lock_ctrl_aux_launch_lock_trig)
-      $('#lock_ctrl_aux_launch_lock_trig').removeClass('btn-default').addClass('btn-primary');
-    else
-      $('#lock_ctrl_aux_launch_lock_trig').removeClass('btn-primary').addClass('btn-default');
-
-    $('#lock_ctrl_aux_trig_type').val(params.original.lock_ctrl_aux_trig_type);
-    */
 
     // [LOLO DOCK LOADPARAMS]
     // Checkboxes
@@ -4902,124 +4765,6 @@
 
               <hr style="margin: 7px 7px">
 
-              <!-- Fast square lock-in -------------------------------------- >
-              <div class="row">
-                <div class="panel-group col-xs-12 col-sm-12 col-md-12">
-                  <p class="text-center">
-                    <a data-toggle="collapse" href="#fast_lock_in_hide" aria-expanded="true" aria-controls="fast_lock_in_hide">
-                      <strong>Fast square lock-in</strong>
-                    </a>
-                  </p>
-                </div>
-
-                <div class="panel-group col-xs-12 col-sm-12 col-md-12 collapse" id="fast_lock_in_hide">
-                  <div class="row"  data-tag="SquareParams">
-                    <div class="panel-group col-xs-12 col-sm-12 col-md-12">
-                      <p><strong>Square oscilator</strong></p>
-                    </div>
-                    <div class="panel-group col-xs-12 col-sm-12 col-md-12">
-                      <form class="form-horizontal" role="form" onsubmit="return false;">
-                        <div class="form-group">
-                          <label for="lock_gen_mod_sqp" class="col-xs-4 control-label">Period:</label>
-                          <div class="col-xs-4 col-sm-8">
-                            <input type="number" autocomplete="off" class="form-control" value="0" id="lock_gen_mod_sqp" step="1" min="0" max="4294967295">
-                            <span style="display: none;" class="input-group-btn" id="lock_gen_mod_sqp_apply">
-                              <button type="button" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-ok-circle"></span></button>
-                            </span>
-                          </div>
-                          <div class="col-xs-12 col-sm-12 text-center">
-                            <div style="padding: 7px 0 0;" class="col-xs-8" id="lock_gen_mod_sqp_text">lock_gen_mod_sqp</div>
-                          </div>
-                        </div>
-                      </form>
-                    </div>
-                    <div class="panel-group col-xs-12 col-sm-12 col-md-12">
-                      <form class="form-horizontal" role="form" onsubmit="return false;">
-                        <div class="form-group">
-                          <label for="lock_gen_mod_phase_sq" class="col-xs-4 control-label">Phase:</label>
-                          <div class="col-xs-4 col-sm-8">
-                            <input type="number" autocomplete="off" class="form-control" value="0" id="lock_gen_mod_phase_sq" step="1" min="0" max="4294967295">
-                            <span style="display: none;" class="input-group-btn" id="lock_gen_mod_phase_sq_apply">
-                              <button type="button" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-ok-circle"></span></button>
-                            </span>
-                          </div>
-                          <div class="col-xs-12 col-sm-12 text-center">
-                            <div style="padding: 7px 0 0;" class="col-xs-8" id="lock_gen_mod_phase_sq_text">lock_gen_mod_phase_sq</div>
-                          </div>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                  <div class="row" style="background-color: #F2F2F2;">
-                    <div class="panel-group col-xs-12 col-sm-12 col-md-12">
-                      <p><strong>Demodulation</strong></p>
-                    </div>
-                    <div class="panel-group col-xs-12 col-sm-12 col-md-12 text-center">
-                      <p>Low Pass Filter</p>
-                    </div>
-                    <div class="panel-group col-xs-12 col-sm-12 col-md-12">
-                      <form class="form-horizontal" role="form" onsubmit="return false;">
-                        <div class="form-group">
-                          <div class="col-xs-8"> cut
-                            <select id="lock_lpf_sq_tau" class="form-control">
-                              <option  value="0" selected="selected">512ns |  2.0MHz</option>
-                              <option  value="1">  1us | 976.6kHz</option>
-                              <option  value="2">  2us | 488.3kHz</option>
-                              <option  value="3">  4us | 244.1kHz</option>
-                              <option  value="4">  8us | 122.1kHz</option>
-                              <option  value="5"> 16us | 61.0kHz</option>
-                              <option  value="6"> 33us | 30.5kHz</option>
-                              <option  value="7"> 66us | 15.3kHz</option>
-                              <option  value="8">131us |  7.6kHz</option>
-                              <option  value="9">262us |  3.8kHz</option>
-                              <option  value="10">524us |  1.9kHz</option>
-                              <option  value="11">  1ms | 953.7 Hz</option>
-                              <option  value="12">  2ms | 476.8 Hz</option>
-                              <option  value="13">  4ms | 238.4 Hz</option>
-                              <option  value="14">  8ms | 119.2 Hz</option>
-                              <option  value="15"> 17ms | 59.6 Hz</option>
-                            </select>
-                          </div>
-                          <div class="col-xs-4"> order
-                            <select id="lock_lpf_sq_order" class="form-control">
-                              <option  value="0">OFF</option>
-                              <option  value="1">1</option>
-                              <option  value="2" selected="selected">2</option>
-                            </select>
-                          </div>
-                        </div>
-                      </form>
-                    </div>
-                    <div class="panel-group col-xs-12 col-sm-12 col-md-12">
-                      <form class="form-horizontal" role="form" onsubmit="return false;">
-                        <div class="form-group">
-                          <label for="lock_sg_amp_sq" class="col-xs-6 control-label">Amplification</label>
-                          <div class="col-xs-6">
-                            <select id="lock_sg_amp_sq" class="form-control">
-                              <option  value="0" selected="selected">x1</option>
-                              <option  value="1">x2</option>
-                              <option  value="2">x4</option>
-                              <option  value="3">x8</option>
-                              <option  value="4">x16</option>
-                              <option  value="5">x32</option>
-                              <option  value="6">x64</option>
-                              <option  value="7">x128</option>
-                              <option  value="8">x256</option>
-                              <option  value="9">x512</option>
-                            </select>
-                          </div>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-              <hr style="margin: 7px 7px"-->
-
-
-
 
               <!-- Aux ---------------------------------------------------->
               <div class="row">
@@ -6322,55 +6067,6 @@
 
               </div>
             </div>
-
-
-
-
-            <!-- DISABLE square lock-in panel -->
-            <!--div class="panel panel-default">
-              <div class="panel-heading">
-                <h4 class="panel-title">
-                  <a data-toggle="collapse" href="#fast_lock_in_display">
-                    Square Lock-in
-                  </a>
-                </h4>
-              </div>
-              <div id="fast_lock_in_display" class="panel-collapse collapse">
-                <div class="panel-body">
-                  <div class="row text-center">
-                    <div class="panel-group col-xs-12 col-sm-6 col-md-6">
-                      <h2><label class="group-label" for="disp_sqx">X</label></h2>
-                      <h2><span class="label label-info" style="display:block;" id="disp_sqx">Valor</span></h2>
-                      <div class="progress" style="height: 5px;">
-                        <div id="disp_sqx_bar" class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%; height: 5px;" ></div>
-                      </div>
-                    </div>
-
-                    <div class="panel-group col-xs-12 col-sm-6 col-md-6">
-                      <h2><label class="group-label" for="disp_sqy">Y</label></h2>
-                      <h2><span class="label label-info" style="display:block;" id="disp_sqy">Valor</span></h2>
-                      <div class="progress" style="height: 5px;">
-                        <div id="disp_sqy_bar" class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%; height: 5px;"></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="row text-center">
-                    <div class="panel-group col-xs-12 col-sm-6 col-md-6">
-                      <h2><label class="group-label" for="disp_sqr">R</label></h2>
-                      <h2><span class="label label-info" style="display:block;" id="disp_sqr">Valor</span></h2>
-                    </div>
-                    <div class="panel-group col-xs-12 col-sm-6 col-md-6">
-                      <h2><label class="group-label" for="disp_sqfi">ϕ</label></h2>
-                      <h2><span class="label label-info" style="display:block;" id="disp_sqfi">Valor</span></h2>
-                    </div>
-                  </div>
-                </div>
-
-
-              </div>
-            </div-->
-
 
 
 
