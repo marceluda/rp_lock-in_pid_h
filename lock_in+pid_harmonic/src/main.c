@@ -335,7 +335,9 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { "lock_sg_amp1"                  ,      0, 1, 0,            0,           15 }, /** amplification of F1o **/
     { "lock_sg_amp2"                  ,      0, 1, 0,            0,           15 }, /** amplification of F2o **/
     { "lock_sg_amp3"                  ,      0, 1, 0,            0,           15 }, /** amplification of F3o **/
-    { "lock_lpf_F1_tau"               ,      0, 1, 0,            0,           15 }, /** Low Pass Filter TAU of X, Y and F1 **/
+    { "lock_lpf_F0_tau"               ,      0, 1, 0,            0,           15 }, /** Low Pass Filter TAU of X, Y **/
+    { "lock_lpf_F0_order"             ,      2, 1, 0,            0,            2 }, /** Low Pass Filter order / off **/
+    { "lock_lpf_F1_tau"               ,      0, 1, 0,            0,           15 }, /** Low Pass Filter TAU of F1 **/
     { "lock_lpf_F1_order"             ,      2, 1, 0,            0,            2 }, /** Low Pass Filter order / off **/
     { "lock_lpf_F2_tau"               ,      0, 1, 0,            0,           15 }, /** Low Pass Filter TAU of F2 **/
     { "lock_lpf_F2_order"             ,      2, 1, 0,            0,            2 }, /** Low Pass Filter order / off **/

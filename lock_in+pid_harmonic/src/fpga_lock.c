@@ -102,6 +102,7 @@ void reset_locks(void)
         g_lock_reg->sg_amp1              =      0;
         g_lock_reg->sg_amp2              =      0;
         g_lock_reg->sg_amp3              =      0;
+        g_lock_reg->lpf_F0               =     32;
         g_lock_reg->lpf_F1               =     32;
         g_lock_reg->lpf_F2               =     32;
         g_lock_reg->lpf_F3               =     32;

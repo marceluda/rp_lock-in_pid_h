@@ -166,7 +166,8 @@ f.add( name="sg_amp1"            , group=grp , val=    0, rw=True ,  nbits= 4, m
 f.add( name="sg_amp2"            , group=grp , val=    0, rw=True ,  nbits= 4, min_val=          0, max_val=         15, fpga_update=True , signed=False, desc="amplification of F2o" )
 f.add( name="sg_amp3"            , group=grp , val=    0, rw=True ,  nbits= 4, min_val=          0, max_val=         15, fpga_update=True , signed=False, desc="amplification of F3o" )
 
-f.add( name="lpf_F1"             , group=grp , val=   32, rw=True ,  nbits= 6, min_val=          0, max_val=         63, fpga_update=True , signed=False, desc="Low Pass Filter of X, Y and F1" )
+f.add( name="lpf_F0"             , group=grp , val=   32, rw=True ,  nbits= 6, min_val=          0, max_val=         63, fpga_update=True , signed=False, desc="Low Pass Filter of X, Y" )
+f.add( name="lpf_F1"             , group=grp , val=   32, rw=True ,  nbits= 6, min_val=          0, max_val=         63, fpga_update=True , signed=False, desc="Low Pass Filter F1" )
 f.add( name="lpf_F2"             , group=grp , val=   32, rw=True ,  nbits= 6, min_val=          0, max_val=         63, fpga_update=True , signed=False, desc="Low Pass Filter of F2" )
 f.add( name="lpf_F3"             , group=grp , val=   32, rw=True ,  nbits= 6, min_val=          0, max_val=         63, fpga_update=True , signed=False, desc="Low Pass Filter of F3" )
 
@@ -720,7 +721,14 @@ m.add( name="lock_sg_amp1"       , fpga_reg="sg_amp1"       , val=0    , rw=True
 m.add( name="lock_sg_amp2"       , fpga_reg="sg_amp2"       , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="amplification of F2o")
 m.add( name="lock_sg_amp3"       , fpga_reg="sg_amp3"       , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="amplification of F3o")
 
-m.add( name="lock_lpf_F1_tau"    , fpga_reg="lpf_F1"        , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="Low Pass Filter TAU of X, Y and F1")
+m.add( name="lock_lpf_F0_tau"    , fpga_reg="lpf_F0"        , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="Low Pass Filter TAU of X, Y")
+m.add( name="lock_lpf_F0_order"  , fpga_reg="lpf_F0"        , val=2    , rw=True , nbits=2 , min_val=0         , max_val=2         , fpga_update=True , signed=False, group="lock-in"        , desc="Low Pass Filter order / off")
+r=m["lock_lpf_F0_tau"  ]; r.c_update='(float) ((g_lock_reg->{:s}      )& 0x0f)'.format(r.fpga_reg)
+r=m["lock_lpf_F0_order"]; r.c_update='(float) ((g_lock_reg->{:s} >> 4 )& 0x03)'.format(r.fpga_reg)
+r=f["lpf_F0"]; r.c_update='(((int)params[{:s}].value)<<4) + ((int)params[{:s}].value)'.format( m["lock_lpf_F0_order"].cdef , m["lock_lpf_F0_tau"].cdef )
+
+
+m.add( name="lock_lpf_F1_tau"    , fpga_reg="lpf_F1"        , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="lock-in"        , desc="Low Pass Filter TAU of F1")
 m.add( name="lock_lpf_F1_order"  , fpga_reg="lpf_F1"        , val=2    , rw=True , nbits=2 , min_val=0         , max_val=2         , fpga_update=True , signed=False, group="lock-in"        , desc="Low Pass Filter order / off")
 r=m["lock_lpf_F1_tau"  ]; r.c_update='(float) ((g_lock_reg->{:s}      )& 0x0f)'.format(r.fpga_reg)
 r=m["lock_lpf_F1_order"]; r.c_update='(float) ((g_lock_reg->{:s} >> 4 )& 0x03)'.format(r.fpga_reg)
@@ -1263,6 +1271,8 @@ h['lock_sg_amp1'                  ].type = 'select'
 h['lock_sg_amp2'                  ].type = 'select'
 h['lock_sg_amp3'                  ].type = 'select'
 
+h['lock_lpf_F0_tau'               ].type = 'select'
+h['lock_lpf_F0_order'             ].type = 'select'
 h['lock_lpf_F1_tau'               ].type = 'select'
 h['lock_lpf_F1_order'             ].type = 'select'
 h['lock_lpf_F2_tau'               ].type = 'select'
@@ -1645,10 +1655,12 @@ h["lock_sg_amp2"  ].control = select(idd="lock_sg_amp2"   ,items=['x1','x2','x4'
 h["lock_sg_amp3"  ].control = select(idd="lock_sg_amp3"   ,items=['x1','x2','x4','x8','x16','x32','x64','x128','x256','x512'])
 # h["lock_sg_amp_sq"].control = select(idd="lock_sg_amp_sq" ,items=['x1','x2','x4','x8','x16','x32','x64','x128','x256','x512'])
 
+h["lock_lpf_F0_tau"   ].control = select(idd="lock_lpf_F0_tau"    ,items=['131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz',' 34ms | 29.8 Hz',' 67ms | 14.9 Hz','134ms |  7.5 Hz','268ms |  3.7 Hz','537ms |  1.9 Hz','  1 s | 931.3mHz','  2 s | 465.7mHz','  4 s | 232.8mHz'])
 h["lock_lpf_F1_tau"   ].control = select(idd="lock_lpf_F1_tau"    ,items=['131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz',' 34ms | 29.8 Hz',' 67ms | 14.9 Hz','134ms |  7.5 Hz','268ms |  3.7 Hz','537ms |  1.9 Hz','  1 s | 931.3mHz','  2 s | 465.7mHz','  4 s | 232.8mHz'])
 h["lock_lpf_F2_tau"   ].control = select(idd="lock_lpf_F2_tau"    ,items=['131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz',' 34ms | 29.8 Hz',' 67ms | 14.9 Hz','134ms |  7.5 Hz','268ms |  3.7 Hz','537ms |  1.9 Hz','  1 s | 931.3mHz','  2 s | 465.7mHz','  4 s | 232.8mHz'])
 h["lock_lpf_F3_tau"   ].control = select(idd="lock_lpf_F3_tau"    ,items=['131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz',' 34ms | 29.8 Hz',' 67ms | 14.9 Hz','134ms |  7.5 Hz','268ms |  3.7 Hz','537ms |  1.9 Hz','  1 s | 931.3mHz','  2 s | 465.7mHz','  4 s | 232.8mHz'])
 
+h["lock_lpf_F0_order"   ].control = select(idd="lock_lpf_F0_order"    ,items=['OFF', '1', '2'])
 h["lock_lpf_F1_order"   ].control = select(idd="lock_lpf_F1_order"    ,items=['OFF', '1', '2'])
 h["lock_lpf_F2_order"   ].control = select(idd="lock_lpf_F2_order"    ,items=['OFF', '1', '2'])
 h["lock_lpf_F3_order"   ].control = select(idd="lock_lpf_F3_order"    ,items=['OFF', '1', '2'])

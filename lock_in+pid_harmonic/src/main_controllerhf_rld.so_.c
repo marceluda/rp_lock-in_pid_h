@@ -329,13 +329,15 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { "lock_sf_AfrzI"                 ,      0, 1, 0,            0,            1 }, /** Step function pidA_ifreeze  **/
     { "lock_sf_BfrzO"                 ,      0, 1, 0,            0,            1 }, /** Step function pidB_freeze  **/
     { "lock_sf_BfrzI"                 ,      0, 1, 0,            0,            1 }, /** Step function pidB_ifreeze  **/
-    { "lock_signal_sw"                ,      0, 1, 0,            0,           15 }, /** Input selector for signal_i **/
+    { "lock_signal_sw"                ,      0, 1, 0,            0,            7 }, /** Input selector for signal_i **/
     { "lock_signal_i"                 ,      0, 0, 1,        -8192,         8191 }, /** signal for demodulation **/
     { "lock_sg_amp0"                  ,      0, 1, 0,            0,           31 }, /** amplification of Xo, Yo **/
     { "lock_sg_amp1"                  ,      0, 1, 0,            0,           15 }, /** amplification of F1o **/
     { "lock_sg_amp2"                  ,      0, 1, 0,            0,           15 }, /** amplification of F2o **/
     { "lock_sg_amp3"                  ,      0, 1, 0,            0,           15 }, /** amplification of F3o **/
-    { "lock_lpf_F1_tau"               ,      0, 1, 0,            0,           15 }, /** Low Pass Filter TAU of X, Y and F1 **/
+    { "lock_lpf_F0_tau"               ,      0, 1, 0,            0,           15 }, /** Low Pass Filter TAU of X, Y **/
+    { "lock_lpf_F0_order"             ,      2, 1, 0,            0,            2 }, /** Low Pass Filter order / off **/
+    { "lock_lpf_F1_tau"               ,      0, 1, 0,            0,           15 }, /** Low Pass Filter TAU of F1 **/
     { "lock_lpf_F1_order"             ,      2, 1, 0,            0,            2 }, /** Low Pass Filter order / off **/
     { "lock_lpf_F2_tau"               ,      0, 1, 0,            0,           15 }, /** Low Pass Filter TAU of F2 **/
     { "lock_lpf_F2_order"             ,      2, 1, 0,            0,            2 }, /** Low Pass Filter order / off **/

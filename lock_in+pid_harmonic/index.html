@@ -16,7 +16,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Oscilloscope+lock-in+PID</title>
+  <title>Harmonic lock-in+PID (v0.3)</title>
   <link href="../assets/bootstrap-3.0.0/css/bootstrap.css" rel="stylesheet" type="text/css">
   <link href="../assets/style.css?6" rel="stylesheet" type="text/css">
   <script src="../assets/bootstrap-3.0.0/js/jquery.js"></script>
@@ -114,15 +114,16 @@
                        'lock_out1_sw,lock_out2_sw,lock_lock_control,lock_lock_trig_val,lock_lock_trig_time_val,lock_lock_trig_sw,lock_rl_error_threshold,'+
                        'lock_rl_signal_sw,lock_rl_signal_threshold,lock_rl_error_enable,lock_rl_signal_enable,lock_rl_reset,lock_sf_jumpA,'+
                        'lock_sf_jumpB,lock_sf_start,lock_sf_AfrzO,lock_sf_AfrzI,lock_sf_BfrzO,lock_sf_BfrzI,lock_signal_sw,lock_sg_amp0,'+
-                       'lock_sg_amp1,lock_sg_amp2,lock_sg_amp3,lock_lpf_F1_tau,lock_lpf_F1_order,lock_lpf_F2_tau,lock_lpf_F2_order,lock_lpf_F3_tau,'+
-                       'lock_lpf_F3_order,lock_error_sw,lock_error_offset,lock_mod_out1,lock_mod_out2,lock_gen_mod_phase,lock_gen_mod_hp,'+
-                       'lock_ramp_step,lock_ramp_low_lim,lock_ramp_hig_lim,lock_ramp_reset,lock_ramp_enable,lock_ramp_direction,lock_ramp_B_factor,'+
-                       'lock_read_ctrl,lock_pidA_sw,lock_pidA_PSR,lock_pidA_ISR,lock_pidA_DSR,lock_pidA_SAT,lock_pidA_sp,lock_pidA_kp,'+
-                       'lock_pidA_ki,lock_pidA_kd,lock_pidA_irst,lock_pidA_freeze,lock_pidA_ifreeze,lock_pidB_sw,lock_pidB_PSR,lock_pidB_ISR,'+
-                       'lock_pidB_DSR,lock_pidB_SAT,lock_pidB_sp,lock_pidB_kp,lock_pidB_ki,lock_pidB_kd,lock_pidB_irst,lock_pidB_freeze,'+
-                       'lock_pidB_ifreeze,lock_aux_A,lock_aux_B,lock_ctrl_aux_lock_now,lock_ctrl_aux_launch_lock_trig,lock_ctrl_aux_pidB_enable_ctrl,'+
-                       'lock_ctrl_aux_pidA_enable_ctrl,lock_ctrl_aux_ramp_enable_ctrl,lock_ctrl_aux_set_pidB_enable,lock_ctrl_aux_set_pidA_enable,'+
-                       'lock_ctrl_aux_set_ramp_enable,lock_ctrl_aux_trig_type,lock_ctrl_aux_lock_trig_rise,lock_mod_harmonic_on';
+                       'lock_sg_amp1,lock_sg_amp2,lock_sg_amp3,lock_lpf_F0_tau,lock_lpf_F0_order,lock_lpf_F1_tau,lock_lpf_F1_order,lock_lpf_F2_tau,'+
+                       'lock_lpf_F2_order,lock_lpf_F3_tau,lock_lpf_F3_order,lock_error_sw,lock_error_offset,lock_mod_out1,lock_mod_out2,'+
+                       'lock_gen_mod_phase,lock_gen_mod_hp,lock_ramp_step,lock_ramp_low_lim,lock_ramp_hig_lim,lock_ramp_reset,lock_ramp_enable,'+
+                       'lock_ramp_direction,lock_ramp_B_factor,lock_read_ctrl,lock_pidA_sw,lock_pidA_PSR,lock_pidA_ISR,lock_pidA_DSR,'+
+                       'lock_pidA_SAT,lock_pidA_sp,lock_pidA_kp,lock_pidA_ki,lock_pidA_kd,lock_pidA_irst,lock_pidA_freeze,lock_pidA_ifreeze,'+
+                       'lock_pidB_sw,lock_pidB_PSR,lock_pidB_ISR,lock_pidB_DSR,lock_pidB_SAT,lock_pidB_sp,lock_pidB_kp,lock_pidB_ki,lock_pidB_kd,'+
+                       'lock_pidB_irst,lock_pidB_freeze,lock_pidB_ifreeze,lock_aux_A,lock_aux_B,lock_ctrl_aux_lock_now,lock_ctrl_aux_launch_lock_trig,'+
+                       'lock_ctrl_aux_pidB_enable_ctrl,lock_ctrl_aux_pidA_enable_ctrl,lock_ctrl_aux_ramp_enable_ctrl,lock_ctrl_aux_set_pidB_enable,'+
+                       'lock_ctrl_aux_set_pidA_enable,lock_ctrl_aux_set_ramp_enable,lock_ctrl_aux_trig_type,lock_ctrl_aux_lock_trig_rise,'+
+                       'lock_mod_harmonic_on';
 
   config_params_keys = config_params_txts.split(",");
 
@@ -1311,10 +1312,10 @@
 
     // Switches
     var switches=['#lock_oscA_sw','#lock_oscB_sw','#lock_trig_sw','#lock_out1_sw','#lock_out2_sw','#lock_lock_trig_sw','#lock_rl_signal_sw',
-                  '#lock_signal_sw','#lock_sg_amp0','#lock_sg_amp1','#lock_sg_amp2','#lock_sg_amp3','#lock_lpf_F1_tau','#lock_lpf_F1_order',
-                  '#lock_lpf_F2_tau','#lock_lpf_F2_order','#lock_lpf_F3_tau','#lock_lpf_F3_order','#lock_error_sw','#lock_read_ctrl','#lock_pidA_sw',
-                  '#lock_pidA_PSR','#lock_pidA_ISR','#lock_pidA_DSR','#lock_pidA_SAT','#lock_pidB_sw','#lock_pidB_PSR','#lock_pidB_ISR',
-                  '#lock_pidB_DSR','#lock_pidB_SAT','#lock_ctrl_aux_trig_type'];
+                  '#lock_signal_sw','#lock_sg_amp0','#lock_sg_amp1','#lock_sg_amp2','#lock_sg_amp3','#lock_lpf_F0_tau','#lock_lpf_F0_order',
+                  '#lock_lpf_F1_tau','#lock_lpf_F1_order','#lock_lpf_F2_tau','#lock_lpf_F2_order','#lock_lpf_F3_tau','#lock_lpf_F3_order',
+                  '#lock_error_sw','#lock_read_ctrl','#lock_pidA_sw','#lock_pidA_PSR','#lock_pidA_ISR','#lock_pidA_DSR','#lock_pidA_SAT',
+                  '#lock_pidB_sw','#lock_pidB_PSR','#lock_pidB_ISR','#lock_pidB_DSR','#lock_pidB_SAT','#lock_ctrl_aux_trig_type'];
     for(ii in switches)
         $(switches[ii]).on('change', function() { onDropdownChange($(this), $(this)[0].id ); });
 
@@ -1518,8 +1519,9 @@
         $(".nav-tabs li").removeClass("active");
         $(this).addClass("active");
         //$('#slow_lock_in_hide div.row[id!="tab_header"]').hide();
-        $('#tab_F1_body,#tab_F2_body,#tab_F3_body').hide();
+        $('#tab_F0_body,#tab_F1_body,#tab_F2_body,#tab_F3_body').hide();
         var tab_name = $(this).text().slice(-2) ;
+        if(tab_name==' Y') tab_name='F0';
         //console.log(tab_name);
         $('#tab_'+tab_name+'_body').show();
 
@@ -1649,8 +1651,8 @@
 
   function lpf_update(){
 
-    var lpfs={0:'lock_lpf_F1_tau'   , 1:'lock_lpf_F2_tau'  , 2:'lock_lpf_F3_tau'  , 3:'lock_lpf_F3_tau',
-              4:'lock_lpf_F1_order' , 5:'lock_lpf_F2_order', 6:'lock_lpf_F3_order', 7:'lock_lpf_F3_order'   };
+    var lpfs={0:'lock_lpf_F0_tau'   , 1:'lock_lpf_F1_tau'  , 2:'lock_lpf_F2_tau'  , 3:'lock_lpf_F3_tau',
+              4:'lock_lpf_F0_order' , 5:'lock_lpf_F1_order', 6:'lock_lpf_F2_order', 7:'lock_lpf_F3_order'   };
 
     if (params.local){
         for ( i in lpfs){
@@ -2638,7 +2640,7 @@
 
     if ( $.inArray( param_name, [ 'lock_pidA_PSR', 'lock_pidA_ISR', 'lock_pidA_DSR', 'lock_pidA_SAT' ] )>-1 ) lock_pidA_update() ;
     if ( $.inArray( param_name, [ 'lock_pidB_PSR', 'lock_pidB_ISR', 'lock_pidB_DSR', 'lock_pidB_SAT' ] )>-1 ) lock_pidB_update() ;
-    if ( $.inArray( param_name, [ 'lock_lpf_F1_tau', 'lock_lpf_F1_order', 'lock_lpf_F2_tau', 'lock_lpf_F2_order', 'lock_lpf_F3_tau', 'lock_lpf_F3_order' ] )>-1 ) lpf_update();
+    if ( $.inArray( param_name, [ 'lock_lpf_F0_tau', 'lock_lpf_F0_order', 'lock_lpf_F1_tau', 'lock_lpf_F1_order', 'lock_lpf_F2_tau', 'lock_lpf_F2_order', 'lock_lpf_F3_tau', 'lock_lpf_F3_order' ] )>-1 ) lpf_update();
 
     params.local[param_name] = parseInt(that.val());
     sendParams(do_get);
@@ -2830,6 +2832,8 @@
     $('#lock_sg_amp1'           ).val(params.original.lock_sg_amp1              );
     $('#lock_sg_amp2'           ).val(params.original.lock_sg_amp2              );
     $('#lock_sg_amp3'           ).val(params.original.lock_sg_amp3              );
+    $('#lock_lpf_F0_tau'        ).val(params.original.lock_lpf_F0_tau           );
+    $('#lock_lpf_F0_order'      ).val(params.original.lock_lpf_F0_order         );
     $('#lock_lpf_F1_tau'        ).val(params.original.lock_lpf_F1_tau           );
     $('#lock_lpf_F1_order'      ).val(params.original.lock_lpf_F1_order         );
     $('#lock_lpf_F2_tau'        ).val(params.original.lock_lpf_F2_tau           );
@@ -4566,13 +4570,16 @@
                     </div>
                     <div class="panel-group col-xs-12 col-sm-12 col-md-12" id='Fnavtabs'>
                       <ul class="nav nav-tabs">
-                        <li id="tab_F1_head" class="active"><a href="#!">X, Y & F1</a></li>
+                        <li id="tab_F0_head" class="active"><a href="#!">X & Y</a></li>
+                        <li id="tab_F1_head"><a href="#!">F1</a></li>
                         <li id="tab_F2_head"><a href="#!">F2</a></li>
                         <li id="tab_F3_head"><a href="#!">F3</a></li>
                       </ul>
                     </div>
                   </div>
-                  <div class="row" id="tab_F1_body" style="background-color: #F2F2F2;">
+
+
+                  <div class="row" id="tab_F0_body" style="background-color: #F2F2F2;">
                     <div class="panel-group col-xs-12 col-sm-12 col-md-12 text-center">
                       <p>Low Pass Filter</p>
                     </div>
@@ -4580,7 +4587,7 @@
                       <form class="form-horizontal" role="form" onsubmit="return false;">
                         <div class="form-group">
                           <div class="col-xs-8"> cut
-                            <select id="lock_lpf_F1_tau" class="form-control">
+                            <select id="lock_lpf_F0_tau" class="form-control">
                               <option  value="0" selected="selected">131us |  7.6kHz</option>
                               <option  value="1">262us |  3.8kHz</option>
                               <option  value="2">524us |  1.9kHz</option>
@@ -4600,7 +4607,7 @@
                             </select>
                           </div>
                           <div class="col-xs-4"> order
-                            <select id="lock_lpf_F1_order" class="form-control">
+                            <select id="lock_lpf_F0_order" class="form-control">
                               <option  value="0">OFF</option>
                               <option  value="1">1</option>
                               <option  value="2" selected="selected">2</option>
@@ -4641,6 +4648,68 @@
                       </form>
                     </div>
                   </div>
+
+
+                  <div class="row" id="tab_F1_body" style="background-color: #F2F2F2; display: none;">
+                    <div class="panel-group col-xs-12 col-sm-12 col-md-12 text-center">
+                      <p>Low Pass Filter</p>
+                    </div>
+                    <div class="panel-group col-xs-12 col-sm-12 col-md-12">
+                      <form class="form-horizontal" role="form" onsubmit="return false;">
+                        <div class="form-group">
+                          <div class="col-xs-8"> cut
+                            <select id="lock_lpf_F1_tau" class="form-control">
+                              <option  value="0" selected="selected">131us |  7.6kHz</option>
+                              <option  value="1">262us |  3.8kHz</option>
+                              <option  value="2">524us |  1.9kHz</option>
+                              <option  value="3">  1ms | 953.7 Hz</option>
+                              <option  value="4">  2ms | 476.8 Hz</option>
+                              <option  value="5">  4ms | 238.4 Hz</option>
+                              <option  value="6">  8ms | 119.2 Hz</option>
+                              <option  value="7"> 17ms | 59.6 Hz</option>
+                              <option  value="8"> 34ms | 29.8 Hz</option>
+                              <option  value="9"> 67ms | 14.9 Hz</option>
+                              <option  value="10">134ms |  7.5 Hz</option>
+                              <option  value="11">268ms |  3.7 Hz</option>
+                              <option  value="12">537ms |  1.9 Hz</option>
+                              <option  value="13">  1 s | 931.3mHz</option>
+                              <option  value="14">  2 s | 465.7mHz</option>
+                              <option  value="15">  4 s | 232.8mHz</option>
+                            </select>
+                          </div>
+                          <div class="col-xs-4"> order
+                            <select id="lock_lpf_F1_order" class="form-control">
+                              <option  value="0">OFF</option>
+                              <option  value="1">1</option>
+                              <option  value="2" selected="selected">2</option>
+                            </select>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                    <div class="panel-group col-xs-12 col-sm-12 col-md-12">
+                      <form class="form-horizontal" role="form" onsubmit="return false;">
+                        <div class="form-group">
+                          <label for="lock_sg_amp1" class="col-xs-6 control-label">Amplification</label>
+                          <div class="col-xs-6">
+                            <select id="lock_sg_amp1" class="form-control">
+                              <option  value="0" selected="selected">x1</option>
+                              <option  value="1">x2</option>
+                              <option  value="2">x4</option>
+                              <option  value="3">x8</option>
+                              <option  value="4">x16</option>
+                              <option  value="5">x32</option>
+                              <option  value="6">x64</option>
+                              <option  value="7">x128</option>
+                              <option  value="8">x256</option>
+                              <option  value="9">x512</option>
+                            </select>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+
 
                   <div class="row" id="tab_F2_body" style="background-color: #F2F2F2; display: none;">
                     <div class="panel-group col-xs-12 col-sm-12 col-md-12 text-center">
