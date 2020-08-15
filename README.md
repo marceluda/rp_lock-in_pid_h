@@ -69,8 +69,9 @@ RedPiaya folder: `/opt/redpitaya/www/apps`
 
 # TODO
 
- - add modulation with arbitrary amplitud on output chanels [DONE]
- - Rip-off square lock-in [DONE]
+ - add modulation with arbitrary amplitud on output chanels [DONE v0.3]
+ - Rip-off square lock-in [DONE v0.3]
  - RE-ORDER signals on switches [PARTIAL]
- - Add more amplification on lock-in
+ - Add more amplification on lock-in [DONE v0.3]
  - Synchronized trigger for ramp module
+ - Pre-amplification and filters for Lock-in signal
