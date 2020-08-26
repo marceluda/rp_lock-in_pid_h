@@ -48,7 +48,7 @@ disp(sum(y1*y3))
 disp(sum(y2*y3))
 
 
-# Cuando vemos el discretizado comparado con el posta tenemos una dispersion
+#%% Cuando vemos el discretizado comparado con el posta tenemos una dispersion
 # horrible. Corregimos
 
 # para y1
@@ -108,7 +108,7 @@ plt.plot(ny3)
 y3=array(ny3).copy()
 
 
-# Ya sin correlación en el error entre los discretizados y el original, verificamos
+#%% Ya sin correlación en el error entre los discretizados y el original, verificamos
 # las ortogonalidades
 
 
@@ -183,7 +183,7 @@ a1=floor(arange(1,1.0003,0.00000001)[4]*a1)
 disp(sum(a1))
 
 
-# reparamos y1
+#%% reparamos y1
 disp(   sum(y1[I1]-a1)-sum(y1[I2]+a2)   )
 
 tmp=[]
@@ -245,7 +245,8 @@ plt.plot(unique(sort(t2.flatten())),'.-')
 plt.plot(arange(5000),ones(5000)*dd)
 plt.grid(b=True)
 
-# Son todas pares! No puedo fabricar un numero impar así !
+
+#%% Son todas pares! No puedo fabricar un numero impar así !
 # No hace falta... puedo sumarle a uno dd+1 y restarle al otro dd-1
 
 nonzero(t2==dd+1)
@@ -282,7 +283,7 @@ plt.plot(unique(sort(t2.flatten())),'.-')
 plt.plot(arange(5000),ones(5000)*dd)
 plt.grid(b=True)
 
-# Son todas pares! No puedo fabricar un numero impar así !
+#%% Son todas pares! No puedo fabricar un numero impar así !
 # No hace falta... puedo sumarle a uno dd+1 y restarle al otro dd-1
 
 nonzero(t2==dd-1)
@@ -325,7 +326,7 @@ y1=array(ny1).copy()
 
 
 
-# Rechequeamos las relaciones
+#%% Rechequeamos las relaciones
 
 
 disp(sum(y1))
@@ -349,7 +350,7 @@ disp(sum(y3*sq2))
 disp('Está perfecto!!')
 
 
-
+#%%
 
 fn='data_sin.dat'
 tmp=y1.astype(uint16)
