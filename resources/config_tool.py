@@ -1667,7 +1667,7 @@ h["lock_lpf_F3_order"   ].control = select(idd="lock_lpf_F3_order"    ,items=['O
 
 h["lock_pidA_PSR"].control = select(idd="lock_pidA_PSR",items=['/1','/8','/64','/1024','/4096'])
 h["lock_pidA_ISR"].control = select(idd="lock_pidA_ISR",items=['8 ns','64 ns','512 ns','8 us','6 us','524 us','8 ms','67 ms','537 ms','9 s'])
-h["lock_pidA_DSR"].control = select(idd="lock_pidA_DSR",items=[' 0',' 3',' 6','10','13','16'])
+h["lock_pidA_DSR"].control = select(idd="lock_pidA_DSR",items=['7.5 ns','60 ns','480 ns','7.68 us','61.44 us','491.5 us'])
 h["lock_pidA_SAT"].control = select(idd="lock_pidA_SAT",items=['&plusmn;122uV','&plusmn;244uV','&plusmn;488uV','&plusmn;977uV','&plusmn;2mV','&plusmn;4mV','&plusmn;8mV','&plusmn;16mV','&plusmn;31mV','&plusmn;62mV','&plusmn;125mV','&plusmn;250mV','&plusmn;500mV','&plusmn;1 V'])
 
 h["lock_pidB_PSR"].control = select(idd="lock_pidB_PSR",items=['/1','/8','/64','/1024','/4096'])

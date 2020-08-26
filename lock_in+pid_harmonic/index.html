@@ -1716,6 +1716,7 @@
 
     var isrval=[0,3,6,10,13,16,20,23,26,30];
     var psrval=[0,3,6,10,12];
+    var dsrval=[0,3,6,10,13,16];
 
     // Integration part
     tau=8e-9 * Math.pow(2,isrval[parseInt($('#lock_pidA_ISR').val())]) / Math.abs( pidA_ki )  ;
@@ -1737,7 +1738,8 @@
     $('#lock_pidA_ki_text').html( txt   );
 
     // Derivative part
-    tau=8e-9 * Math.pow(2,parseInt($('#lock_pidA_DSR').val())-6) * Math.abs(pidA_kd*60) ;
+    //tau=8e-9 * Math.pow(2,parseInt($('#lock_pidA_DSR').val())-6) * Math.abs(pidA_kd*60) ;
+    tau=7.5e-9 * Math.pow(2,dsrval[parseInt($('#lock_pidA_DSR').val())]  ) * Math.abs(pidA_kd) ;
     if ( pidA_kd === 0 ){
       txt='<div class="col-xs-12" ><small><b>OFF</b></small></div>';
     }else{
@@ -1821,6 +1823,7 @@
 
     var isrval=[0,3,6,10,13,16,20,23,26,30];
     var psrval=[0,3,6,10,12];
+    var dsrval=[0,3,6,10,13,16];
 
     // Integration part
     tau=8e-9 * Math.pow(2,isrval[parseInt($('#lock_pidB_ISR').val())]) / Math.abs( pidB_ki )  ;
@@ -1842,7 +1845,8 @@
     $('#lock_pidB_ki_text').html( txt   );
 
     // Derivative part
-    tau=8e-9 * Math.pow(2,parseInt($('#lock_pidB_DSR').val())-6) * Math.abs(pidA_kd*60) ;
+    //tau=8e-9 * Math.pow(2,parseInt($('#lock_pidB_DSR').val())-6) * Math.abs(pidA_kd*60) ;
+    tau=7.5e-9 * Math.pow(2,dsrval[parseInt($('#lock_pidB_DSR').val())]  ) * Math.abs(pidB_kd) ;
     if ( pidB_kd === 0 ){
       txt='<div class="col-xs-12" ><small><b>OFF</b></small></div>';
     }else{
@@ -5304,12 +5308,12 @@
                             <div class="form-group">
                               <div class="col-xs-12">
                                 <select id="lock_pidA_DSR" class="form-control">
-                                  <option  value="0" selected="selected"> 0</option>
-                                  <option  value="1"> 3</option>
-                                  <option  value="2"> 6</option>
-                                  <option  value="3">10</option>
-                                  <option  value="4">13</option>
-                                  <option  value="5">16</option>
+                                  <option  value="0" selected="selected">7.5 ns</option>
+                                  <option  value="1">60 ns</option>
+                                  <option  value="2">480 ns</option>
+                                  <option  value="3">7.68 us</option>
+                                  <option  value="4">61.44 us</option>
+                                  <option  value="5">491.5 us</option>
                                 </select>
                               </div>
                             </div>
