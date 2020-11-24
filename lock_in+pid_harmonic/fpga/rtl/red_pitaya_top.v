@@ -1,8 +1,8 @@
 /**
  * $Id: red_pitaya_top.v 1271 2014-02-25 12:32:34Z matej.oblak $
  *
- * @brief Red Pitaya TOP module. It connects external pins and PS part with 
- *        other application modules. 
+ * @brief Red Pitaya TOP module. It connects external pins and PS part with
+ *        other application modules.
  *
  * @Author Matej Oblak
  *
@@ -17,10 +17,10 @@
 /**
  * GENERAL DESCRIPTION:
  *
- * Top module connects PS part with rest of Red Pitaya applications.  
+ * Top module connects PS part with rest of Red Pitaya applications.
  *
  *
- *                   /-------\      
+ *                   /-------\
  *   PS DDR <------> |  PS   |      AXI <-> custom bus
  *   PS MIO <------> |   /   | <------------+
  *   PS CLK -------> |  ARM  |              |
@@ -37,14 +37,14 @@
  *            \--------/   ^   \-----/      |
  *                         |                |
  *                         |  /-------\     |
- *                         -- |  ASG  | <---+ 
+ *                         -- |  ASG  | <---+
  *                            \-------/     |
  *                                          |
  *             /--------\                   |
  *    RX ----> |        |                   |
  *   SATA      | DAISY  | <-----------------+
- *    TX <---- |        | 
- *             \--------/ 
+ *    TX <---- |        |
+ *             \--------/
  *               |    |
  *               |    |
  *               (FREE)
@@ -58,7 +58,7 @@
  *
  * Daisy chain connects with other boards with fast serial link. Data which is
  * send and received is at the moment undefined. This is left for the user.
- * 
+ *
  */
 
 module red_pitaya_top (
@@ -87,7 +87,7 @@ module red_pitaya_top (
    inout            DDR_we_n           ,
 
    // Red Pitaya periphery
-  
+
    // ADC
    input  [16-1: 2] adc_dat_a_i        ,  // ADC CH1
    input  [16-1: 2] adc_dat_b_i        ,  // ADC CH2
@@ -115,7 +115,7 @@ module red_pitaya_top (
    input  [ 2-1: 0] daisy_p_i          ,  // line 1 is clock capable
    input  [ 2-1: 0] daisy_n_i          ,
    // LED
-   output [ 8-1: 0] led_o       
+   output [ 8-1: 0] led_o
 );
 
 //---------------------------------------------------------------------------------
@@ -229,17 +229,17 @@ assign ps_sys_ack   = |(sys_cs & sys_ack);
 
 // unused system bus slave ports
 
-assign sys_rdata[5*32+:32] = 32'h0; 
+assign sys_rdata[5*32+:32] = 32'h0;
 assign sys_err  [5       ] =  1'b0;
 assign sys_ack  [5       ] =  1'b1;
 
 /*  disabled code to enable BUS 6 for LOCK module
-assign sys_rdata[6*32+:32] = 32'h0; 
+assign sys_rdata[6*32+:32] = 32'h0;
 assign sys_err  [6       ] =  1'b0;
 assign sys_ack  [6       ] =  1'b1;
 */
 
-assign sys_rdata[7*32+:32] = 32'h0; 
+assign sys_rdata[7*32+:32] = 32'h0;
 assign sys_err  [7       ] =  1'b0;
 assign sys_ack  [7       ] =  1'b1;
 
@@ -291,7 +291,7 @@ wire  signed [14-1:0] pid_a    , pid_b    ;
 wire                  digital_loop;
 
 // LOCK module wires
-wire trigger,digital_modulation;
+wire trigger,digital_modulation,ramp_direction_out;
 wire  signed [14-1:0] scope1    , scope2    ;
 wire  signed [14-1:0] lock_out1 , lock_out2 ;
 wire         [32-1:0] osc_ctrl    ;
@@ -326,7 +326,7 @@ BUFG bufg_dac_clk_2p (.O (dac_clk_2p), .I (pll_dac_clk_2p));
 BUFG bufg_ser_clk    (.O (ser_clk   ), .I (pll_ser_clk   ));
 BUFG bufg_pwm_clk    (.O (pwm_clk   ), .I (pll_pwm_clk   ));
 
-// ADC reset (active low) 
+// ADC reset (active low)
 always @(posedge adc_clk)
 adc_rstn <=  frstn[0] &  pll_locked;
 
@@ -357,7 +357,7 @@ begin
   adc_dat_a <= adc_dat_a_i[16-1:2];
   adc_dat_b <= adc_dat_b_i[16-1:2];
 end
-    
+
 // transform into 2's complement (negative slope)
 /* Disabled because this feature will be controlled by LOCK module
 assign adc_a = digital_loop ? dac_a : {adc_dat_a[14-1], ~adc_dat_a[14-2:0]};
@@ -372,7 +372,7 @@ assign adc_b =  {adc_dat_b[14-1], ~adc_dat_b[14-2:0]};
 // DAC IO
 ////////////////////////////////////////////////////////////////////////////////
 
-// Sumation of ASG and PID signal perform saturation before sending to DAC 
+// Sumation of ASG and PID signal perform saturation before sending to DAC
 assign dac_a_sum = asg_a + pid_a;
 assign dac_b_sum = asg_b + pid_b;
 
@@ -443,7 +443,7 @@ red_pitaya_hk i_hk (
 );
 
 IOBUF i_iobufp [8-1:0] (.O(exp_p_in), .IO(exp_p_io), .I(exp_p_out), .T(~exp_p_dir) );
-IOBUF i_iobufn [8-1:0] (.O(exp_n_in), .IO(exp_n_io), .I({digital_modulation,exp_n_out[6:0]}), .T(~{1'b1,exp_n_dir[6:0]}) );
+IOBUF i_iobufn [8-1:0] (.O(exp_n_in), .IO(exp_n_io), .I({digital_modulation,ramp_direction_out,exp_n_out[5:0]}), .T(~{2'b11,exp_n_dir[5:0]}) );
 
 //---------------------------------------------------------------------------------
 //  Oscilloscope application
@@ -508,7 +508,7 @@ red_pitaya_asg i_asg (
 );
 /* */
 
-assign sys_rdata[2*32+:32] = 32'h0; 
+assign sys_rdata[2*32+:32] = 32'h0;
 assign sys_err  [2       ] =  1'b0;
 assign sys_ack  [2       ] =  1'b1;
 
@@ -542,7 +542,7 @@ red_pitaya_pid i_pid (
 /* */
 
 
-assign sys_rdata[3*32+:32] = 32'h0; 
+assign sys_rdata[3*32+:32] = 32'h0;
 assign sys_err  [3       ] =  1'b0;
 assign sys_ack  [3       ] =  1'b1;
 
@@ -595,27 +595,28 @@ red_pitaya_pwm pwm [4-1:0] (
 
 lock i_lock (
   .clk(adc_clk), .rst(~adc_rstn),
-  
+
   // input
   .in1( adc_a ),
   .in2( adc_b ),
   .external_trigger(  exp_p_in[0]  ),
-  
+
   // output
   .out1(lock_out1),
   .out2(lock_out2),
-  
+
   .osc1(scope1),
   .osc2(scope2),
   .trigger(trigger),
   .digital_modulation(digital_modulation),
-  
+  .ramp_direction_out(ramp_direction_out),
+
   .pwm_cfg_a(pwm_cfg_a),
   .pwm_cfg_b(pwm_cfg_b),
   .pwm_cfg_c(pwm_cfg_c),
   .pwm_cfg_d(pwm_cfg_d),
   .osc_ctrl(osc_ctrl),
-  
+
   // System bus
   .sys_addr        (  sys_addr                   ),  // address
   .sys_wdata       (  sys_wdata                  ),  // write data

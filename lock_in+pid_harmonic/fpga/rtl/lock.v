@@ -37,6 +37,7 @@ module lock(
     output signed   [14-1:0] osc1,osc2,
     output                   trigger,            // Oscilloscope trigger output
     output                   digital_modulation, // Modulation for digital otuput
+    output                   ramp_direction_out, // Output of RAMP slope singn, for trigger purposes
     output reg      [24-1:0] pwm_cfg_a,pwm_cfg_b,pwm_cfg_c,pwm_cfg_d,
     output reg      [32-1:0] osc_ctrl,
 
@@ -145,6 +146,7 @@ module lock(
     wire                 pidA_irst,pidB_irst,  pidA_freeze,pidB_freeze  , pidA_ifreeze,pidB_ifreeze;
 
     wire                 ramp_floor_trig,ramp_ceil_trig,harmonic_trig,param_change,lock_ctrl_trig;
+    //wire                 ramp_direction_out;
 
     wire  signed [15-1:0] out1_plus,out2_plus;
     wire  signed [14-1:0] out1_tmp ,out2_tmp;
@@ -581,6 +583,7 @@ module lock(
         // outputs
         .trigger_low   ( ramp_floor_trig ),
         .trigger_hig   ( ramp_ceil_trig  ),
+        .direction     ( ramp_direction_out ),
         .outA          ( ramp_A          ),
         .outB          ( ramp_B          )
     );
