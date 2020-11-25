@@ -23,7 +23,7 @@ module gen_ramp #(parameter R=14)
     // outputs
     output                 trigger_low,
     output                 trigger_hig,
-    output                 direction,
+    output                 ramp_direction_out,
     output signed [ R-1:0] outA, outB
     );
 
@@ -56,7 +56,9 @@ module gen_ramp #(parameter R=14)
 
     // Wires for ramp control
     wire signed [ R-1:0] low_lim,hig_lim;
-    wire                 enable; //,direction;
+    wire                 enable,direction;
+
+    assign ramp_direction_out = slope ;
 
     assign  low_lim   = relock_enable & out_of_lock  ?  relock_low_lim  :  ramp_low_lim   ;
     assign  hig_lim   = relock_enable & out_of_lock  ?  relock_hig_lim  :  ramp_hig_lim   ;

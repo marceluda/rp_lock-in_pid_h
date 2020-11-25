@@ -583,7 +583,7 @@ module lock(
         // outputs
         .trigger_low   ( ramp_floor_trig ),
         .trigger_hig   ( ramp_ceil_trig  ),
-        .direction     ( ramp_direction_out ),
+        .ramp_direction_out ( ramp_direction_out ),
         .outA          ( ramp_A          ),
         .outB          ( ramp_B          )
     );
