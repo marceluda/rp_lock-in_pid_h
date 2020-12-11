@@ -36,10 +36,10 @@ pthread_mutex_t rp_main_params_mutex = PTHREAD_MUTEX_INITIALIZER;
 static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { /* min_gui_time   */
         //"xmin", -1000000, 1, 0, -10000000, +10000000 },
-        "xmin", 0, 1, 0, -10000000, +10000000 },
+        "xmin", 0, 1, 0, -60000000, +60000000 },
     { /* max_gui_time   */
         //"xmax", +1000000, 1, 0, -10000000, +10000000 },
-        "xmax", 131, 1, 0, -10000000, +10000000 },
+        "xmax", 131, 1, 0, -60000000, +60000000 },
     { /* trig_mode:
        *    0 - auto
        *    1 - normal
@@ -147,9 +147,9 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
        * GUI */
         "gen_DC_offs_2", 0, 1, 0, -100, 100 },
     { /* gui_xmin - Xmin as specified by GUI - not rounded to sampling engine quanta. */
-        "gui_xmin",      0, 0, 1, -10000000, +10000000 },
+        "gui_xmin",      0, 0, 1, -60000000, +60000000 },
     { /* gui_xmax - Xmax as specified by GUI - not rounded to sampling engine quanta. */
-        "gui_xmax",    131, 0, 1, -10000000, +10000000 },
+        "gui_xmax",    131, 0, 1, -60000000, +60000000 },
     { /* min_y_norm, max_y_norm - Normalized controller defined Y range when using auto-set */
         "min_y_norm", 0, 0, 0, -1000, +1000 },
     { /* min_y_norm, max_y_norm - Normalized controller defined Y range when using auto-set */

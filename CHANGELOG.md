@@ -10,3 +10,7 @@ v0.3.2
 
 v0.3.3
 - ADDED digital pin for ramp_scan externa synchronization
+
+v0.3.4
+- ADDED Sawtooth waveform for Ramp intrument
+- ADDED larger decimation for Scope instrument: up to 64 seconds time range
