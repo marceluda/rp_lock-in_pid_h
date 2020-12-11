@@ -4,7 +4,7 @@
  * @brief Red Pitaya Oscilloscope FPGA Interface.
  *
  * @Author Jure Menart <juremenart@gmail.com>
- *         
+ *
  * (c) Red Pitaya  http://www.redpitaya.com
  *
  * This part of code is written in C programming language.
@@ -122,9 +122,9 @@ int osc_fpga_init(void)
         return -1;
     }
     g_osc_fpga_reg_mem = page_ptr + page_off;
-    g_osc_fpga_cha_mem = (uint32_t *)g_osc_fpga_reg_mem + 
+    g_osc_fpga_cha_mem = (uint32_t *)g_osc_fpga_reg_mem +
         (OSC_FPGA_CHA_OFFSET / sizeof(uint32_t));
-    g_osc_fpga_chb_mem = (uint32_t *)g_osc_fpga_reg_mem + 
+    g_osc_fpga_chb_mem = (uint32_t *)g_osc_fpga_reg_mem +
         (OSC_FPGA_CHB_OFFSET / sizeof(uint32_t));
 
     return 0;
@@ -173,7 +173,7 @@ int osc_fpga_exit(void)
  * @retval -1 Failure, error message is output on standard error device
  */
 
-int osc_fpga_update_params(int trig_imm, int trig_source, int trig_edge, 
+int osc_fpga_update_params(int trig_imm, int trig_source, int trig_edge,
                            float trig_delay, float trig_level, int time_range,
                            float ch1_adc_max_v, float ch2_adc_max_v,
                            int ch1_calib_dc_off, float ch1_user_dc_off,
@@ -183,33 +183,33 @@ int osc_fpga_update_params(int trig_imm, int trig_source, int trig_edge,
                            int enable_avg_at_dec)
 {
     /* TODO: Locking of memory map */
-    int fpga_trig_source = osc_fpga_cnv_trig_source(trig_imm, trig_source, 
+    int fpga_trig_source = osc_fpga_cnv_trig_source(trig_imm, trig_source,
                                                     trig_edge);
     int fpga_dec_factor = osc_fpga_cnv_time_range_to_dec(time_range);
     int fpga_delay;
     float after_trigger; /* how much after trigger FPGA should write */
     int fpga_trig_thr;
-    
+
     uint32_t gain_hi_cha_filt_aa=0x7D93;
     uint32_t gain_hi_cha_filt_bb=0x437C7;
     uint32_t gain_hi_cha_filt_pp=0x2666;
     uint32_t gain_hi_cha_filt_kk=0xd9999a;
-    
+
     uint32_t gain_hi_chb_filt_aa=0x7D93;
     uint32_t gain_hi_chb_filt_bb=0x437C7;
     uint32_t gain_hi_chb_filt_pp=0x2666;
     uint32_t gain_hi_chb_filt_kk=0xd9999a;
-    
+
     uint32_t gain_lo_cha_filt_aa=0x4C5F;
     uint32_t gain_lo_cha_filt_bb=0x2F38B;
     uint32_t gain_lo_cha_filt_pp=0x2666;
     uint32_t gain_lo_cha_filt_kk=0xd9999a;
-    
+
     uint32_t gain_lo_chb_filt_aa=0x4C5F;
     uint32_t gain_lo_chb_filt_bb=0x2F38B;
     uint32_t gain_lo_chb_filt_pp=0x2666;
-    uint32_t gain_lo_chb_filt_kk=0xd9999a;    
-    
+    uint32_t gain_lo_chb_filt_kk=0xd9999a;
+
     if(trig_source == 0) {
         fpga_trig_thr = osc_fpga_cnv_v_to_cnt(trig_level, ch1_adc_max_v,
                                               ch1_calib_dc_off, ch1_user_dc_off);
@@ -228,7 +228,7 @@ int osc_fpga_update_params(int trig_imm, int trig_source, int trig_edge,
     /* Pre-trigger - we need to limit after trigger acquisition so we can
      * readout historic (pre-trigger) values */
     /* TODO: Bug in FPGA? We need to put at least 3 less samples to trig_delay */
-    after_trigger = 
+    after_trigger =
         ((OSC_FPGA_SIG_LEN-7) * c_osc_fpga_smpl_period * fpga_dec_factor) +
         trig_delay;
 
@@ -239,7 +239,7 @@ int osc_fpga_update_params(int trig_imm, int trig_source, int trig_edge,
 
     /* Trig source is written after ARM */
     /*    g_osc_fpga_reg_mem->trig_source   = fpga_trig_source;*/
-    if(trig_source == 0) 
+    if(trig_source == 0)
         g_osc_fpga_reg_mem->cha_thr   = fpga_trig_thr;
     else
         g_osc_fpga_reg_mem->chb_thr   = fpga_trig_thr;
@@ -247,15 +247,15 @@ int osc_fpga_update_params(int trig_imm, int trig_source, int trig_edge,
     g_osc_fpga_reg_mem->trigger_delay = (uint32_t)fpga_delay;
 
     g_osc_fpga_reg_mem->other = enable_avg_at_dec;
-    
-    
+
+
     // Updating hysteresys registers
-    
-    
+
+
     g_osc_fpga_reg_mem->cha_hystersis=OSC_HYSTERESIS;
     g_osc_fpga_reg_mem->chb_hystersis=OSC_HYSTERESIS;
-    
-    
+
+
     // Updating equalization filter with default coefficients
     if (ch1_gain==0)
     {
@@ -269,9 +269,9 @@ int osc_fpga_update_params(int trig_imm, int trig_source, int trig_edge,
      g_osc_fpga_reg_mem->cha_filt_aa =gain_lo_cha_filt_aa;
      g_osc_fpga_reg_mem->cha_filt_bb =gain_lo_cha_filt_bb;
      g_osc_fpga_reg_mem->cha_filt_pp =gain_lo_cha_filt_pp;
-     g_osc_fpga_reg_mem->cha_filt_kk =gain_lo_cha_filt_kk;      
+     g_osc_fpga_reg_mem->cha_filt_kk =gain_lo_cha_filt_kk;
     }
-    
+
        if (ch2_gain==0)
     {
      g_osc_fpga_reg_mem->chb_filt_aa =gain_hi_chb_filt_aa;
@@ -284,10 +284,10 @@ int osc_fpga_update_params(int trig_imm, int trig_source, int trig_edge,
      g_osc_fpga_reg_mem->chb_filt_aa =gain_lo_chb_filt_aa;
      g_osc_fpga_reg_mem->chb_filt_bb =gain_lo_chb_filt_bb;
      g_osc_fpga_reg_mem->chb_filt_pp =gain_lo_chb_filt_pp;
-     g_osc_fpga_reg_mem->chb_filt_kk =gain_lo_chb_filt_kk;      
+     g_osc_fpga_reg_mem->chb_filt_kk =gain_lo_chb_filt_kk;
     }
-    
-    
+
+
 
     return 0;
 }
@@ -416,7 +416,7 @@ int osc_fpga_cnv_trig_source(int trig_imm, int trig_source, int trig_edge)
 {
     int fpga_trig_source = 0;
 
-    /* Trigger immediately */    
+    /* Trigger immediately */
     if(trig_imm)
         return 1;
 
@@ -483,6 +483,9 @@ int osc_fpga_cnv_time_range_to_dec(int time_range)
     case 5:
         return 64*1024;
         break;
+    case 6:
+        return 512*1024;
+        break;
     default:
         return -1;
     }
@@ -535,23 +538,23 @@ int osc_fpga_cnv_v_to_cnt(float voltage, float adc_max_v,
         voltage = adc_max_v;
     else if(voltage < -adc_max_v)
         voltage = -adc_max_v;
-    
+
     /* adopt the specified voltage with user defined DC offset */
     voltage -= user_dc_off;
-    
+
     /* map voltage units into FPGA adc counts */
-    adc_cnts = (int)round(voltage * (float)((int)(1<<c_osc_fpga_adc_bits)) / 
+    adc_cnts = (int)round(voltage * (float)((int)(1<<c_osc_fpga_adc_bits)) /
                           (2*adc_max_v));
-    
+
     /* clip to the highest value (we are dealing with 14 bits only) */
     if((voltage > 0) && (adc_cnts & (1<<(c_osc_fpga_adc_bits-1))))
         adc_cnts = (1<<(c_osc_fpga_adc_bits-1))-1;
     else
         adc_cnts = adc_cnts & ((1<<(c_osc_fpga_adc_bits))-1);
-    
+
     /* adopt calculated ADC counts with calibration DC offset */
     adc_cnts -= calib_dc_off;
-    
+
     return adc_cnts;
 }
 
@@ -595,7 +598,7 @@ float osc_fpga_cnv_cnt_to_v(int cnts, float adc_max_v,
     else if(m > (1<<(c_osc_fpga_adc_bits-1)))
         m =  (1<<(c_osc_fpga_adc_bits-1));
 
-    ret_val =  (m * adc_max_v / 
+    ret_val =  (m * adc_max_v /
                 (float)(1<<(c_osc_fpga_adc_bits-1)));
 
     /* and adopt the calculation with user specified DC offset */
@@ -620,7 +623,7 @@ float osc_fpga_calc_adc_max_v(uint32_t fe_gain_fs, int probe_att)
     float max_adc_v;
     int probe_att_fact = (probe_att > 0) ? 10 : 1;
 
-    max_adc_v = 
+    max_adc_v =
         fe_gain_fs/(float)((uint64_t)1<<32) * 100 * (probe_att_fact);
 
     return max_adc_v;
