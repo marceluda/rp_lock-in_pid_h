@@ -117,13 +117,13 @@
                        'lock_sg_amp1,lock_sg_amp2,lock_sg_amp3,lock_lpf_F0_tau,lock_lpf_F0_order,lock_lpf_F1_tau,lock_lpf_F1_order,lock_lpf_F2_tau,'+
                        'lock_lpf_F2_order,lock_lpf_F3_tau,lock_lpf_F3_order,lock_error_sw,lock_error_offset,lock_mod_out1,lock_mod_out2,'+
                        'lock_gen_mod_phase,lock_gen_mod_hp,lock_ramp_step,lock_ramp_low_lim,lock_ramp_hig_lim,lock_ramp_reset,lock_ramp_enable,'+
-                       'lock_ramp_direction,lock_ramp_B_factor,lock_read_ctrl,lock_pidA_sw,lock_pidA_PSR,lock_pidA_ISR,lock_pidA_DSR,'+
-                       'lock_pidA_SAT,lock_pidA_sp,lock_pidA_kp,lock_pidA_ki,lock_pidA_kd,lock_pidA_irst,lock_pidA_freeze,lock_pidA_ifreeze,'+
-                       'lock_pidB_sw,lock_pidB_PSR,lock_pidB_ISR,lock_pidB_DSR,lock_pidB_SAT,lock_pidB_sp,lock_pidB_kp,lock_pidB_ki,lock_pidB_kd,'+
-                       'lock_pidB_irst,lock_pidB_freeze,lock_pidB_ifreeze,lock_aux_A,lock_aux_B,lock_ctrl_aux_lock_now,lock_ctrl_aux_launch_lock_trig,'+
-                       'lock_ctrl_aux_pidB_enable_ctrl,lock_ctrl_aux_pidA_enable_ctrl,lock_ctrl_aux_ramp_enable_ctrl,lock_ctrl_aux_set_pidB_enable,'+
-                       'lock_ctrl_aux_set_pidA_enable,lock_ctrl_aux_set_ramp_enable,lock_ctrl_aux_trig_type,lock_ctrl_aux_lock_trig_rise,'+
-                       'lock_mod_harmonic_on';
+                       'lock_ramp_direction,lock_ramp_sawtooth,lock_ramp_B_factor,lock_read_ctrl,lock_pidA_sw,lock_pidA_PSR,lock_pidA_ISR,'+
+                       'lock_pidA_DSR,lock_pidA_SAT,lock_pidA_sp,lock_pidA_kp,lock_pidA_ki,lock_pidA_kd,lock_pidA_irst,lock_pidA_freeze,'+
+                       'lock_pidA_ifreeze,lock_pidB_sw,lock_pidB_PSR,lock_pidB_ISR,lock_pidB_DSR,lock_pidB_SAT,lock_pidB_sp,lock_pidB_kp,'+
+                       'lock_pidB_ki,lock_pidB_kd,lock_pidB_irst,lock_pidB_freeze,lock_pidB_ifreeze,lock_aux_A,lock_aux_B,lock_ctrl_aux_lock_now,'+
+                       'lock_ctrl_aux_launch_lock_trig,lock_ctrl_aux_pidB_enable_ctrl,lock_ctrl_aux_pidA_enable_ctrl,lock_ctrl_aux_ramp_enable_ctrl,'+
+                       'lock_ctrl_aux_set_pidB_enable,lock_ctrl_aux_set_pidA_enable,lock_ctrl_aux_set_ramp_enable,lock_ctrl_aux_trig_type,'+
+                       'lock_ctrl_aux_lock_trig_rise,lock_mod_harmonic_on';
 
   config_params_keys = config_params_txts.split(",");
 
@@ -1155,9 +1155,9 @@
     // [LOLO DOCK PAGELOAD]
 
     // Number inputs
-    var input_number=['lock_lock_trig_val','lock_lock_trig_time_val','lock_rl_error_threshold','lock_rl_signal_threshold','lock_sf_jumpA',
-                      'lock_sf_jumpB','lock_error_offset','lock_mod_out1','lock_mod_out2','lock_gen_mod_phase','lock_gen_mod_hp','lock_ramp_step',
-                      'lock_ramp_low_lim','lock_ramp_hig_lim','lock_ramp_B_factor','lock_pidA_sp','lock_pidA_kp','lock_pidA_ki','lock_pidA_kd',
+    var input_number=['lock_lock_trig_val','lock_lock_trig_time_val','lock_rl_error_threshold','lock_rl_signal_threshold','lock_sf_jumpA', 
+                      'lock_sf_jumpB','lock_error_offset','lock_mod_out1','lock_mod_out2','lock_gen_mod_phase','lock_gen_mod_hp','lock_ramp_step', 
+                      'lock_ramp_low_lim','lock_ramp_hig_lim','lock_ramp_B_factor','lock_pidA_sp','lock_pidA_kp','lock_pidA_ki','lock_pidA_kd', 
                       'lock_pidB_sp','lock_pidB_kp','lock_pidB_ki','lock_pidB_kd','lock_aux_A','lock_aux_B'];
 
     for(ii in input_number){
@@ -1333,8 +1333,8 @@
 
     // Checkboxes inputs
     var input_checkboxes = '#lock_osc1_filt_off,#lock_osc2_filt_off,#lock_rl_error_enable,#lock_rl_signal_enable,#lock_rl_reset,#lock_sf_AfrzO,'+
-                           '#lock_sf_AfrzI,#lock_sf_BfrzO,#lock_sf_BfrzI,#lock_ramp_reset,#lock_ramp_enable,#lock_ramp_direction,#lock_pidA_irst,'+
-                           '#lock_pidA_freeze,#lock_pidA_ifreeze,#lock_pidB_irst,#lock_pidB_freeze,#lock_pidB_ifreeze,#lock_ctrl_aux_set_pidB_enable,'+
+                           '#lock_sf_AfrzI,#lock_sf_BfrzO,#lock_sf_BfrzI,#lock_ramp_reset,#lock_ramp_enable,#lock_ramp_direction,#lock_ramp_sawtooth,'+
+                           '#lock_pidA_irst,#lock_pidA_freeze,#lock_pidA_ifreeze,#lock_pidB_irst,#lock_pidB_freeze,#lock_pidB_ifreeze,#lock_ctrl_aux_set_pidB_enable,'+
                            '#lock_ctrl_aux_set_pidA_enable,#lock_ctrl_aux_set_ramp_enable,#lock_ctrl_aux_lock_trig_rise';
     $(input_checkboxes).on('change', function() {
       params.local[this.id] = ($(this).is(':checked') ? 1 : 0);
@@ -2785,6 +2785,7 @@
     $('#lock_ramp_reset'              ).prop('checked', (params.original.lock_ramp_reset                  ? true : false));
     $('#lock_ramp_enable'             ).prop('checked', (params.original.lock_ramp_enable                 ? true : false));
     $('#lock_ramp_direction'          ).prop('checked', (params.original.lock_ramp_direction              ? true : false));
+    $('#lock_ramp_sawtooth'           ).prop('checked', (params.original.lock_ramp_sawtooth               ? true : false));
     $('#lock_pidA_irst'               ).prop('checked', (params.original.lock_pidA_irst                   ? true : false));
     $('#lock_pidA_freeze'             ).prop('checked', (params.original.lock_pidA_freeze                 ? true : false));
     $('#lock_pidA_ifreeze'            ).prop('checked', (params.original.lock_pidA_ifreeze                ? true : false));
@@ -2795,7 +2796,7 @@
     $('#lock_ctrl_aux_set_pidA_enable').prop('checked', (params.original.lock_ctrl_aux_set_pidA_enable    ? true : false));
     $('#lock_ctrl_aux_set_ramp_enable').prop('checked', (params.original.lock_ctrl_aux_set_ramp_enable    ? true : false));
     $('#lock_ctrl_aux_lock_trig_rise' ).prop('checked', (params.original.lock_ctrl_aux_lock_trig_rise     ? true : false));
-
+    
     // Numbers
     $('#lock_lock_trig_val'      ).val(params.original.lock_lock_trig_val         );
     $('#lock_lock_trig_time_val' ).val(params.original.lock_lock_trig_time_val    );
@@ -2822,7 +2823,7 @@
     $('#lock_pidB_kd'            ).val(params.original.lock_pidB_kd               );
     $('#lock_aux_A'              ).val(params.original.lock_aux_A                 );
     $('#lock_aux_B'              ).val(params.original.lock_aux_B                 );
-
+    
     // Switches
     $('#lock_oscA_sw'           ).val(params.original.lock_oscA_sw              );
     $('#lock_oscB_sw'           ).val(params.original.lock_oscB_sw              );
@@ -2857,7 +2858,7 @@
     $('#lock_pidB_DSR'          ).val(params.original.lock_pidB_DSR             );
     $('#lock_pidB_SAT'          ).val(params.original.lock_pidB_SAT             );
     $('#lock_ctrl_aux_trig_type').val(params.original.lock_ctrl_aux_trig_type   );
-
+    
     // Buttons
     if (params.original.lock_osc_raw_mode){                 // lock_osc_raw_mode
       $('#lock_osc_raw_mode').removeClass('btn-default').addClass('btn-primary').data('checked',true);
@@ -2904,7 +2905,7 @@
     }else{
       $('#lock_mod_harmonic_on').removeClass('btn-primary').addClass('btn-default').data('checked',false);
     }
-
+    
     // [LOLO DOCK LOADPARAMS END]
 
 
@@ -5037,6 +5038,15 @@
                       <div class="checkbox" style="padding-bottom: 12px;">
                         <label class="group-label">
                           <input type="checkbox" id="lock_ramp_direction">Scan direction
+                        </label>
+                      </div>
+                    </form>
+                  </div>
+                  <div class="panel-group col-xs-12 col-sm-12 col-md-12">
+                    <form class="form-horizontal" role="form" onsubmit="return false;">
+                      <div class="checkbox" style="padding-bottom: 12px;">
+                        <label class="group-label">
+                          <input type="checkbox" id="lock_ramp_sawtooth">Sawtooth
                         </label>
                       </div>
                     </form>

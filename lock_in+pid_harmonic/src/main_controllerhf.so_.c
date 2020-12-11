@@ -360,6 +360,7 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { "lock_ramp_reset"               ,      0, 1, 0,            0,            1 }, /** ramp reset config **/
     { "lock_ramp_enable"              ,      0, 1, 0,            0,            1 }, /** ramp enable/disable switch **/
     { "lock_ramp_direction"           ,      0, 1, 0,            0,            1 }, /** ramp starting direction (up/down) **/
+    { "lock_ramp_sawtooth"            ,      0, 1, 0,            0,            1 }, /** ramp Sawtooth waveform **/
     { "lock_ramp_B_factor"            ,   4096, 1, 0,        -4096,         4096 }, /** proportional factor ramp_A/ramp_B. // ramp_B=ramp_A*ramp_B_factor/4096 **/
     { "lock_sin_ref"                  ,      0, 0, 1,        -8192,         8191 }, /** lock-in modulation sinus harmonic reference **/
     { "lock_cos_ref"                  ,      0, 0, 1,        -8192,         8191 }, /** lock-in modulation cosinus harmonic reference **/

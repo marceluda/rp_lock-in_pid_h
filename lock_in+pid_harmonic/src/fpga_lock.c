@@ -123,6 +123,7 @@ void reset_locks(void)
         g_lock_reg->ramp_reset           =      0;
         g_lock_reg->ramp_enable          =      0;
         g_lock_reg->ramp_direction       =      0;
+        g_lock_reg->ramp_sawtooth        =      0;
         g_lock_reg->ramp_B_factor        =   4096;
         g_lock_reg->sin_ref              =      0;
         g_lock_reg->cos_ref              =      0;

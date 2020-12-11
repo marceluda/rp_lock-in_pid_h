@@ -397,7 +397,15 @@ typedef struct lock_reg_t {
       */
     uint32_t ramp_direction;
     
-    /** @brief Offset 20'h000B8 - ramp_B_factor
+    /** @brief Offset 20'h000B8 - ramp_sawtooth
+      *  ramp Sawtooth wave form
+      *
+      *  bits [31: 1] - Reserved
+      *  bit  [0]     - Data
+      */
+    uint32_t ramp_sawtooth;
+    
+    /** @brief Offset 20'h000BC - ramp_B_factor
       *  proportional factor ramp_A/ramp_B.
       *  ramp_B=ramp_A*ramp_B_factor/4096
       *
@@ -406,7 +414,7 @@ typedef struct lock_reg_t {
       */
     int32_t  ramp_B_factor;
     
-    /** @brief Offset 20'h000BC - sin_ref
+    /** @brief Offset 20'h000C0 - sin_ref
       *  lock-in modulation sinus harmonic reference
       *
       *  bits [31:14] - Reserved
@@ -414,7 +422,7 @@ typedef struct lock_reg_t {
       */
     int32_t  sin_ref;
     
-    /** @brief Offset 20'h000C0 - cos_ref
+    /** @brief Offset 20'h000C4 - cos_ref
       *  lock-in modulation cosinus harmonic reference
       *
       *  bits [31:14] - Reserved
@@ -422,7 +430,7 @@ typedef struct lock_reg_t {
       */
     int32_t  cos_ref;
     
-    /** @brief Offset 20'h000C4 - cos_1f
+    /** @brief Offset 20'h000C8 - cos_1f
       *  lock-in modulation sinus harmonic signal with phase relation to reference
       *
       *  bits [31:14] - Reserved
@@ -430,7 +438,7 @@ typedef struct lock_reg_t {
       */
     int32_t  cos_1f;
     
-    /** @brief Offset 20'h000C8 - cos_2f
+    /** @brief Offset 20'h000CC - cos_2f
       *  lock-in modulation sinus harmonic signal with phase relation to reference and double frequency
       *
       *  bits [31:14] - Reserved
@@ -438,7 +446,7 @@ typedef struct lock_reg_t {
       */
     int32_t  cos_2f;
     
-    /** @brief Offset 20'h000CC - cos_3f
+    /** @brief Offset 20'h000D0 - cos_3f
       *  lock-in modulation sinus harmonic signal with phase relation to reference and triple frequency
       *
       *  bits [31:14] - Reserved
@@ -446,7 +454,7 @@ typedef struct lock_reg_t {
       */
     int32_t  cos_3f;
     
-    /** @brief Offset 20'h000D0 - in1
+    /** @brief Offset 20'h000D4 - in1
       *  Input signal IN1
       *
       *  bits [31:14] - Reserved
@@ -454,7 +462,7 @@ typedef struct lock_reg_t {
       */
     int32_t  in1;
     
-    /** @brief Offset 20'h000D4 - in2
+    /** @brief Offset 20'h000D8 - in2
       *  Input signal IN2
       *
       *  bits [31:14] - Reserved
@@ -462,7 +470,7 @@ typedef struct lock_reg_t {
       */
     int32_t  in2;
     
-    /** @brief Offset 20'h000D8 - out1
+    /** @brief Offset 20'h000DC - out1
       *  signal for RP RF DAC Out1
       *
       *  bits [31:14] - Reserved
@@ -470,7 +478,7 @@ typedef struct lock_reg_t {
       */
     int32_t  out1;
     
-    /** @brief Offset 20'h000DC - out2
+    /** @brief Offset 20'h000E0 - out2
       *  signal for RP RF DAC Out2
       *
       *  bits [31:14] - Reserved
@@ -478,7 +486,7 @@ typedef struct lock_reg_t {
       */
     int32_t  out2;
     
-    /** @brief Offset 20'h000E0 - oscA
+    /** @brief Offset 20'h000E4 - oscA
       *  signal for Oscilloscope Channel A
       *
       *  bits [31:14] - Reserved
@@ -486,7 +494,7 @@ typedef struct lock_reg_t {
       */
     int32_t  oscA;
     
-    /** @brief Offset 20'h000E4 - oscB
+    /** @brief Offset 20'h000E8 - oscB
       *  signal for Oscilloscope Channel B
       *
       *  bits [31:14] - Reserved
@@ -494,7 +502,7 @@ typedef struct lock_reg_t {
       */
     int32_t  oscB;
     
-    /** @brief Offset 20'h000E8 - X_28
+    /** @brief Offset 20'h000EC - X_28
       *  Demodulated signal from sin_ref
       *
       *  bits [31:28] - Reserved
@@ -502,7 +510,7 @@ typedef struct lock_reg_t {
       */
     int32_t  X_28;
     
-    /** @brief Offset 20'h000EC - Y_28
+    /** @brief Offset 20'h000F0 - Y_28
       *  Demodulated signal from cos_ref
       *
       *  bits [31:28] - Reserved
@@ -510,7 +518,7 @@ typedef struct lock_reg_t {
       */
     int32_t  Y_28;
     
-    /** @brief Offset 20'h000F0 - F1_28
+    /** @brief Offset 20'h000F4 - F1_28
       *  Demodulated signal from cos_1f
       *
       *  bits [31:28] - Reserved
@@ -518,7 +526,7 @@ typedef struct lock_reg_t {
       */
     int32_t  F1_28;
     
-    /** @brief Offset 20'h000F4 - F2_28
+    /** @brief Offset 20'h000F8 - F2_28
       *  Demodulated signal from cos_2f
       *
       *  bits [31:28] - Reserved
@@ -526,7 +534,7 @@ typedef struct lock_reg_t {
       */
     int32_t  F2_28;
     
-    /** @brief Offset 20'h000F8 - F3_28
+    /** @brief Offset 20'h000FC - F3_28
       *  Demodulated signal from cos_3f
       *
       *  bits [31:28] - Reserved
@@ -534,21 +542,21 @@ typedef struct lock_reg_t {
       */
     int32_t  F3_28;
     
-    /** @brief Offset 20'h000FC - cnt_clk
+    /** @brief Offset 20'h00100 - cnt_clk
       *  Clock count
       *
       *  bits [31: 0] - Data
       */
     uint32_t cnt_clk;
     
-    /** @brief Offset 20'h00100 - cnt_clk2
+    /** @brief Offset 20'h00104 - cnt_clk2
       *  Clock count
       *
       *  bits [31: 0] - Data
       */
     uint32_t cnt_clk2;
     
-    /** @brief Offset 20'h00104 - read_ctrl
+    /** @brief Offset 20'h00108 - read_ctrl
       *  [unused,start_clk,Freeze]
       *
       *  bits [31: 3] - Reserved
@@ -556,7 +564,7 @@ typedef struct lock_reg_t {
       */
     uint32_t read_ctrl;
     
-    /** @brief Offset 20'h00108 - pidA_sw
+    /** @brief Offset 20'h0010C - pidA_sw
       *  switch selector for pidA input
       *
       *  bits [31: 5] - Reserved
@@ -564,7 +572,7 @@ typedef struct lock_reg_t {
       */
     uint32_t pidA_sw;
     
-    /** @brief Offset 20'h0010C - pidA_PSR
+    /** @brief Offset 20'h00110 - pidA_PSR
       *  pidA PSR
       *
       *  bits [31: 3] - Reserved
@@ -572,7 +580,7 @@ typedef struct lock_reg_t {
       */
     uint32_t pidA_PSR;
     
-    /** @brief Offset 20'h00110 - pidA_ISR
+    /** @brief Offset 20'h00114 - pidA_ISR
       *  pidA ISR
       *
       *  bits [31: 4] - Reserved
@@ -580,7 +588,7 @@ typedef struct lock_reg_t {
       */
     uint32_t pidA_ISR;
     
-    /** @brief Offset 20'h00114 - pidA_DSR
+    /** @brief Offset 20'h00118 - pidA_DSR
       *  pidA DSR
       *
       *  bits [31: 3] - Reserved
@@ -588,7 +596,7 @@ typedef struct lock_reg_t {
       */
     uint32_t pidA_DSR;
     
-    /** @brief Offset 20'h00118 - pidA_SAT
+    /** @brief Offset 20'h0011C - pidA_SAT
       *  pidA saturation control
       *
       *  bits [31:14] - Reserved
@@ -596,7 +604,7 @@ typedef struct lock_reg_t {
       */
     uint32_t pidA_SAT;
     
-    /** @brief Offset 20'h0011C - pidA_sp
+    /** @brief Offset 20'h00120 - pidA_sp
       *  pidA set_point
       *
       *  bits [31:14] - Reserved
@@ -604,7 +612,7 @@ typedef struct lock_reg_t {
       */
     int32_t  pidA_sp;
     
-    /** @brief Offset 20'h00120 - pidA_kp
+    /** @brief Offset 20'h00124 - pidA_kp
       *  pidA proportional constant
       *
       *  bits [31:14] - Reserved
@@ -612,7 +620,7 @@ typedef struct lock_reg_t {
       */
     int32_t  pidA_kp;
     
-    /** @brief Offset 20'h00124 - pidA_ki
+    /** @brief Offset 20'h00128 - pidA_ki
       *  pidA integral constant
       *
       *  bits [31:14] - Reserved
@@ -620,7 +628,7 @@ typedef struct lock_reg_t {
       */
     int32_t  pidA_ki;
     
-    /** @brief Offset 20'h00128 - pidA_kd
+    /** @brief Offset 20'h0012C - pidA_kd
       *  pidA derivative constant
       *
       *  bits [31:14] - Reserved
@@ -628,7 +636,7 @@ typedef struct lock_reg_t {
       */
     int32_t  pidA_kd;
     
-    /** @brief Offset 20'h0012C - pidA_in
+    /** @brief Offset 20'h00130 - pidA_in
       *  pidA input
       *
       *  bits [31:14] - Reserved
@@ -636,7 +644,7 @@ typedef struct lock_reg_t {
       */
     int32_t  pidA_in;
     
-    /** @brief Offset 20'h00130 - pidA_out
+    /** @brief Offset 20'h00134 - pidA_out
       *  pidA output
       *
       *  bits [31:14] - Reserved
@@ -644,7 +652,7 @@ typedef struct lock_reg_t {
       */
     int32_t  pidA_out;
     
-    /** @brief Offset 20'h00134 - pidA_ctrl
+    /** @brief Offset 20'h00138 - pidA_ctrl
       *  pidA control: [ pidA_ifreeze: integrator freeze , pidA_freeze: output freeze , pidA_irst:integrator reset]
       *
       *  bits [31: 3] - Reserved
@@ -652,7 +660,7 @@ typedef struct lock_reg_t {
       */
     uint32_t pidA_ctrl;
     
-    /** @brief Offset 20'h00138 - ctrl_A
+    /** @brief Offset 20'h0013C - ctrl_A
       *  control_A: pidA_out + ramp_A
       *
       *  bits [31:14] - Reserved
@@ -660,7 +668,7 @@ typedef struct lock_reg_t {
       */
     int32_t  ctrl_A;
     
-    /** @brief Offset 20'h0013C - pidB_sw
+    /** @brief Offset 20'h00140 - pidB_sw
       *  switch selector for pidB input
       *
       *  bits [31: 5] - Reserved
@@ -668,7 +676,7 @@ typedef struct lock_reg_t {
       */
     uint32_t pidB_sw;
     
-    /** @brief Offset 20'h00140 - pidB_PSR
+    /** @brief Offset 20'h00144 - pidB_PSR
       *  pidB PSR
       *
       *  bits [31: 3] - Reserved
@@ -676,7 +684,7 @@ typedef struct lock_reg_t {
       */
     uint32_t pidB_PSR;
     
-    /** @brief Offset 20'h00144 - pidB_ISR
+    /** @brief Offset 20'h00148 - pidB_ISR
       *  pidB ISR
       *
       *  bits [31: 4] - Reserved
@@ -684,7 +692,7 @@ typedef struct lock_reg_t {
       */
     uint32_t pidB_ISR;
     
-    /** @brief Offset 20'h00148 - pidB_DSR
+    /** @brief Offset 20'h0014C - pidB_DSR
       *  pidB DSR
       *
       *  bits [31: 3] - Reserved
@@ -692,7 +700,7 @@ typedef struct lock_reg_t {
       */
     uint32_t pidB_DSR;
     
-    /** @brief Offset 20'h0014C - pidB_SAT
+    /** @brief Offset 20'h00150 - pidB_SAT
       *  pidB saturation control
       *
       *  bits [31:14] - Reserved
@@ -700,7 +708,7 @@ typedef struct lock_reg_t {
       */
     uint32_t pidB_SAT;
     
-    /** @brief Offset 20'h00150 - pidB_sp
+    /** @brief Offset 20'h00154 - pidB_sp
       *  pidB set_point
       *
       *  bits [31:14] - Reserved
@@ -708,7 +716,7 @@ typedef struct lock_reg_t {
       */
     int32_t  pidB_sp;
     
-    /** @brief Offset 20'h00154 - pidB_kp
+    /** @brief Offset 20'h00158 - pidB_kp
       *  pidB proportional constant
       *
       *  bits [31:14] - Reserved
@@ -716,7 +724,7 @@ typedef struct lock_reg_t {
       */
     int32_t  pidB_kp;
     
-    /** @brief Offset 20'h00158 - pidB_ki
+    /** @brief Offset 20'h0015C - pidB_ki
       *  pidB integral constant
       *
       *  bits [31:14] - Reserved
@@ -724,7 +732,7 @@ typedef struct lock_reg_t {
       */
     int32_t  pidB_ki;
     
-    /** @brief Offset 20'h0015C - pidB_kd
+    /** @brief Offset 20'h00160 - pidB_kd
       *  pidB derivative constant
       *
       *  bits [31:14] - Reserved
@@ -732,7 +740,7 @@ typedef struct lock_reg_t {
       */
     int32_t  pidB_kd;
     
-    /** @brief Offset 20'h00160 - pidB_in
+    /** @brief Offset 20'h00164 - pidB_in
       *  pidB input
       *
       *  bits [31:14] - Reserved
@@ -740,7 +748,7 @@ typedef struct lock_reg_t {
       */
     int32_t  pidB_in;
     
-    /** @brief Offset 20'h00164 - pidB_out
+    /** @brief Offset 20'h00168 - pidB_out
       *  pidB output
       *
       *  bits [31:14] - Reserved
@@ -748,7 +756,7 @@ typedef struct lock_reg_t {
       */
     int32_t  pidB_out;
     
-    /** @brief Offset 20'h00168 - pidB_ctrl
+    /** @brief Offset 20'h0016C - pidB_ctrl
       *  pidB control: [ pidB_ifreeze: integrator freeze , pidB_freeze: output freeze , pidB_irst:integrator reset]
       *
       *  bits [31: 3] - Reserved
@@ -756,7 +764,7 @@ typedef struct lock_reg_t {
       */
     uint32_t pidB_ctrl;
     
-    /** @brief Offset 20'h0016C - ctrl_B
+    /** @brief Offset 20'h00170 - ctrl_B
       *  control_B: pidA_out + ramp_B
       *
       *  bits [31:14] - Reserved
@@ -764,7 +772,7 @@ typedef struct lock_reg_t {
       */
     int32_t  ctrl_B;
     
-    /** @brief Offset 20'h00170 - aux_A
+    /** @brief Offset 20'h00174 - aux_A
       *  auxiliar value of 14 bits
       *
       *  bits [31:14] - Reserved
@@ -772,7 +780,7 @@ typedef struct lock_reg_t {
       */
     int32_t  aux_A;
     
-    /** @brief Offset 20'h00174 - aux_B
+    /** @brief Offset 20'h00178 - aux_B
       *  auxiliar value of 14 bits
       *
       *  bits [31:14] - Reserved

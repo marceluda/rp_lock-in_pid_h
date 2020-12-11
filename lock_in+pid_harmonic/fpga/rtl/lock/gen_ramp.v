@@ -18,7 +18,7 @@ module gen_ramp #(parameter R=14)
     // inputs
     input         [32-1:0] ramp_step,
     input  signed [ R-1:0] ramp_low_lim,ramp_hig_lim,ramp_B_factor,
-    input                  ramp_reset,ramp_enable,ramp_direction,
+    input                  ramp_reset,ramp_enable,ramp_direction,ramp_sawtooth,
     input                  relock_enable,out_of_lock,relock_reset,
     // outputs
     output                 trigger_low,
@@ -148,10 +148,22 @@ module gen_ramp #(parameter R=14)
     assign ceil          = ( ramp_signal>=hig_lim  )  ;
     assign slope_changed =  ramp_direction_now ^ ramp_direction_last ;
 
-    assign ramp_signal_next = floor ? ramp_signal + 1'b1  :
-                              ceil  ? ramp_signal - 1'b1  :
-                              slope ? ramp_signal + 1'b1  :
-                                      ramp_signal - 1'b1  ;
+    // assign ramp_signal_next = floor ? ramp_signal + 1'b1  :
+    //                           ceil  ? ramp_signal - 1'b1  :
+    //                           slope ? ramp_signal + 1'b1  :
+    //                                   ramp_signal - 1'b1  ;
+
+    assign ramp_signal_next =   ~ramp_sawtooth ?
+                                    floor ? ramp_signal + 1'b1  :
+                                    ceil  ? ramp_signal - 1'b1  :
+                                    slope ? ramp_signal + 1'b1  :
+                                            ramp_signal - 1'b1
+                                :
+                                    floor          ?  ~ramp_direction ? hig_lim : ramp_signal + 1'b1   :
+                                    ceil           ?   ramp_direction ? low_lim : ramp_signal - 1'b1   :
+                                    ramp_direction ? ramp_signal + 1'b1  :
+                                                     ramp_signal - 1'b1   ;
+
 
     assign slope_next       = floor         ? 1'b1   :
                               ceil          ? 1'b0   :

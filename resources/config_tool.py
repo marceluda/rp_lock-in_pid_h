@@ -197,6 +197,8 @@ f.add( name="ramp_hig_lim"       , group=grp , val= 5000, rw=True ,  nbits=14, m
 f.add( name="ramp_reset"         , group=grp , val=    0, rw=True ,  nbits= 1, min_val=          0, max_val=          1, fpga_update=True , signed=False, desc="ramp reset config" )
 f.add( name="ramp_enable"        , group=grp , val=    0, rw=True ,  nbits= 1, min_val=          0, max_val=          1, fpga_update=True , signed=False, desc="ramp enable/disable switch" )
 f.add( name="ramp_direction"     , group=grp , val=    0, rw=True ,  nbits= 1, min_val=          0, max_val=          1, fpga_update=True , signed=False, desc="ramp starting direction (up/down)" )
+f.add( name="ramp_sawtooth"      , group=grp , val=    0, rw=True ,  nbits= 1, min_val=          0, max_val=          1, fpga_update=True , signed=False, desc="ramp Sawtooth wave form" )
+
 f.add( name="ramp_B_factor"      , group=grp , val= 4096, rw=True ,  nbits=14, min_val=      -4096, max_val=       4096, fpga_update=True , signed=True , desc="proportional factor ramp_A/ramp_B.\nramp_B=ramp_A*ramp_B_factor/4096" )
 
 
@@ -772,6 +774,7 @@ m.add( name="lock_ramp_hig_lim"  , fpga_reg="ramp_hig_lim"  , val=5000 , rw=True
 m.add( name="lock_ramp_reset"    , fpga_reg="ramp_reset"    , val=0    , rw=True , nbits=1 , min_val=0         , max_val=1         , fpga_update=True , signed=False, group="gen_ramp"       , desc="ramp reset config")
 m.add( name="lock_ramp_enable"   , fpga_reg="ramp_enable"   , val=0    , rw=True , nbits=1 , min_val=0         , max_val=1         , fpga_update=True , signed=False, group="gen_ramp"       , desc="ramp enable/disable switch")
 m.add( name="lock_ramp_direction", fpga_reg="ramp_direction", val=0    , rw=True , nbits=1 , min_val=0         , max_val=1         , fpga_update=True , signed=False, group="gen_ramp"       , desc="ramp starting direction (up/down)")
+m.add( name="lock_ramp_sawtooth" , fpga_reg="ramp_sawtooth" , val=0    , rw=True , nbits=1 , min_val=0         , max_val=1         , fpga_update=True , signed=False, group="gen_ramp"       , desc="ramp Sawtooth waveform")
 m.add( name="lock_ramp_B_factor" , fpga_reg="ramp_B_factor" , val= 4096, rw=True , nbits=14, min_val=-4096     , max_val=4096      , fpga_update=True , signed=True , group="gen_ramp"       , desc="proportional factor ramp_A/ramp_B.\nramp_B=ramp_A*ramp_B_factor/4096")
 
 # group: modulation
@@ -1297,6 +1300,8 @@ h['lock_ramp_hig_lim'             ].type = 'number'
 h['lock_ramp_reset'               ].type = 'checkbox'
 h['lock_ramp_enable'              ].type = 'checkbox'
 h['lock_ramp_direction'           ].type = 'checkbox'
+h['lock_ramp_sawtooth'            ].type = 'checkbox'
+
 h['lock_ramp_B_factor'            ].type = 'number'
 
 
@@ -1511,6 +1516,8 @@ h['lock_osc2_filt_off'].control.text='Ch2'
 h['lock_ramp_reset'].control.text='Scan reset'
 h['lock_ramp_enable'].control.text='Scan enable'
 h['lock_ramp_direction'].control.text='Scan direction'
+h['lock_ramp_sawtooth'].control.text='Sawtooth'
+
 h['lock_pidA_irst'].control.text='reset integral'
 h['lock_pidB_irst'].control.text='reset integral'
 
