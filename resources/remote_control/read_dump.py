@@ -281,12 +281,12 @@ class read_dump():
              plt.plot( d.t , d.oscA ) 
              
         """
-#        self.check_time_stats()
-#        if end==None and large==None:
-#            print('needs start + end|large')
-#            return
-#        end_break   = is_int(end);
-#        large_break = is_int(large);
+        self.check_time_stats()
+        if end==None and large==None:
+            print('needs start + end|large')
+            return
+        end_break   = is_int(end);
+        large_break = is_int(large);
         
         self.check_time_stats()
         autoset=False
@@ -298,6 +298,7 @@ class read_dump():
             step=int(max(1, 10**floor(log10( dl )-4) ))
             autoset=True
         if autoset:
+            end,step = int(end),int(step)
             print('autoset: end={:d}, step={:d}'.format(end,step))
         
         large_break = is_int(large);
