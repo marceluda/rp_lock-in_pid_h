@@ -64,7 +64,7 @@ parser.add_argument("-v", "--value", type=int, dest='threshold', default=100001,
 parser.add_argument("--hyst", type=int, dest='hyst', default=-1,
                     help="threshold value")
 
-parser.add_argument("-d", "--decimation", type=int, dest='dec', action='store', choices=[0,1,8,64,1024,8192,65536], default=0, help='decimation value')
+parser.add_argument("-d", "--decimation", type=int, dest='dec', action='store', choices=[0,1,8,64,1024,8192,65536,524288], default=0, help='decimation value')
 
 # threshold
 
@@ -74,46 +74,46 @@ args = parser.parse_args()
 if __name__ == '__main__':
     # Function for nice kill
     killer = GracefulKiller()
-    
+
     osc.reset()
     if args.dec>0:
         osc.set_dec(args.dec)
-    
+
     osc.trigVal=sig_val[args.signal]
-    
+
     if sig_val[args.signal] in [2,3] and abs(args.threshold)<8192:
         osc['ChAth'].val(args.threshold)
     if sig_val[args.signal] in [4,5] and abs(args.threshold)<8192:
         osc['ChBth'].val(args.threshold)
-    
+
     if args.hyst>0:
         osc['ChAHys'].val(args.hyst)
         osc['ChBHys'].val(args.hyst)
-        
-    
+
+
     if args.trig_pos>=0:
         osc['TrgDelay'].val(args.trig_pos)
-    
+
     osc.start_trigger()
     tbuff=time.time()
-    
+
     while True:
         sleep(0.1)
-        
+
         if time.time()-tbuff > args.timeout:
             success=False
             break
         if (osc['conf'].val() & 4 ) == 4:
             success=True
             break
-    
+
     if not success:
         print('timeout')
         exit()
-    
+
     new_conf=int( osc['conf'].val() | 1 )
     osc['conf'].val(new_conf)
-    
+
     tbuff=time.time()
     while True:
         sleep(0.1)
@@ -123,11 +123,8 @@ if __name__ == '__main__':
         if osc['TrgSrc'].val() == 0:
             success=True
             break
-    
+
     if success:
         print('success')
     else:
         print('memory read error')
-    
-    
-
