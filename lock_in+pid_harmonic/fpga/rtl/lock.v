@@ -560,7 +560,8 @@ module lock(
 
     );
 
-    assign digital_modulation = cos_ref[13] ;
+    //assign digital_modulation = cos_ref[13] ;
+    assign digital_modulation = 1'b0  ;
 
     /* end function generator *****************************************/
 
