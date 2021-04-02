@@ -45,6 +45,7 @@ typedef struct registers_s {
 
 
 static registers_t registers[PARAMS_NUM] = {
+    // [LOCKREGS DOCK]
     { "oscA_sw"                ,   0, 0, 0,          0,         31 },
     { "oscB_sw"                ,   1, 0, 0,          0,         31 },
     { "osc_ctrl"               ,   2, 0, 0,          0, 4294967295 },
@@ -140,6 +141,7 @@ static registers_t registers[PARAMS_NUM] = {
     { "ctrl_B"                 ,  92, 1, 1,      -8192,       8191 },
     { "aux_A"                  ,  93, 1, 0,      -8192,       8191 },
     { "aux_B"                  ,  94, 1, 0,      -8192,       8191 }
+    // [LOCKREGS DOCK END]
 };
 
 
@@ -202,11 +204,11 @@ int32_t   *lock ;
 
 
 /* Reading FPGA register of lock module
- * 
+ *
  * @param[index] number of the register
- * 
+ *
  * @return Returns the register value
- * 
+ *
  **/
 void read_reg(int index){
     printf("%s:%d\n" , registers[index].name , lock[index] );
@@ -214,13 +216,13 @@ void read_reg(int index){
 
 
 /* Write FPGA register value of lock module
- * 
+ *
  * @param[index] number of the register
- * 
+ *
  * @param[val] value to be written
- * 
+ *
  * @return Returns the register value
- * 
+ *
  **/
 void write_reg(int index, int32_t val ){
     lock[index] = val ;
@@ -230,11 +232,11 @@ void write_reg(int index, int32_t val ){
 
 
 /* Get index number from parameter name
- * 
+ *
  * @param[name] name of the parameter
-* 
+*
  * @return Returns the register index
- * 
+ *
  **/
 int reg_name_to_index(char *name){
     for(int jj=0; jj<PARAMS_NUM ; jj++){
@@ -252,9 +254,9 @@ int main(int argc, char *argv[]) {
     uint32_t u_value=0 ;
     int jj=0 ;
     int index;
-    
-    
-    
+
+
+
     // Open Linux memory device
 
 
@@ -275,24 +277,24 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "[-] lock mmap() failed: %d\n", errno);
         return -1;
     }
-    
+
     lock       = lock_ptr ;
-    
-    
+
+
     if(argc>1){
         // Arguments arte the reg names and values te be read and written
         for(jj=1; jj<argc ; jj++){
-            
+
             index = reg_name_to_index(argv[jj]);
-            
+
             if( index<0 ){
                 fprintf(stdout,"ERROR: parameter '%s' not found\n", argv[jj]);
                 return -1 ;
             }
-            
+
             if( (jj+1<argc) &&  (str2int(&s_value, argv[jj+1], 10)==STR2INT_SUCCESS)   ){
                 // Next arg is a number. Must be a write operation
-                
+
                 if(registers[index].read_only) {
                     printf("ERROR: %s is read-only and cannot be written\n",registers[index].name );
                     return -2;
@@ -302,13 +304,13 @@ int main(int argc, char *argv[]) {
                     return -2;
                 }
                 write_reg(index, s_value);
-                
+
                 jj++; // skip value
             }else{
                 // There's no next or it's not a number. Must be a read operation
                 read_reg(index);
             }
-        }  
+        }
     }else{
         // Just print all the values
         for(jj=0; jj<PARAMS_NUM ; jj++){
@@ -316,11 +318,8 @@ int main(int argc, char *argv[]) {
             //printf("%d\n" , lock[jj] );
         }
     }
-    
+
     // Clean the lock_ptr pointer
     munmap(lock_ptr, sysconf(_SC_PAGESIZE));
     return EXIT_SUCCESS;
 }
-
-
-

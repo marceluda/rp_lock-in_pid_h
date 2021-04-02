@@ -1177,38 +1177,47 @@ if __name__ == '__main__' and do_main:
 
 
 osc=f = fpga_registers()
-osc.add(  name='conf'     ,val=0 ,rw=True,nbits= 4,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='TrgSrc'   ,val=1 ,rw=True,nbits= 4,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='conf'     ,val=0 ,rw=True,nbits= 4,signed=False, max_val=  16, min_val=  0 )
+osc.add(  name='TrgSrc'   ,val=1 ,rw=True,nbits= 4,signed=False, max_val=  16, min_val=  0 )
 osc.add(  name='ChAth'    ,val=2 ,rw=True,nbits=14,signed=True , max_val=  8192, min_val=  -8192 )
 osc.add(  name='ChBth'    ,val=3 ,rw=True,nbits=14,signed=True , max_val=  8192, min_val=  -8192 )
-osc.add(  name='TrgDelay' ,val=4 ,rw=True,nbits=32,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='Dec'      ,val=5 ,rw=True,nbits=17,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='CurWpt'   ,val=6 ,rw=True,nbits=14,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='TrgWpt'   ,val=7 ,rw=True,nbits=14,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='ChAHys'   ,val=8 ,rw=True,nbits=14,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='ChBHys'   ,val=9 ,rw=True,nbits=14,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='AvgEn'    ,val=10,rw=True,nbits= 1,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='PreTrgCnt',val=11,rw=True,nbits=32,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='ChAEqFil1',val=12,rw=True,nbits=18,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='ChAEqFil2',val=13,rw=True,nbits=25,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='ChAEqFil3',val=14,rw=True,nbits=25,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='ChAEqFil4',val=15,rw=True,nbits=25,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='ChBEqFil1',val=16,rw=True,nbits=18,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='ChBEqFil2',val=17,rw=True,nbits=25,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='ChBEqFil3',val=18,rw=True,nbits=25,signed=False, max_val=  8192, min_val=  -8192 )
-osc.add(  name='ChBEqFil4',val=19,rw=True,nbits=25,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='TrgDelay' ,val=4 ,rw=True,nbits=32,signed=False, max_val=  2**32-1, min_val=  0 )
+osc.add(  name='Dec'      ,val=5 ,rw=True,nbits=17,signed=False, max_val=  2**17-1, min_val=  0 )
+osc.add(  name='CurWpt'   ,val=6 ,rw=True,nbits=14,signed=False, max_val=  2**14-1, min_val=  0 )
+osc.add(  name='TrgWpt'   ,val=7 ,rw=True,nbits=14,signed=False, max_val=  2**14-1, min_val=  0 )
+osc.add(  name='ChAHys'   ,val=8 ,rw=True,nbits=14,signed=False, max_val=  2**14-1, min_val=  0 )
+osc.add(  name='ChBHys'   ,val=9 ,rw=True,nbits=14,signed=False, max_val=  2**14-1, min_val=  0 )
+osc.add(  name='AvgEn'    ,val=10,rw=True,nbits= 1,signed=False, max_val=  0, min_val=  0 )
+osc.add(  name='PreTrgCnt',val=11,rw=True,nbits=32,signed=False, max_val=  2**32-1, min_val=  0 )
+osc.add(  name='ChAEqFil1',val=12,rw=True,nbits=18,signed=False, max_val=  2**18-1, min_val= 0)
+osc.add(  name='ChAEqFil2',val=13,rw=True,nbits=25,signed=False, max_val=  2**25-1, min_val=  0 )
+osc.add(  name='ChAEqFil3',val=14,rw=True,nbits=25,signed=False, max_val=  2**25-1, min_val=  0 )
+osc.add(  name='ChAEqFil4',val=15,rw=True,nbits=25,signed=False, max_val=  2**25-1, min_val=  0 )
+osc.add(  name='ChBEqFil1',val=16,rw=True,nbits=18,signed=False, max_val=  2**18-1, min_val=  0 )
+osc.add(  name='ChBEqFil2',val=17,rw=True,nbits=25,signed=False, max_val=  2**25-1, min_val=  0 )
+osc.add(  name='ChBEqFil3',val=18,rw=True,nbits=25,signed=False, max_val=  2**25-1, min_val=  0 )
+osc.add(  name='ChBEqFil4',val=19,rw=True,nbits=25,signed=False, max_val=  2**25-1, min_val=  -0 )
 
 
 
 
 if __name__ == '__main__' and do_c:
     print('do_c')
+
+    if not os.path.isdir(folder):
+        raise ValueError('"folder" variable should be the source code folder path.')
+    os.chdir(folder)
+
     params_vec = []
     for jj in range(f.len):
         # print("f {} {}".format( jj , f[jj].name )  )
         #  print('if (strcmp(string, ' + '"{}"'.format(f[jj].name).ljust(25)+ ') == 0) return {:2d} ;'.format( jj  )  )
         params_vec.append(  '{ '+ '"{}"'.format(f[jj].name).ljust(25)+', {:3d}, {:d}, {:d}, {:10d}, {:10d}'.format(f[jj].i, int(f[jj].signed) , int(f[jj].ro) , f[jj].min, f[jj].max  ) + ' }'  )
     print(  ',\n'.join( params_vec )   )
+
+    filename=APP+'/c/lock.c'
+    update_main(filename , dock = ['LOCKREGS'      ],
+                           txt  = [ ',\n'.join( params_vec ) ])
     # print(f.len)
 
     print('\n\n\n')
