@@ -28,6 +28,7 @@ except ModuleNotFoundError:
 
 
 import os
+import sys
 import re
 import enum
 from datetime import datetime
@@ -40,15 +41,41 @@ if PWD.find('rp_lock-in_pid_h')>0:
 
 APP='lock_in+pid_harmonic'
 
-do_verilog = True
-do_main    = True
-do_html    = True
-do_py      = True
+if __name__ == "__main__":
 
-#folder=''
-#folder='/home/lolo/Dropbox/Doctorado/github/rp_lock-in_pid'
+    if len(sys.argv)<2:
+        do_verilog = True
+        do_main    = True
+        do_html    = True
+        do_py      = True
+        do_clean   = False
+    else:
+        do_verilog = False
+        do_main    = False
+        do_html    = False
+        do_py      = False
+        do_clean   = False
+        if ('html'    in sys.argv[1:]) or 'all' in sys.argv[1:]:
+            do_html       = True
+        if ('verilog' in sys.argv[1:]) or 'all' in sys.argv[1:] or ('fpga' in sys.argv[1:]) :
+            do_verilog    = True
+        if ('py'      in sys.argv[1:]) or 'all' in sys.argv[1:]:
+            do_py         = True
+        if ('main'    in sys.argv[1:]) or 'all' in sys.argv[1:]:
+            do_main       = True
+        if ('rp_c'    in sys.argv[1:]) or 'all' in sys.argv[1:]:
+            do_c       = True
+        if ('clean'   in sys.argv[1:]):
+            do_clean      = True
 
-# do_verilog, do_main, do_html, do_py = False, False, False, False
+        if   ('period48'  in sys.argv[1:]):
+            PERIOD_LEN = 48
+        elif ('period480' in sys.argv[1:]):
+            PERIOD_LEN = 480
+        elif ('period1680' in sys.argv[1:]):
+            PERIOD_LEN = 1680
+
+
 
 #%%
 
@@ -511,6 +538,8 @@ def update_verilog(filename,dock,txt):
     os.rename(filename,filename.replace('.v','_'+tnow+'.v'))
     os.rename(filename.replace('.v','_.v'),filename)
 
+    if do_clean:
+        os.remove(  filename.replace('.v','_'+tnow+'.v')  )
 
 fpga_mod_fn=APP+'/fpga/rtl/lock.v'
 
@@ -1073,6 +1102,9 @@ def update_main(filename,dock,txt):
     os.rename(fn1,fn3)
     os.rename(fn2,fn1)
 
+    if do_clean:
+        os.remove(  fn3  )
+
 def replace_pattern(filename,pattern,txt):
     """Update automatic parts in file on pattern place"""
     if type(pattern)==str:
@@ -1105,6 +1137,8 @@ def replace_pattern(filename,pattern,txt):
     os.rename(fn1,fn3)
     os.rename(fn2,fn1)
 
+    if do_clean:
+        os.remove(  fn3  )
 
 # -------------------------------------------------------------------------------------------------------------
 
@@ -1141,6 +1175,50 @@ if __name__ == '__main__' and do_main:
 
 
 
+
+osc=f = fpga_registers()
+osc.add(  name='conf'     ,val=0 ,rw=True,nbits= 4,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='TrgSrc'   ,val=1 ,rw=True,nbits= 4,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='ChAth'    ,val=2 ,rw=True,nbits=14,signed=True , max_val=  8192, min_val=  -8192 )
+osc.add(  name='ChBth'    ,val=3 ,rw=True,nbits=14,signed=True , max_val=  8192, min_val=  -8192 )
+osc.add(  name='TrgDelay' ,val=4 ,rw=True,nbits=32,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='Dec'      ,val=5 ,rw=True,nbits=17,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='CurWpt'   ,val=6 ,rw=True,nbits=14,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='TrgWpt'   ,val=7 ,rw=True,nbits=14,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='ChAHys'   ,val=8 ,rw=True,nbits=14,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='ChBHys'   ,val=9 ,rw=True,nbits=14,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='AvgEn'    ,val=10,rw=True,nbits= 1,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='PreTrgCnt',val=11,rw=True,nbits=32,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='ChAEqFil1',val=12,rw=True,nbits=18,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='ChAEqFil2',val=13,rw=True,nbits=25,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='ChAEqFil3',val=14,rw=True,nbits=25,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='ChAEqFil4',val=15,rw=True,nbits=25,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='ChBEqFil1',val=16,rw=True,nbits=18,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='ChBEqFil2',val=17,rw=True,nbits=25,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='ChBEqFil3',val=18,rw=True,nbits=25,signed=False, max_val=  8192, min_val=  -8192 )
+osc.add(  name='ChBEqFil4',val=19,rw=True,nbits=25,signed=False, max_val=  8192, min_val=  -8192 )
+
+
+
+
+if __name__ == '__main__' and do_c:
+    print('do_c')
+    params_vec = []
+    for jj in range(f.len):
+        # print("f {} {}".format( jj , f[jj].name )  )
+        #  print('if (strcmp(string, ' + '"{}"'.format(f[jj].name).ljust(25)+ ') == 0) return {:2d} ;'.format( jj  )  )
+        params_vec.append(  '{ '+ '"{}"'.format(f[jj].name).ljust(25)+', {:3d}, {:d}, {:d}, {:10d}, {:10d}'.format(f[jj].i, int(f[jj].signed) , int(f[jj].ro) , f[jj].min, f[jj].max  ) + ' }'  )
+    print(  ',\n'.join( params_vec )   )
+    # print(f.len)
+
+    print('\n\n\n')
+
+    params_vec = []
+    for jj in range(osc.len):
+        # print("f {} {}".format( jj , f[jj].name )  )
+        #  print('if (strcmp(string, ' + '"{}"'.format(f[jj].name).ljust(25)+ ') == 0) return {:2d} ;'.format( jj  )  )
+        params_vec.append(  '{ '+ '"{}"'.format(osc[jj].name).ljust(25)+', {:3d}, {:d}, {:d}, {:10d}, {:10d}'.format(osc[jj].i, int(osc[jj].signed) , int(osc[jj].ro) , osc[jj].min, osc[jj].max  ) + ' }'  )
+    print(  ',\n'.join( params_vec )   )
 
 
 
@@ -1621,20 +1699,20 @@ def get_muxer(filename,name):
         #print( '["' + '","'.join(ret) + '"]')
         return ret
 
-if False:
-    filename=APP+'/fpga/rtl/lock.v'
-    print(get_muxer(filename,"slow_out1_sw"))
-    print(get_muxer(filename,"lpf_F1"))
-    print(get_muxer(filename,"sg_amp1"))
-    print(get_muxer(filename,"oscA_sw"))
-    print(get_muxer(filename,"oscB_sw"))
-    print(get_muxer(filename,"pidA_sw"))
-    print(get_muxer(filename,"signal_sw"))
-    print(get_muxer(filename,"out1_sw"))
-
-    for i in get_muxer(filename,"pidB_sw"):
-        print('`'+i+'`,')
-
+# if False:
+#     filename=APP+'/fpga/rtl/lock.v'
+#     print(get_muxer(filename,"slow_out1_sw"))
+#     print(get_muxer(filename,"lpf_F1"))
+#     print(get_muxer(filename,"sg_amp1"))
+#     print(get_muxer(filename,"oscA_sw"))
+#     print(get_muxer(filename,"oscB_sw"))
+#     print(get_muxer(filename,"pidA_sw"))
+#     print(get_muxer(filename,"signal_sw"))
+#     print(get_muxer(filename,"out1_sw"))
+#
+#     for i in get_muxer(filename,"pidB_sw"):
+#         print('`'+i+'`,')
+#
 
 
 
@@ -1643,6 +1721,7 @@ if not os.path.isdir(folder):
     raise ValueError('"folder" variable should be the source code folder path.')
 os.chdir(folder)
 
+print('------------------------------------\n\nStwiches not found:\n')
 for i in [ y.name for y in filter( lambda x: x.type=='select' , h) ]:
     if len(get_muxer(filename,i[5:] ))>0:
         h[i].control = select(idd=i , items=get_muxer(filename,i[5:] ) );
@@ -1986,7 +2065,8 @@ def update_html(filename,h):
     os.rename(fn1,fn3)
     os.rename(fn2,fn1)
 
-
+    if do_clean:
+        os.remove(  fn3  )
 
 #os.chdir(folder)
 filename=APP+'/index.html'
@@ -2041,7 +2121,8 @@ def update_py(filename,h):
     os.rename(fn1,fn3)
     os.rename(fn2,fn1)
 
-
+    if do_clean:
+        os.remove(  fn3  )
 
 
 
