@@ -23,7 +23,10 @@
 
 #define OSC_FPGA_BASE_ADDR 0x40100000
 #define OSC_FPGA_BASE_SIZE 0x30000
+#define OSC_FPGA_SIG_LEN   16384
 
+#define OSC_FPGA_CH_A_OFFSET 0x10000
+#define OSC_FPGA_CH_B_OFFSET 0x20000
 
 
 /* Registers description structure */
@@ -108,11 +111,37 @@ str2int_errno str2int(int32_t *out, char *s, int base) {
 }
 
 
+
+
+/* Fixing the Two's complement of FPGA output
+ * 
+ * FPGA encodes numbers in 14 bit. The firstone is the sign.
+ * 
+ * The 32 bit memory page fills the other with zero, breaking the 
+ * Two's complement specification. This function fix this
+ * 
+ * Input uint32_t , output int16
+ * 
+ *
+ * @param[val] value read from FPGA
+ *
+ * @return Returns the signed value
+ *
+ **/
+int32_t fix_sign(uint32_t value){    
+    int32_t *rta  = &value  ;
+    
+    if((value>>13)==1) value = value + 0xffffc000  ;
+    //printf("lolo: %ud %d\n", value , *rta );
+    return *rta ;
+}
+
+
 //***************************************************************************
 
 
 // For memory reading
-char      *name = "/dev/mem";
+char      *name_mem = "/dev/mem";
 int        fd;
 void      *osc_ptr ;
 int32_t   *osc ;
@@ -172,12 +201,14 @@ int main(int argc, char *argv[]) {
     int jj=0 ;
     int index;
 
-
+    int dump = 0;
+    
+    if ( (argc==2) &&  (strcmp("dump",argv[1])==0) ) dump = 1 ;
 
     // Open Linux memory device
 
 
-    if((fd = open(name, O_RDWR)) < 0) {
+    if((fd = open(name_mem, O_RDWR)) < 0) {
         perror("[-] Error trying to open /dev/mem");
         return 1;
     }
@@ -198,7 +229,15 @@ int main(int argc, char *argv[]) {
     osc       = osc_ptr ;
 
 
-    if(argc>1){
+    int32_t *vecA = NULL ;
+    int32_t *vecB = NULL ;
+
+    vecA = osc_ptr +  OSC_FPGA_CH_A_OFFSET ;  // channel A
+    vecB = osc_ptr +  OSC_FPGA_CH_B_OFFSET ;  // channel B
+    
+
+
+    if( (dump==0) && (argc>1) ){
         // Arguments arte the reg names and values te be read and written
         for(jj=1; jj<argc ; jj++){
 
@@ -229,7 +268,15 @@ int main(int argc, char *argv[]) {
             }
         }
     }else{
-        // Just print all the values
+        // If dump is set, write all the values of both channels
+        if(dump==1){
+            //printf("DUMP\n");
+            for(jj=0; jj<OSC_FPGA_SIG_LEN ; jj++){
+                printf( ":%5d:%5d\n", fix_sign(vecA[jj]) , fix_sign(vecB[jj]) );
+            }
+        }
+        
+        // Just print all the values of oscilloscope registers
         for(jj=0; jj<PARAMS_NUM ; jj++){
             read_reg(jj);
             //printf("%d\n" , osc[jj] );
