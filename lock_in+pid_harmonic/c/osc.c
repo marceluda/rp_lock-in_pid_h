@@ -42,26 +42,28 @@ typedef struct registers_s {
 
 
 static registers_t registers[PARAMS_NUM] = {
-    { "conf"                   ,   0, 0, 0,      -8192,       8192 },
-    { "TrgSrc"                 ,   1, 0, 0,      -8192,       8192 },
+    // [OSCREGS DOCK]
+    { "conf"                   ,   0, 0, 0,          0,         16 },
+    { "TrgSrc"                 ,   1, 0, 0,          0,         16 },
     { "ChAth"                  ,   2, 1, 0,      -8192,       8192 },
     { "ChBth"                  ,   3, 1, 0,      -8192,       8192 },
-    { "TrgDelay"               ,   4, 0, 0,          0,      16383 },
-    { "Dec"                    ,   5, 0, 0,          0,      32767 },
+    { "TrgDelay"               ,   4, 0, 0,          0, 4294967295 },
+    { "Dec"                    ,   5, 0, 0,          0,     131071 },
     { "CurWpt"                 ,   6, 0, 0,          0,      16383 },
     { "TrgWpt"                 ,   7, 0, 0,          0,      16383 },
-    { "ChAHys"                 ,   8, 0, 0,      -8192,       8192 },
-    { "ChBHys"                 ,   9, 0, 0,      -8192,       8192 },
-    { "AvgEn"                  ,  10, 0, 0,      -8192,       8192 },
-    { "PreTrgCnt"              ,  11, 0, 0,      -8192,       8192 },
-    { "ChAEqFil1"              ,  12, 0, 0,      -8192,       8192 },
-    { "ChAEqFil2"              ,  13, 0, 0,      -8192,       8192 },
-    { "ChAEqFil3"              ,  14, 0, 0,      -8192,       8192 },
-    { "ChAEqFil4"              ,  15, 0, 0,      -8192,       8192 },
-    { "ChBEqFil1"              ,  16, 0, 0,      -8192,       8192 },
-    { "ChBEqFil2"              ,  17, 0, 0,      -8192,       8192 },
-    { "ChBEqFil3"              ,  18, 0, 0,      -8192,       8192 },
-    { "ChBEqFil4"              ,  19, 0, 0,      -8192,       8192 }
+    { "ChAHys"                 ,   8, 0, 0,          0,      16383 },
+    { "ChBHys"                 ,   9, 0, 0,          0,      16383 },
+    { "AvgEn"                  ,  10, 0, 0,          0,          1 },
+    { "PreTrgCnt"              ,  11, 0, 0,          0, 4294967295 },
+    { "ChAEqFil1"              ,  12, 0, 0,          0,     262143 },
+    { "ChAEqFil2"              ,  13, 0, 0,          0,   33554431 },
+    { "ChAEqFil3"              ,  14, 0, 0,          0,   33554431 },
+    { "ChAEqFil4"              ,  15, 0, 0,          0,   33554431 },
+    { "ChBEqFil1"              ,  16, 0, 0,          0,     262143 },
+    { "ChBEqFil2"              ,  17, 0, 0,          0,   33554431 },
+    { "ChBEqFil3"              ,  18, 0, 0,          0,   33554431 },
+    { "ChBEqFil4"              ,  19, 0, 0,          0,   33554431 }
+    // [OSCREGS DOCK END]
 };
 
 
@@ -114,23 +116,23 @@ str2int_errno str2int(int32_t *out, char *s, int base) {
 
 
 /* Fixing the Two's complement of FPGA output
- * 
+ *
  * FPGA encodes numbers in 14 bit. The firstone is the sign.
- * 
- * The 32 bit memory page fills the other with zero, breaking the 
+ *
+ * The 32 bit memory page fills the other with zero, breaking the
  * Two's complement specification. This function fix this
- * 
+ *
  * Input uint32_t , output int16
- * 
+ *
  *
  * @param[val] value read from FPGA
  *
  * @return Returns the signed value
  *
  **/
-int32_t fix_sign(uint32_t value){    
+int32_t fix_sign(uint32_t value){
     int32_t *rta  = &value  ;
-    
+
     if((value>>13)==1) value = value + 0xffffc000  ;
     //printf("lolo: %ud %d\n", value , *rta );
     return *rta ;
@@ -202,7 +204,7 @@ int main(int argc, char *argv[]) {
     int index;
 
     int dump = 0;
-    
+
     if ( (argc==2) &&  (strcmp("dump",argv[1])==0) ) dump = 1 ;
 
     // Open Linux memory device
@@ -234,11 +236,11 @@ int main(int argc, char *argv[]) {
 
     vecA = osc_ptr +  OSC_FPGA_CH_A_OFFSET ;  // channel A
     vecB = osc_ptr +  OSC_FPGA_CH_B_OFFSET ;  // channel B
-    
+
 
 
     if( (dump==0) && (argc>1) ){
-        // Arguments arte the reg names and values te be read and written
+        // Arguments are the reg names and values to be read and written
         for(jj=1; jj<argc ; jj++){
 
             index = reg_name_to_index(argv[jj]);
@@ -275,7 +277,7 @@ int main(int argc, char *argv[]) {
                 printf( ":%5d:%5d\n", fix_sign(vecA[jj]) , fix_sign(vecB[jj]) );
             }
         }
-        
+
         // Just print all the values of oscilloscope registers
         for(jj=0; jj<PARAMS_NUM ; jj++){
             read_reg(jj);
