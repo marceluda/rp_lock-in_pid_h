@@ -6,7 +6,7 @@ RM=rm
 
 CFLAGS+= -g
 
-all: lock osc
+all: lock osc streaming stream_tcp_osc_cmd
 
 lock:
 	$(CC) -o lock lock.c $(CFLAGS) -Wno-overflow
@@ -14,6 +14,12 @@ lock:
 osc:
 	$(CC) -o osc osc.c $(CFLAGS) -Wno-overflow
 
+streaming:
+	$(CC) -o streaming streaming.c $(CFLAGS)
+
+stream_tcp_osc_cmd:
+	$(CC) -o stream_tcp_osc_cmd stream_tcp_osc_cmd.c $(CFLAGS)  -Wno-incompatible-pointer-types
+
 
 clean:
-	-$(RM) -f lock osc
+	-$(RM) -f lock osc stream_tcp_osc_cmd streaming

@@ -67,11 +67,14 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
        *    0 - 1x
        *    1 - 8x
        *    2 - 64x
-       *    3 - 1kx
-       *    4 - 8kx
-       *    5 - 65kx
-       *    6 - 524k  */
-        "time_range", 0, 1, 1,         0,         6 },
+       *    3 - 128x
+       *    4 - 256x
+       *    5 - 512x
+       *    6 - 1kx
+       *    7 - 8kx
+       *    8 - 65kx
+       *    9 - 524k  */
+        "time_range", 0, 1, 1,         0,         9 },
     { /* time_unit_used:
        *    0 - [us]
        *    1 - [ms]
@@ -301,7 +304,7 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     /*********************************************/
 
     // [MAINDEF DOCK]
-
+    
     { "lock_oscA_sw"                  ,      1, 1, 0,            0,           31 }, /** switch for muxer oscA **/
     { "lock_oscB_sw"                  ,      2, 1, 0,            0,           31 }, /** switch for muxer oscB **/
     { "lock_osc1_filt_off"            ,      1, 1, 0,            0,            1 }, /** oscilloscope control osc1_filt_off **/
@@ -414,6 +417,10 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { "lock_ctrl_B"                   ,      0, 0, 1,        -8192,         8191 }, /** control_B: pidA_out + ramp_B **/
     { "lock_aux_A"                    ,      0, 1, 0,        -8192,         8191 }, /** auxiliar value of 14 bits **/
     { "lock_aux_B"                    ,      0, 1, 0,        -8192,         8191 }, /** auxiliar value of 14 bits **/
+    { "lock_stream_ip"                ,      0, 1, 0,            0,   0xffffffff }, /** Client IP for streaming **/
+    { "lock_stream_port"              ,   6000, 1, 0,            0,   0xffffffff }, /** Client TCP port for streaming **/
+    { "lock_stream_rate"              ,    128, 1, 0,            0,         8192 }, /** Streaming rate config **/
+    { "lock_stream_cmd"               ,      0, 1, 0,            0,   0xffffffff }, /** Streaming commands **/
     { "lock_ctrl_aux_lock_now"        ,      0, 0, 0,            0,            1 }, /** todo **/
     { "lock_ctrl_aux_launch_lock_trig",      0, 0, 0,            0,            1 }, /** todo **/
     { "lock_ctrl_aux_pidB_enable_ctrl",      1, 0, 0,            0,            1 }, /** todo **/
@@ -425,7 +432,7 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { "lock_ctrl_aux_trig_type"       ,      0, 0, 0,            0,            3 }, /** todo **/
     { "lock_ctrl_aux_lock_trig_rise"  ,      0, 0, 0,            0,            1 }, /** todo **/
     { "lock_mod_harmonic_on"          ,      1, 0, 0,            0,            1 }, /** todo **/
-
+    
     // [MAINDEF DOCK END]
 
     { /* Must be last! */
@@ -524,6 +531,9 @@ int time_range_to_time_unit(int range)
         break;
     case 2:
     case 3:
+    case 4:
+    case 5:
+    case 6:
         unit = 1;
         break;
     default:
@@ -605,14 +615,14 @@ int transform_acq_params(rp_app_params_t *p)
     }
 
     /* Find optimal decimation setting */
-    for (i = 0; i < 7; i++) {
+    for (i = 0; i < 9; i++) {
         dec = osc_fpga_cnv_time_range_to_dec(i);
         if (dec >= rdec) {
             break;
         }
     }
-    if (i > 6)
-        i = 6;
+    if (i > 9)
+        i = 9;
 
     /* Apply decimation parameter (time range), but not when forcing GUI client
      * or during reset zoom.

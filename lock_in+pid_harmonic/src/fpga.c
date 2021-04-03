@@ -475,15 +475,18 @@ int osc_fpga_cnv_time_range_to_dec(int time_range)
         return 64;
         break;
     case 3:
-        return 1024;
+        return 128;
         break;
     case 4:
-        return 8*1024;
+        return 1024;
         break;
     case 5:
-        return 64*1024;
+        return 8*1024;
         break;
     case 6:
+        return 64*1024;
+        break;
+    case 7:
         return 512*1024;
         break;
     default:

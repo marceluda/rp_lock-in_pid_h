@@ -62,8 +62,23 @@
   var xmin = -1000000;
   var xmax = 1000000;
 
-  var time_range_max = [130, 1000, 8, 130, 1, 8, 64];
+  //var time_range_max = [130, 1000, 8, 130, 1, 8, 64];
+  var time_range_max = [130, 1000, 8, 16,  33,  67, 130,  1, 8 , 64 ];
   var range_steps = [0.5, 1, 2, 5, 10, 20, 50, 100];
+
+
+
+  function secondYaxis(v, axis) {
+      if(params.local.lock_osc_lockin_mode){
+        if(params.local.lock_osc_raw_mode){
+          return (v/10).toFixed(axis.tickDecimals) + '°'  ;
+        }else{
+          return (v/Math.PI).toFixed(axis.tickDecimals) +'π'  ;
+        }
+      } else {
+        return v.toFixed(axis.tickDecimals);
+      }
+  }
 
   var plot_options = {
     colors: ['#3276B1', '#D2322D', '#009900'],    // channel1, channel2, trigger line
@@ -71,6 +86,7 @@
     selection: { mode: 'xy' },
     zoom: { interactive: true, trigger: null },
     xaxis: { min: xmin, max: xmax },
+    y2axis: { tickFormatter: secondYaxis },
     grid: { borderWidth: 0 , hoverable: true, clickable: true },
     legend: { noColumns: 2, margin: [0, 0], backgroundColor: 'transparent' },
     touch: { autoWidth: false, autoHeight: false }
@@ -120,10 +136,10 @@
                        'lock_ramp_direction,lock_ramp_sawtooth,lock_ramp_B_factor,lock_read_ctrl,lock_pidA_sw,lock_pidA_PSR,lock_pidA_ISR,'+
                        'lock_pidA_DSR,lock_pidA_SAT,lock_pidA_sp,lock_pidA_kp,lock_pidA_ki,lock_pidA_kd,lock_pidA_irst,lock_pidA_freeze,'+
                        'lock_pidA_ifreeze,lock_pidB_sw,lock_pidB_PSR,lock_pidB_ISR,lock_pidB_DSR,lock_pidB_SAT,lock_pidB_sp,lock_pidB_kp,'+
-                       'lock_pidB_ki,lock_pidB_kd,lock_pidB_irst,lock_pidB_freeze,lock_pidB_ifreeze,lock_aux_A,lock_aux_B,lock_ctrl_aux_lock_now,'+
-                       'lock_ctrl_aux_launch_lock_trig,lock_ctrl_aux_pidB_enable_ctrl,lock_ctrl_aux_pidA_enable_ctrl,lock_ctrl_aux_ramp_enable_ctrl,'+
-                       'lock_ctrl_aux_set_pidB_enable,lock_ctrl_aux_set_pidA_enable,lock_ctrl_aux_set_ramp_enable,lock_ctrl_aux_trig_type,'+
-                       'lock_ctrl_aux_lock_trig_rise,lock_mod_harmonic_on';
+                       'lock_pidB_ki,lock_pidB_kd,lock_pidB_irst,lock_pidB_freeze,lock_pidB_ifreeze,lock_aux_A,lock_aux_B,lock_stream_ip,'+
+                       'lock_stream_port,lock_stream_rate,lock_stream_cmd,lock_ctrl_aux_lock_now,lock_ctrl_aux_launch_lock_trig,lock_ctrl_aux_pidB_enable_ctrl,'+
+                       'lock_ctrl_aux_pidA_enable_ctrl,lock_ctrl_aux_ramp_enable_ctrl,lock_ctrl_aux_set_pidB_enable,lock_ctrl_aux_set_pidA_enable,'+
+                       'lock_ctrl_aux_set_ramp_enable,lock_ctrl_aux_trig_type,lock_ctrl_aux_lock_trig_rise,lock_mod_harmonic_on';
 
   config_params_keys = config_params_txts.split(",");
 
@@ -308,6 +324,8 @@
 
         options.yaxes[0].min = min;
         options.yaxes[0].max = max;
+        options.yaxes[1].min = options.yaxes[0].min;
+        options.yaxes[1].max = options.yaxes[0].max;
 
         plot.setupGrid();
         plot.draw();
@@ -370,6 +388,8 @@
 
         options.yaxes[0].min = min;
         options.yaxes[0].max = max;
+        options.yaxes[1].min = options.yaxes[0].min;
+        options.yaxes[1].max = options.yaxes[0].max;
 
         plot.setupGrid();
         plot.draw();
@@ -1158,7 +1178,7 @@
     var input_number=['lock_lock_trig_val','lock_lock_trig_time_val','lock_rl_error_threshold','lock_rl_signal_threshold','lock_sf_jumpA',
                       'lock_sf_jumpB','lock_error_offset','lock_mod_out1','lock_mod_out2','lock_gen_mod_phase','lock_gen_mod_hp','lock_ramp_step',
                       'lock_ramp_low_lim','lock_ramp_hig_lim','lock_ramp_B_factor','lock_pidA_sp','lock_pidA_kp','lock_pidA_ki','lock_pidA_kd',
-                      'lock_pidB_sp','lock_pidB_kp','lock_pidB_ki','lock_pidB_kd','lock_aux_A','lock_aux_B'];
+                      'lock_pidB_sp','lock_pidB_kp','lock_pidB_ki','lock_pidB_kd','lock_aux_A','lock_aux_B','lock_stream_port'];
 
     for(ii in input_number){
       $('#'+input_number[ii])
@@ -1285,9 +1305,38 @@
         //console.log('user_editing after: '+user_editing );
     }
 
+    $('#lock_stream_ip')
+        .on('focus paste', function() {
+            iname=$(this)[0].id;
+            $(this).parent().addClass('input-group');
+         })
+        // on blur (focus lost), check data and send to server
+        .on('blur', function(event) {
+            iname=$(this)[0].id;
+            text_param_editor='';
+            $(this).parent().removeClass('input-group');
+            if(ValidateIPaddress($(this).val())) {
+              params.local[iname] = IPtoInt32($(this).val()) ;
+              sendParams();
+            }
+            //else {
+            //  $(this).val(params.local[iname])
+            //}
+            if(event.relatedTarget)
+              if(event.relatedTarget.tagName=="INPUT")
+                setTimeout(function(){ user_editing = true; }, update_interval ) ;
+            user_editing = false;
+        })
+        .on('input', function(event) {
+            user_editing = true;
+        })
+
+
+
 
 
     // on change functions
+
     $('#lock_lock_trig_time_val,#lock_lock_trig_val').on('input', function() {
         lock_ctrl_update();
         //$(this).blur();
@@ -1315,7 +1364,7 @@
                   '#lock_signal_sw','#lock_sg_amp0','#lock_sg_amp1','#lock_sg_amp2','#lock_sg_amp3','#lock_lpf_F0_tau','#lock_lpf_F0_order',
                   '#lock_lpf_F1_tau','#lock_lpf_F1_order','#lock_lpf_F2_tau','#lock_lpf_F2_order','#lock_lpf_F3_tau','#lock_lpf_F3_order',
                   '#lock_error_sw','#lock_read_ctrl','#lock_pidA_sw','#lock_pidA_PSR','#lock_pidA_ISR','#lock_pidA_DSR','#lock_pidA_SAT',
-                  '#lock_pidB_sw','#lock_pidB_PSR','#lock_pidB_ISR','#lock_pidB_DSR','#lock_pidB_SAT','#lock_ctrl_aux_trig_type'];
+                  '#lock_pidB_sw','#lock_pidB_PSR','#lock_pidB_ISR','#lock_pidB_DSR','#lock_pidB_SAT','#lock_stream_rate','#lock_ctrl_aux_trig_type'];
     for(ii in switches)
         $(switches[ii]).on('change', function() { onDropdownChange($(this), $(this)[0].id ); });
 
@@ -1323,12 +1372,58 @@
 
 
     // Buttons
-    var input_buttons = '#lock_osc_raw_mode,#lock_osc_lockin_mode,#lock_sf_start,#lock_ctrl_aux_lock_now,#lock_ctrl_aux_launch_lock_trig,'+
+    var input_buttons = '#lock_osc_raw_mode,#lock_osc_lockin_mode,#lock_sf_start,#lock_stream_cmd,#lock_ctrl_aux_lock_now,#lock_ctrl_aux_launch_lock_trig,'+
                         '#lock_ctrl_aux_pidB_enable_ctrl,#lock_ctrl_aux_pidA_enable_ctrl,#lock_ctrl_aux_ramp_enable_ctrl,#lock_mod_harmonic_on';
     $(input_buttons).on('click', function() {
       $(this).toggleClass('btn-default btn-primary');
       params.local[this.id] = ($(this).is('.btn-primary') ? 1 : 0);
       sendParams();
+    });
+
+    $('#lock_stream_ip_label'    ).on('click', function() {
+      $.get( "get_ip", function( data ) {
+        $("#lock_stream_ip").focus().val( data ); sendParams();
+      });
+    });
+
+    $('#stream_connect'    ).on('click', function() {
+
+      user_editing = true;
+      //sending      = true;
+
+      params.local.lock_trig_sw = 8 ;
+      params.local.trig_source  = 2 ;
+      params.local.trig_mode    = 2 ;
+      //$('#trig_mode').val(2).trigger('change') ;
+
+      //$('#lock_trig_sw').val(8).trigger('change') ;
+      //$('#trig_source').val(2).trigger('change') ;
+      //$('#lock_trig_sw').val(8) ;
+      //$('#trig_source').val(2) ;
+      //autorun = 0 ;
+
+      setTimeout( singleUpdate() , 100 );
+
+      $.get( "streaming", function( data ) {
+        //console.log("Started streaming process:"+data);
+
+        $.get( "check_streaming", function check_streaming( data ) {
+          //console.log("check_streaming:"+data);
+          if( parseInt(data) == 0 ){  // if process is active:
+              $('#stream_connect').removeClass('btn-default').addClass('btn-primary');
+              setTimeout( function(){ $.get( "check_streaming", check_streaming ) } , 500  );
+          }else if(parseInt(data)<0){
+              $('#disp_stream_status').removeClass('label-info').addClass('label-danger');
+              setTimeout( function(){ $.get( "check_streaming", check_streaming ) } , 500  );
+          } else {
+              $('#disp_stream_status').removeClass('label-danger').addClass('label-info');
+              $('#stream_connect').removeClass('btn-primary').addClass('btn-default');
+          }
+          // $('#stream_connect').toggleClass('btn-default btn-primary');
+
+        });
+
+      });
     });
 
     // Checkboxes inputs
@@ -1562,6 +1657,43 @@
   var magni={ "-4": '×10<sup>-12</sup>',"-3": '×10<sup>-9</sup>', "-2": '×10<sup>-6</sup>', "-1": '×10<sup>-3</sup>',
               "0": ' ',
               "1": '×10<sup>3</sup>', "2": '×10<sup>6</sup>', "3": '×10<sup>9</sup>', "4": '×10<sup>12</sup>' };
+
+
+
+    // Functions for Streaming
+
+  function ValidateIPaddress(ipaddress){
+    if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ipaddress))
+    {
+        return (true);
+    }
+    console.log("You have entered an invalid IP address!");
+    return (false);
+  }
+
+  function IPtoInt32(IPtxt){
+    ip_array = IPtxt.split('.') ;
+    var jj;
+    var rta = 0 ;
+    for (jj = 0; jj < 4 ; ++jj) {
+        rta = rta + (  parseInt(ip_array[jj])<<(jj*8)  ) ;
+    }
+    return (rta) ;
+  }
+
+  function Int32toIP(IP){
+        var rta = [0,0,0,0] ;
+        var jj;
+        for (jj = 0; jj < 4 ; ++jj) {
+            rta[jj] = ( IP >> (8*jj) ) & 255 ;
+        }
+        return ( rta.join('.') ) ;
+    }
+
+
+
+
+
 
   function lock_ramp_step_update() {
 
@@ -2077,6 +2209,14 @@
 
     var disp_slow = $('#slow_lock_in_display').hasClass('in') ;
     var disp_fast = $('#fast_lock_in_display').hasClass('in') ;
+    var disp_stream = $('#streaming-module').hasClass('in') ;
+
+    if(disp_stream){
+        //var stream_status    = params.local.lock_stream_status ;
+        //var stream_rate      = params.local.lock_stream_rate ;
+        $('#disp_stream_status' ).html( 'Δt: '+8*params.local.lock_stream_rate + ' ns' );
+    }
+    
 
     var scl = 1/2047/8191;
     if(set_raw) scl = 1/2048;
@@ -2473,6 +2613,7 @@
         for(var i=0; i<dresult.datasets.g1.length; i++) {
           dresult.datasets.g1[i].color = i;
           dresult.datasets.g1[i].label = 'Channel ' + (i+1);
+          dresult.datasets.g1[i].yaxis = i +1;  //loloyaxis
           datasets.push(dresult.datasets.g1[i]);
         }
 
@@ -2584,7 +2725,8 @@
     // When xmin/xmax are null, the min/max values of received data will be used. For ymin/ymax use the gui_reset_y_range param.
     $.extend(true, plot_options, {
       xaxis: { min: null, max: null },
-      yaxis: { min: ymin, max: ymax }
+      yaxis: { min: ymin, max: ymax },
+      y2axis: { min: ymin, max: ymax }
     });
 
     // Local optimization
@@ -2830,6 +2972,7 @@
     $('#lock_pidB_kd'            ).val(params.original.lock_pidB_kd               );
     $('#lock_aux_A'              ).val(params.original.lock_aux_A                 );
     $('#lock_aux_B'              ).val(params.original.lock_aux_B                 );
+    $('#lock_stream_port'        ).val(params.original.lock_stream_port           );
 
     // Switches
     $('#lock_oscA_sw'           ).val(params.original.lock_oscA_sw              );
@@ -2864,6 +3007,7 @@
     $('#lock_pidB_ISR'          ).val(params.original.lock_pidB_ISR             );
     $('#lock_pidB_DSR'          ).val(params.original.lock_pidB_DSR             );
     $('#lock_pidB_SAT'          ).val(params.original.lock_pidB_SAT             );
+    $('#lock_stream_rate'       ).val(params.original.lock_stream_rate          );
     $('#lock_ctrl_aux_trig_type').val(params.original.lock_ctrl_aux_trig_type   );
 
     // Buttons
@@ -2881,6 +3025,11 @@
       $('#lock_sf_start').removeClass('btn-default').addClass('btn-primary').data('checked',true);
     }else{
       $('#lock_sf_start').removeClass('btn-primary').addClass('btn-default').data('checked',false);
+    }
+    if (params.original.lock_stream_cmd){                   // lock_stream_cmd
+      $('#lock_stream_cmd').removeClass('btn-default').addClass('btn-primary').data('checked',true);
+    }else{
+      $('#lock_stream_cmd').removeClass('btn-primary').addClass('btn-default').data('checked',false);
     }
     if (params.original.lock_ctrl_aux_lock_now){            // lock_ctrl_aux_lock_now
       $('#lock_ctrl_aux_lock_now').removeClass('btn-default').addClass('btn-primary').data('checked',true);
@@ -2915,6 +3064,7 @@
 
     // [LOLO DOCK LOADPARAMS END]
 
+    $('#lock_stream_ip'          ).val( Int32toIP(params.original.lock_stream_ip)         );
 
     lock_ramp_step_update();
     lock_modulation_update();
@@ -2998,6 +3148,8 @@
           options.xaxes[0].max = dresult.datasets.params.xmax;
           options.yaxes[0].min = dresult.datasets.params.min_y;
           options.yaxes[0].max = dresult.datasets.params.max_y;
+          options.yaxes[1].min = options.yaxes[0].min;
+          options.yaxes[1].max = options.yaxes[0].max;
 
           // Enable both channels after click on AUTO button
           if(!$('#btn_ch1').data('checked') || !$('#btn_ch2').data('checked')) {
@@ -3107,6 +3259,9 @@
     }
 
     filtered = addTriggerDataSet(filtered);
+
+    filtered[1].yaxis = 2 ;
+
     return filtered;
   }
 
@@ -3238,8 +3393,17 @@
     var axes = plot.getAxes();
 
     // Set Y scale to data min/max + 10%
-    options.yaxes[0].min = (axes.yaxis.datamin < 0 ? axes.yaxis.datamin * 1.1 : axes.yaxis.datamin - axes.yaxis.datamin * 0.1);
-    options.yaxes[0].max = (axes.yaxis.datamax > 0 ? axes.yaxis.datamax * 1.1 : axes.yaxis.datamax + axes.yaxis.datamax * 0.1);
+    var ymin1 = (axes.yaxis.datamin < 0 ? axes.yaxis.datamin * 1.1 : axes.yaxis.datamin - axes.yaxis.datamin * 0.1) ;
+    var ymax1 = (axes.yaxis.datamax > 0 ? axes.yaxis.datamax * 1.1 : axes.yaxis.datamax + axes.yaxis.datamax * 0.1) ;
+    var ymin2 = (axes.y2axis.datamin < 0 ? axes.y2axis.datamin * 1.1 : axes.y2axis.datamin - axes.y2axis.datamin * 0.1) ;
+    var ymax2 = (axes.y2axis.datamax > 0 ? axes.y2axis.datamax * 1.1 : axes.y2axis.datamax + axes.y2axis.datamax * 0.1) ;
+
+
+    options.yaxes[0].min = Math.min(ymin1,ymin2);
+    options.yaxes[0].max = Math.max(ymax1,ymax2);
+
+    options.yaxes[1].min = options.yaxes[0].min;
+    options.yaxes[1].max = options.yaxes[0].max;
 
     plot.setupGrid();
     plot.draw();
@@ -3285,6 +3449,8 @@
     options.xaxes[0].max = null;
     options.yaxes[0].min = ymin;
     options.yaxes[0].max = ymax;
+    options.yaxes[1].min = options.yaxes[0].min;
+    options.yaxes[1].max = options.yaxes[0].max;
 
     plot.setupGrid();
     plot.draw();
@@ -3310,6 +3476,8 @@
     options.xaxes[0].max = params.local.xmax;
     options.yaxes[0].min = axes.yaxis.min;
     options.yaxes[0].max = axes.yaxis.max;
+    options.yaxes[1].min = options.yaxes[0].min;
+    options.yaxes[1].max = options.yaxes[0].max;
 
     plot.setupGrid();
     plot.draw();
@@ -6065,6 +6233,107 @@
             </div>
           </div>
         </div>
+
+
+
+                <!-- Streaming controls ---------------------------------------------------->
+                <div class="panel panel-default">
+                  <div class="panel-heading">
+                    <h4 class="panel-title">
+                      <a data-toggle="collapse" href="#streaming-module">
+                        Streaming
+                      </a>
+                    </h4>
+                  </div>
+                  <div id="streaming-module" class="panel-collapse collapse">
+                    <div class="panel-body">
+                      <div class="row" >
+
+                          <!-- IP Addres ---------------------------------------------------->
+                          <div class="panel-group col-xs-12 col-sm-12 col-md-12">
+                            <form class="form-horizontal" role="form" onsubmit="return false;">
+                              <div class="form-group">
+                                <!--label for="lock_stream_ip" class="col-xs-4 control-label">IP:</label-->
+                                <button id="lock_stream_ip_label" class="col-xs-4 btn btn-sm btn-default" data-checked="true">IP: </button>
+                                <div class="col-xs-4 col-sm-8">
+                                  <input autocomplete="off" class="form-control" id="lock_stream_ip">
+                                  <span style="display: none;" class="input-group-btn" id="lock_stream_ip_apply">
+                                    <button type="button" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-ok-circle"></span></button>
+                                  </span>
+                                </div>
+                              </div>
+                            </form>
+                          </div>
+
+                          <!-- PORT  ---------------------------------------------------->
+                          <div class="panel-group col-xs-12 col-sm-12 col-md-12">
+                            <form class="form-horizontal" role="form" onsubmit="return false;">
+                              <div class="form-group">
+                                <label for="lock_stream_port" class="col-xs-4 control-label">Port:</label>
+                                <div class="col-xs-4 col-sm-8">
+                                  <input type="number" autocomplete="off" class="form-control" value="6000" id="lock_stream_port" step="1" min="0" max="4294967295">
+                                  <span style="display: none;" class="input-group-btn" id="lock_stream_port_apply">
+                                    <button type="button" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-ok-circle"></span></button>
+                                  </span>
+                                </div>
+                              </div>
+                            </form>
+                          </div>
+
+                          <!-- RATE  ---------------------------------------------------->
+
+                          <div class="panel-group col-xs-12 col-sm-12 col-md-12">
+                          <form class="form-horizontal" role="form" onsubmit="return false;">
+                            <div class="form-group">
+                              <label for="lock_stream_rate" class="col-xs-4 control-label">Streaming Rate:</label>
+                              <div class="col-xs-8">
+                                <select id="lock_stream_rate" class="form-control">
+                                  <option  value="64">1.95 MS/s</option>
+                                  <option  value="128" selected="selected">0.98 MS/s</option>
+                                  <option  value="256">488 kS/s</option>
+                                  <option  value="512">244 kS/s</option>
+                                  <option  value="1024">122 kS/s</option>
+                                  <option  value="8192">15 kS/s</option>
+                                  <option  value="65536">1.9 kS/s</option>
+                                </select>
+                              </div>
+                            </div>
+                          </form>
+                        </div>
+
+                        <div class="panel-group col-xs-12">
+                            <form class="form-horizontal" role="form" onsubmit="return false;">
+                                <div class="form-group text-center">
+                                    <button id="stream_connect" class="btn btn-default btn-lg" data-checked="true" disabled>Prepare Streaming</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="panel-group col-xs-12">
+                            <form class="form-horizontal" role="form" onsubmit="return false;">
+                                <div class="form-group text-center">
+                                    <button id="lock_stream_cmd" class="btn btn-primary btn-lg" data-checked="true" disabled>lock_stream_cmd</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="panel-group col-xs-12 col-sm-12 col-md-12">
+                          <h3><span class="label label-info" style="display:block;" id="disp_stream_status">Status</span></h3>
+                        </div>
+
+
+                      </div>
+                    </div>
+                  </div> <!-- Streaming collapse end -->
+                </div>
+
+
+
+
+
+
+
+
 
         <!-- END left panel -->
       </div>

@@ -96,7 +96,10 @@ module red_pitaya_scope #(
 );
 
 reg             adc_arm_do   ;
-reg             adc_rst_do   ;
+wire            adc_rst_do   ;
+reg             adc_rst_do2   ;
+
+assign adc_rst_do = adc_rst_do2 ;//| osc_ctrl_i[17] ;
 
 //---------------------------------------------------------------------------------
 //  Input filtering
@@ -159,10 +162,15 @@ reg  [ 14-1: 0] adc_a_dat     ;
 reg  [ 14-1: 0] adc_b_dat     ;
 reg  [ 40-1: 0] adc_a_sum     ;
 reg  [ 40-1: 0] adc_b_sum     ;
-reg  [ 20-1: 0] set_dec       ;
+wire [ 20-1: 0] set_dec       ;
+reg  [ 20-1: 0] set_dec_r     ;
 reg  [ 20-1: 0] adc_dec_cnt   ;
 reg             set_avg_en    ;
 reg             adc_dv        ;
+
+
+assign set_dec =  osc_ctrl_i[2] ?  {3'b0,osc_ctrl_i[17-1:3]}   :  set_dec_r ;
+
 
 always @(posedge adc_clk_i)
 if (adc_rstn_i == 1'b0) begin
@@ -188,6 +196,9 @@ end else begin
       20'h1     : begin adc_a_dat <= adc_a_sum[15+0 :  0];      adc_b_dat <= adc_b_sum[15+0 :  0];  end
       20'h8     : begin adc_a_dat <= adc_a_sum[15+3 :  3];      adc_b_dat <= adc_b_sum[15+3 :  3];  end
       20'h40    : begin adc_a_dat <= adc_a_sum[15+6 :  6];      adc_b_dat <= adc_b_sum[15+6 :  6];  end
+      20'h80    : begin adc_a_dat <= adc_a_sum[15+7 :  7];      adc_b_dat <= adc_b_sum[15+7 :  7];  end
+      20'h100   : begin adc_a_dat <= adc_a_sum[15+8 :  8];      adc_b_dat <= adc_b_sum[15+8 :  8];  end
+      20'h200   : begin adc_a_dat <= adc_a_sum[15+9 :  9];      adc_b_dat <= adc_b_sum[15+9 :  9];  end
       20'h400   : begin adc_a_dat <= adc_a_sum[15+10: 10];      adc_b_dat <= adc_b_sum[15+10: 10];  end
       20'h2000  : begin adc_a_dat <= adc_a_sum[15+13: 13];      adc_b_dat <= adc_b_sum[15+13: 13];  end
       20'h10000 : begin adc_a_dat <= adc_a_sum[15+16: 16];      adc_b_dat <= adc_b_sum[15+16: 16];  end
@@ -529,13 +540,13 @@ wire              asg_trig_n       ;
 always @(posedge adc_clk_i)
 if (adc_rstn_i == 1'b0) begin
    adc_arm_do    <= 1'b0 ;
-   adc_rst_do    <= 1'b0 ;
+   adc_rst_do2   <= 1'b0 ;
    adc_trig_sw   <= 1'b0 ;
    set_trig_src  <= 4'h0 ;
    adc_trig      <= 1'b0 ;
 end else begin
    adc_arm_do  <= sys_wen && (sys_addr[19:0]==20'h0) && sys_wdata[0] ; // SW ARM
-   adc_rst_do  <= sys_wen && (sys_addr[19:0]==20'h0) && sys_wdata[1] ;
+   adc_rst_do2 <= sys_wen && (sys_addr[19:0]==20'h0) && sys_wdata[1] ;
    adc_trig_sw <= sys_wen && (sys_addr[19:0]==20'h4) && (sys_wdata[3:0]==4'h1); // SW trigger
 
       if (sys_wen && (sys_addr[19:0]==20'h4))
@@ -702,7 +713,7 @@ if (adc_rstn_i == 1'b0) begin
    set_a_tresh   <=  14'd5000   ;
    set_b_tresh   <= -14'd5000   ;
    set_dly       <=  32'd0      ;
-   set_dec       <=  20'd1      ;
+   set_dec_r     <=  20'd1      ;
    set_a_hyst    <=  14'd20     ;
    set_b_hyst    <=  14'd20     ;
    set_avg_en    <=   1'b1      ;
@@ -724,7 +735,7 @@ end else begin
       if (sys_addr[19:0]==20'h08)   set_a_tresh   <= sys_wdata[14-1:0] ;
       if (sys_addr[19:0]==20'h0C)   set_b_tresh   <= sys_wdata[14-1:0] ;
       if (sys_addr[19:0]==20'h10)   set_dly       <= sys_wdata[32-1:0] ;
-      if (sys_addr[19:0]==20'h14)   set_dec       <= sys_wdata[20-1:0] ;
+      if (sys_addr[19:0]==20'h14)   set_dec_r     <= sys_wdata[20-1:0] ;
       if (sys_addr[19:0]==20'h20)   set_a_hyst    <= sys_wdata[14-1:0] ;
       if (sys_addr[19:0]==20'h24)   set_b_hyst    <= sys_wdata[14-1:0] ;
       if (sys_addr[19:0]==20'h28)   set_avg_en    <= sys_wdata[     0] ;
@@ -773,7 +784,7 @@ end else begin
      20'h00008 : begin sys_ack <= sys_en;          sys_rdata <= {{32-14{1'b0}}, set_a_tresh}        ; end
      20'h0000C : begin sys_ack <= sys_en;          sys_rdata <= {{32-14{1'b0}}, set_b_tresh}        ; end
      20'h00010 : begin sys_ack <= sys_en;          sys_rdata <= {               set_dly}            ; end
-     20'h00014 : begin sys_ack <= sys_en;          sys_rdata <= {{32-20{1'b0}}, set_dec}            ; end
+     20'h00014 : begin sys_ack <= sys_en;          sys_rdata <= {{32-20{1'b0}}, set_dec_r}            ; end
 
      20'h00018 : begin sys_ack <= sys_en;          sys_rdata <= {{32-RSZ{1'b0}}, adc_wp_cur}        ; end
      20'h0001C : begin sys_ack <= sys_en;          sys_rdata <= {{32-RSZ{1'b0}}, adc_wp_trig}       ; end

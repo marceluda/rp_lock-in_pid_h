@@ -298,6 +298,12 @@ grp='mix'
 f.add( name="aux_A"              , group=grp , val=    0, rw=True ,  nbits=14, min_val=      -8192, max_val=       8191, fpga_update=True , signed=True , desc="auxiliar value of 14 bits" )
 f.add( name="aux_B"              , group=grp , val=    0, rw=True ,  nbits=14, min_val=      -8192, max_val=       8191, fpga_update=True , signed=True , desc="auxiliar value of 14 bits" )
 
+grp='streaming'
+f.add( name="stream_ip"          , group=grp , val=    0, rw=True,  nbits=32, min_val= 0   , max_val=  4294967295, fpga_update=True , signed=False , desc="Client IP for streaming" )
+f.add( name="stream_port"        , group=grp , val= 6000, rw=True,  nbits=32, min_val= 0   , max_val=  4294967295, fpga_update=True , signed=False , desc="Client TCP port for streaming" )
+f.add( name="stream_rate"        , group=grp , val=  128, rw=True,  nbits=14, min_val= 0   , max_val=     8192   , fpga_update=True , signed=False , desc="Streaming rate config" )
+f.add( name="stream_cmd"         , group=grp , val=    0, rw=True,  nbits=32, min_val= 0   , max_val=  4294967295, fpga_update=True , signed=False , desc="Streaming commands" )
+
 
 # Dont erase   #####
 #for r in f:
@@ -883,6 +889,11 @@ m.add( name="lock_ctrl_B"        , fpga_reg="ctrl_B"        , val=0    , rw=Fals
 m.add( name="lock_aux_A"         , fpga_reg="aux_A"         , val=0    , rw=True , nbits=14, min_val=-8192     , max_val=8191      , fpga_update=True , signed=True , group="mix"            , desc="auxiliar value of 14 bits")
 m.add( name="lock_aux_B"         , fpga_reg="aux_B"         , val=0    , rw=True , nbits=14, min_val=-8192     , max_val=8191      , fpga_update=True , signed=True , group="mix"            , desc="auxiliar value of 14 bits")
 
+grp='streaming'
+m.add( name="lock_stream_ip"     , fpga_reg="stream_ip"     , val=0    , rw=True, nbits=32, min_val=0          , max_val=4294967295, fpga_update=True, signed=False, group="streaming", desc="Client IP for streaming")
+m.add( name="lock_stream_port"   , fpga_reg="stream_port"   , val=6000 , rw=True, nbits=32, min_val=0          , max_val=4294967295, fpga_update=True, signed=False, group="streaming", desc="Client TCP port for streaming")
+m.add( name="lock_stream_rate"   , fpga_reg="stream_rate"   , val=128  , rw=True, nbits=14, min_val=0          , max_val=      8192, fpga_update=True, signed=False, group="streaming", desc="Streaming rate config")
+m.add( name="lock_stream_cmd"    , fpga_reg="stream_cmd"    , val=0    , rw=True, nbits=32, min_val=0          , max_val=4294967295, fpga_update=True, signed=False, group="streaming", desc="Streaming commands")
 
 
 
@@ -1393,6 +1404,14 @@ h['lock_gen_mod_phase'            ].type = 'number'
 h['lock_gen_mod_hp'               ].type = 'number'
 
 
+h['lock_stream_ip'                ].type = 'text'
+h['lock_stream_port'              ].type = 'number'
+h['lock_stream_rate'              ].type = 'select'
+# h['lock_stream_connect'                ].type = 'button'
+h['lock_stream_cmd'                    ].type = 'button'
+
+
+
 h['lock_ramp_step'                ].type = 'number'
 h['lock_ramp_low_lim'             ].type = 'number'
 h['lock_ramp_hig_lim'             ].type = 'number'
@@ -1534,6 +1553,32 @@ class input_number():
     def regexend(self):
         return '.*'
 
+
+class input_text():
+    def __init__(self,idd,val=0,minv=0, maxv=8192,step=1):
+        if type(idd)==str:
+            self.id      = idd
+            self.val     = val
+            self.min     = minv
+            self.max     = maxv
+            self.step    = step
+        elif type(idd)==html_register:
+            self.id      = idd.name
+            self.val     = idd.val
+            self.min     = idd.min
+            self.max     = idd.max
+            self.step    = 1
+    def out(self,indent=1):
+        txt=txt_buff(n=indent,tab=2)
+        txt.add('<input autocomplete="off" class="form-control" id="{:s}">'.format( self.id )  )
+        return txt.out()
+    def regex(self):
+        return '[ ]*<input.*id=[\'"]+'+self.id+'[\'"]+[^>]*>.*'
+    def regexend(self):
+        return '.*'
+
+
+
 class input_checkbox():
     def __init__(self,idd,val=0,text=''):
         if type(idd)==str:
@@ -1605,6 +1650,10 @@ for i in [ y.name for y in filter( lambda x: x.type=='number' , h) ]:
 # load controls for checkbox inputs
 for i in [ y.name for y in filter( lambda x: x.type=='checkbox' , h) ]:
     h[i].control = input_checkbox(idd=h[i])
+
+# load controls for text inputs
+for i in [ y.name for y in filter( lambda x: x.type=='text' , h) ]:
+    h[i].control = input_text(idd=h[i])
 
 
 # -------------------------------------------------------------------------------------------------------------

@@ -172,6 +172,10 @@ void reset_locks(void)
         g_lock_reg->ctrl_B               =      0;
         g_lock_reg->aux_A                =      0;
         g_lock_reg->aux_B                =      0;
+        g_lock_reg->stream_ip            =      0;
+        g_lock_reg->stream_port          =   6000;
+        g_lock_reg->stream_rate          =    128;
+        g_lock_reg->stream_cmd           =      0;
     }
 }
 // [FPGARESET DOCK END]

@@ -49,7 +49,7 @@ typedef struct rp_osc_meas_res_s {
 /* Parameters indexes - these defines should be in the same order as
  * rp_app_params_t structure defined in main.c */
 //define PARAMS_NUM        81
-#define PARAMS_NUM        204
+#define PARAMS_NUM        208
 #define MIN_GUI_PARAM     0
 #define MAX_GUI_PARAM     1
 #define TRIG_MODE_PARAM   2
@@ -248,17 +248,21 @@ typedef struct rp_osc_meas_res_s {
 #define LOCK_CTRL_B                     190
 #define LOCK_AUX_A                      191
 #define LOCK_AUX_B                      192
-#define LOCK_CTRL_AUX_LOCK_NOW          193
-#define LOCK_CTRL_AUX_LAUNCH_LOCK_TRIG  194
-#define LOCK_CTRL_AUX_PIDB_ENABLE_CTRL  195
-#define LOCK_CTRL_AUX_PIDA_ENABLE_CTRL  196
-#define LOCK_CTRL_AUX_RAMP_ENABLE_CTRL  197
-#define LOCK_CTRL_AUX_SET_PIDB_ENABLE   198
-#define LOCK_CTRL_AUX_SET_PIDA_ENABLE   199
-#define LOCK_CTRL_AUX_SET_RAMP_ENABLE   200
-#define LOCK_CTRL_AUX_TRIG_TYPE         201
-#define LOCK_CTRL_AUX_LOCK_TRIG_RISE    202
-#define LOCK_MOD_HARMONIC_ON            203
+#define LOCK_STREAM_IP                  193
+#define LOCK_STREAM_PORT                194
+#define LOCK_STREAM_RATE                195
+#define LOCK_STREAM_CMD                 196
+#define LOCK_CTRL_AUX_LOCK_NOW          197
+#define LOCK_CTRL_AUX_LAUNCH_LOCK_TRIG  198
+#define LOCK_CTRL_AUX_PIDB_ENABLE_CTRL  199
+#define LOCK_CTRL_AUX_PIDA_ENABLE_CTRL  200
+#define LOCK_CTRL_AUX_RAMP_ENABLE_CTRL  201
+#define LOCK_CTRL_AUX_SET_PIDB_ENABLE   202
+#define LOCK_CTRL_AUX_SET_PIDA_ENABLE   203
+#define LOCK_CTRL_AUX_SET_RAMP_ENABLE   204
+#define LOCK_CTRL_AUX_TRIG_TYPE         205
+#define LOCK_CTRL_AUX_LOCK_TRIG_RISE    206
+#define LOCK_MOD_HARMONIC_ON            207
 
 // [MAINDEFH DOCK END]
 

@@ -714,27 +714,25 @@ int rp_osc_decimate(float **cha_signal, int *in_cha_signal,
             in_idx = in_idx % OSC_FPGA_SIG_LEN;
 
         if( rp_osc_params[LOCK_OSC_RAW_MODE].value>0 ){
-            cha_s[out_idx] = osc_fpga_cnv_cnt_to_v(in_cha_signal[in_idx], (float)(1<<(c_osc_fpga_adc_bits-1)) , 0, 0);
-            chb_s[out_idx] = osc_fpga_cnv_cnt_to_v(in_chb_signal[in_idx], (float)(1<<(c_osc_fpga_adc_bits-1)) , 0, 0);
-            //cha_s[out_idx] = in_cha_signal[in_idx];
-            //chb_s[out_idx] = in_chb_signal[in_idx];
+            cha_tmp = osc_fpga_cnv_cnt_to_v(in_cha_signal[in_idx], (float)(1<<(c_osc_fpga_adc_bits-1)) , 0, 0);
+            chb_tmp = osc_fpga_cnv_cnt_to_v(in_chb_signal[in_idx], (float)(1<<(c_osc_fpga_adc_bits-1)) , 0, 0);
         } else {
             cha_tmp = osc_fpga_cnv_cnt_to_v(in_cha_signal[in_idx], ch1_max_adc_v,
                                        fe_ch1_dc_offs,
                                        ch1_user_dc_off);
-
             chb_tmp = osc_fpga_cnv_cnt_to_v(in_chb_signal[in_idx], ch2_max_adc_v,
                                                fe_ch2_dc_offs,
                                                ch2_user_dc_off);
-            // check mode
-            if( rp_osc_params[LOCK_OSC_LOCKIN_MODE].value>0 ){
-                cha_s[out_idx] = sqrt(cha_tmp*cha_tmp + chb_tmp*chb_tmp) ;
-                chb_s[out_idx] = atan2( chb_tmp , cha_tmp ) ;
-            } else {
-                cha_s[out_idx] = cha_tmp ;
-                chb_s[out_idx] = chb_tmp ;
-            }
         }
+        // check mode
+        if( rp_osc_params[LOCK_OSC_LOCKIN_MODE].value>0 ){
+            cha_s[out_idx] = sqrt(cha_tmp*cha_tmp + chb_tmp*chb_tmp) ;
+            chb_s[out_idx] =  rp_osc_params[LOCK_OSC_RAW_MODE].value ? atan2( chb_tmp , cha_tmp )*(1800/3.1415926535897) : atan2( chb_tmp , cha_tmp ) ;
+        } else {
+            cha_s[out_idx] = cha_tmp ;
+            chb_s[out_idx] = chb_tmp ;
+        }
+
 
         //-------
         /* DISABLED
@@ -1156,7 +1154,7 @@ int rp_osc_auto_set(rp_app_params_t *orig_params,
         TRACE("WORKER LOLO trig_level_v: %f\n", trig_level_v);
 
         /* Loop over time ranges and search for the best suiting one (Last range removed: too slow) */
-        for(time_range = 0; time_range < 5; time_range++) {
+        for(time_range = 0; time_range < 6; time_range++) {
             float period = 0;
             int trig_source = osc_fpga_cnv_trig_source(0, trig_src_ch, 0);
             int *sig_data;
@@ -1212,7 +1210,7 @@ int rp_osc_auto_set(rp_app_params_t *orig_params,
             TRACE("AUTO: period = %.6f\n", period);
 
             /* We have a winner - calculate the new parameters */
-            if ((period > 0) || (time_range >= 4))
+            if ((period > 0) || (time_range >= 5))
             {
                 int ave_y, amp_y;
                 int time_unit = 2;
@@ -1222,7 +1220,7 @@ int rp_osc_auto_set(rp_app_params_t *orig_params,
                 if((time_range == 0) || (time_range == 1)) {
                     time_unit     = 0;
                     t_unit_factor = 1e6;
-                } else if((time_range == 2) || (time_range == 3)) {
+                } else if((time_range == 2) || (time_range == 3) || (time_range == 4)) {
                     time_unit     = 1;
                     t_unit_factor = 1e3;
                 }

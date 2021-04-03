@@ -788,6 +788,35 @@ typedef struct lock_reg_t {
       */
     int32_t  aux_B;
     
+    /** @brief Offset 20'h0017C - stream_ip
+      *  Client IP for streaming
+      *
+      *  bits [31: 0] - Data
+      */
+    uint32_t stream_ip;
+    
+    /** @brief Offset 20'h00180 - stream_port
+      *  Client TCP port for streaming
+      *
+      *  bits [31: 0] - Data
+      */
+    uint32_t stream_port;
+    
+    /** @brief Offset 20'h00184 - stream_rate
+      *  Streaming rate config
+      *
+      *  bits [31:14] - Reserved
+      *  bits [13: 0] - Data
+      */
+    uint32_t stream_rate;
+    
+    /** @brief Offset 20'h00188 - stream_cmd
+      *  Streaming commands
+      *
+      *  bits [31: 0] - Data
+      */
+    uint32_t stream_cmd;
+    
 
 } lock_reg_t;
 // [FPGAREG DOCK END]
