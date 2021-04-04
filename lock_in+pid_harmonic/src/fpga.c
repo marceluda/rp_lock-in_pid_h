@@ -460,6 +460,21 @@ int osc_fpga_cnv_trig_source(int trig_imm, int trig_source, int trig_edge)
  * @retval    -1                failure, indicating invalid arguments are specified
  * @retval     1,8,64,1K,8K,64K decimation factor
  */
+
+// new Dec values:
+// 0,3,6,7,8,9,10,13,16,19
+//  index  Dec  xVal
+// [(0, 0, 1),
+//  (1, 3, 8),
+//  (2, 6, 64),
+//  (3, 7, 128),
+//  (4, 8, 256),
+//  (5, 9, 512),
+//  (6, 10, 1024),
+//  (7, 13, 8192),
+//  (8, 16, 65536),
+//  (9, 19, 524288)]
+
 int osc_fpga_cnv_time_range_to_dec(int time_range)
 {
     /* Input: 0, 1, 2, 3, 4, 5 translates to:
@@ -478,15 +493,21 @@ int osc_fpga_cnv_time_range_to_dec(int time_range)
         return 128;
         break;
     case 4:
-        return 1024;
+        return 256;
         break;
     case 5:
-        return 8*1024;
+        return 512;
         break;
     case 6:
-        return 64*1024;
+        return 1024;
         break;
     case 7:
+        return 8*1024;
+        break;
+    case 8:
+        return 64*1024;
+        break;
+    case 9:
         return 512*1024;
         break;
     default:

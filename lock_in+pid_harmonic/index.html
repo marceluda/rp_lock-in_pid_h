@@ -16,7 +16,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Harmonic lock-in+PID (v0.3.6)</title>
+  <title>Harmonic lock-in+PID (v0.3.7)</title>
   <link href="../assets/bootstrap-3.0.0/css/bootstrap.css" rel="stylesheet" type="text/css">
   <link href="../assets/style.css?6" rel="stylesheet" type="text/css">
   <script src="../assets/bootstrap-3.0.0/js/jquery.js"></script>
@@ -63,7 +63,9 @@
   var xmax = 1000000;
 
   //var time_range_max = [130, 1000, 8, 130, 1, 8, 64];
-  var time_range_max = [130, 1000, 8, 16,  33,  67, 130,  1, 8 , 64 ];
+  // units:  0us 1ms 2s : 0,    0, 1,  1,   1,   1,   1,  2,  2,  2
+  // index                0     1  2   3    4    5    6   7   8   9
+  var time_range_max = [130, 1000, 8, 16,  33,  67, 130,  1,  8, 64 ];
   var range_steps = [0.5, 1, 2, 5, 10, 20, 50, 100];
 
 
@@ -2216,7 +2218,7 @@
         //var stream_rate      = params.local.lock_stream_rate ;
         $('#disp_stream_status' ).html( 'Δt: '+8*params.local.lock_stream_rate + ' ns' );
     }
-    
+
 
     var scl = 1/2047/8191;
     if(set_raw) scl = 1/2048;
@@ -4243,7 +4245,7 @@
     <div class="container">
       <a id="btn_exit" class="pull-left" href="/index.html"><span class="glyphicon glyphicon-chevron-left" title="Exit" alt="Exit"></span></a>
       <img class="logo pull-left" src="../assets/images/logo_white.png">
-      <h2 class="page-title">Harmonic lock-in+PID (v0.3.6)</h2>
+      <h2 class="page-title">Harmonic lock-in+PID (v0.3.7)</h2>
     </div>
   </div>
   <div class="container">

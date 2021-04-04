@@ -304,7 +304,7 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     /*********************************************/
 
     // [MAINDEF DOCK]
-    
+
     { "lock_oscA_sw"                  ,      1, 1, 0,            0,           31 }, /** switch for muxer oscA **/
     { "lock_oscB_sw"                  ,      2, 1, 0,            0,           31 }, /** switch for muxer oscB **/
     { "lock_osc1_filt_off"            ,      1, 1, 0,            0,            1 }, /** oscilloscope control osc1_filt_off **/
@@ -432,7 +432,7 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { "lock_ctrl_aux_trig_type"       ,      0, 0, 0,            0,            3 }, /** todo **/
     { "lock_ctrl_aux_lock_trig_rise"  ,      0, 0, 0,            0,            1 }, /** todo **/
     { "lock_mod_harmonic_on"          ,      1, 0, 0,            0,            1 }, /** todo **/
-    
+
     // [MAINDEF DOCK END]
 
     { /* Must be last! */
@@ -615,7 +615,7 @@ int transform_acq_params(rp_app_params_t *p)
     }
 
     /* Find optimal decimation setting */
-    for (i = 0; i < 9; i++) {
+    for (i = 0; i <= 9; i++) {
         dec = osc_fpga_cnv_time_range_to_dec(i);
         if (dec >= rdec) {
             break;
@@ -934,7 +934,7 @@ int rp_set_params(rp_app_params_t *p, int len)
         if((time_range == 0) || (time_range == 1)) {
             time_unit     = 0;
             t_unit_factor = 1e6;
-        } else if((time_range == 2) || (time_range == 3)) {
+        } else if((time_range == 2) || (time_range == 3) || (time_range == 4) || (time_range == 5) || (time_range == 6)) {
             time_unit     = 1;
             t_unit_factor = 1e3;
         }

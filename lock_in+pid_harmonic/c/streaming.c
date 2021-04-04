@@ -21,7 +21,7 @@
 #define LOCK_FPGA_BASE_ADDR 0x40600000
 #define LOCK_FPGA_BASE_SIZE 0x100000
 
-#define STREAM_CMD "/opt/redpitaya/www/apps/lock_in_mtm/c/stream_tcp_osc_cmd"
+#define STREAM_CMD "/opt/redpitaya/www/apps/lock_in+pid_harmonic/c/stream_tcp_osc_cmd"
 
 #define DEBUG 1
 
@@ -52,11 +52,10 @@ int main(int argc, char **argv){
         return -1;
     }
 
-    long unsigned int *stream_ip       = lock_ptr + 212   ;
-    long unsigned int *stream_port     = lock_ptr + 216   ;
-    long unsigned int *stream_rate     = lock_ptr + 220   ;
-    long unsigned int *stream_status   = lock_ptr + 224   ;
-    long unsigned int *stream_cmd      = lock_ptr + 228   ;
+    long unsigned int *stream_ip       = lock_ptr + 380   ;
+    long unsigned int *stream_port     = lock_ptr + 384   ;
+    long unsigned int *stream_rate     = lock_ptr + 388   ;
+    long unsigned int *stream_cmd      = lock_ptr + 392   ;
     //long unsigned int *stream_connect  = lock_ptr + 232   ;
 
     // Print FPGA reg values
@@ -64,7 +63,6 @@ int main(int argc, char **argv){
         fprintf(stderr, "[+] stream_ip     : %lu\n", *stream_ip );
         fprintf(stderr, "[+] stream_port   : %lu\n", *stream_port );
         fprintf(stderr, "[+] stream_rate   : %lu\n", *stream_rate );
-        fprintf(stderr, "[+] stream_status : %lu\n", *stream_status );
         fprintf(stderr, "[+] stream_cmd    : %lu\n", *stream_cmd );
         //fprintf(stderr, "[+] stream_connect: %lu\n", *stream_connect );
     #endif

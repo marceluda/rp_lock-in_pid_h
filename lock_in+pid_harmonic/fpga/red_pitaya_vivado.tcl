@@ -100,6 +100,7 @@ read_verilog                      $path_rtl/lock/lock_pid_block.v
 read_verilog                      $path_rtl/lock/slope9.v
 read_verilog                      $path_rtl/lock/sat14.v
 read_verilog                      $path_rtl/lock/satprotect.v
+read_verilog                      $path_rtl/lock/satprotect2.v
 #read_verilog                      $path_rtl/lock/UniversalCounter.v
 read_verilog                      $path_rtl/lock/debounce.v
 read_verilog                      $path_rtl/lock/trigger_input.v

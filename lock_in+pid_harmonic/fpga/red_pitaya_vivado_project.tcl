@@ -81,6 +81,7 @@ add_files                      $path_rtl/lock/lock_pid_block.v
 add_files                      $path_rtl/lock/slope9.v
 add_files                      $path_rtl/lock/sat14.v
 add_files                      $path_rtl/lock/satprotect.v
+add_files                      $path_rtl/lock/satprotect2.v
 #add_files                      $path_rtl/lock/UniversalCounter.v
 add_files                      $path_rtl/lock/trigger_input.v
 add_files                      $path_rtl/lock/jump_control.v
