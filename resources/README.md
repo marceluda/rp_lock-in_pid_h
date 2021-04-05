@@ -249,3 +249,5 @@ print( rp.lock.aux_A )
 rp.lock.aux_A= 5
 
 ```
+
+NOTE: To make oscilloscope acquisition, first stop the acquisition on the Web App by a single acquisition measurement.
