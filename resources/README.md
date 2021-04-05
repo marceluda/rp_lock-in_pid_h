@@ -203,7 +203,7 @@ Also, you can access registers information through this files:
 # Load rp APP
 from control_finn import RedPitayaApp
 rp = RedPitayaApp('http://rp-f00a3b.local/lock_in+pid_harmonic/?type=run')
-
+# The URI can be just a copy&paste of the browser URI
 
 # Configure acquisition
 
