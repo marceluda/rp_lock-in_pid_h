@@ -43,19 +43,28 @@ make all
 ```
 
   3. On the Web App, unroll the Streaming panel
+
   4. Configure the server IP and port. To load the IP of the computer where you run the browser, just click on the IP button. The port for the included server is 6000
+
   5. Choose streaming rate. 0.98 MS/sec is the fastest streaming for continuous data, but continuity may be broken for the first half second.
+
   6. Click "Prepare Streaming"
+
   7. THIS IS IMPORTANT: Stop the Web App acquisition. To do this, make a Single acquisition of the oscilloscope. The reason: Only the C program must read the channels buffer. If the web App isn't stopped, it will interfere and ruin your streaming data.
+
   8. Click the "Start" button to start sending data.
+
   9. When you want to stop, click the "Start" button.
 
 
 If you want, you can make streaming from the RedPitaya Shell command line. To do this:
 
   1. Choose the streaming channels (for example, using the Web App)
+
   2. Choose the streaming rate.
+
   3. Stop the Web App acquisition.
+
   4. Login to RedPitaya shell and run the streaming command
 
 ```bash

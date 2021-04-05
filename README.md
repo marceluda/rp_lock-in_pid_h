@@ -8,15 +8,15 @@ This started being a striped version of [lock-in+PID](https://github.com/marcelu
 
 ## Features
 
-  - Lock-in amplifier
-    - in-phase and quadrature Demodulation
-    - Demodulation for arbitrary phase
-    - Demodulatión for double and triple frequency
-  - Two PID filters, for loop back stabilization
-  - Ramp/Scan controller for response analysis
-  - Lock control for automatic scan-stop / PID start
-  - Streaming system for continued acquisition of two channels
-  - Remote control through HTTP API
+- Lock-in amplifier
+- in-phase and quadrature Demodulation
+  - Demodulation for arbitrary phase
+  - Demodulatión for double and triple frequency
+- Two PID filters, for loop back stabilization
+- Ramp/Scan controller for response analysis
+- Lock control for automatic scan-stop / PID start
+- Streaming system for continued acquisition of two channels
+- Remote control through HTTP API
  
 
 ## Lock-in and PID application for RedPitaya environment
