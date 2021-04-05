@@ -70,33 +70,28 @@ target/$(APP): red_pitaya.bit $(CONTROLLERHF) index.html
 	sed -i target/$(APP)/index.html -e "s/\(\\s*\)var\\s*app_version\\s*=\\s*'VERSION'\\s*;\\s*/\\1var app_version = '$(VER)-$(BUILD_NUMBER)-$(REVISION)';/"
 
 
-zip: $(CONTROLLERHF) target/$(APP) target_dbg/$(APP)_DEBUG target_rld/$(APP)_RELOAD
-	#-$(RM) target -rf
+zip: $(CONTROLLERHF) target/$(APP)
+	mkdir -p ../archive
 	cd target; zip -r $(INSTALL_DIR)/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).zip *
 	mv target/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).zip ../archive/.
 
-tar: $(CONTROLLERHF) target/$(APP) target_dbg/$(APP)_DEBUG target_rld/$(APP)_RELOAD
+tar: $(CONTROLLERHF) target/$(APP)
+	mkdir -p ../archive
 	cd target; tar -czf $(INSTALL_DIR)/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).tar.gz *
 	mv target/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).tar.gz ../archive/.
 
 clean_target:
 	-$(RM) target -rf
-	-$(RM) target_dbg -rf
-	-$(RM) target_rld -rf
 
 clean_app:
 	$(MAKE) -C src clean
 	-$(RM) target -rf
-	-$(RM) target_dbg -rf
-	-$(RM) target_rld -rf
 	-$(RM) *.so
 	echo "BUILD_NUMBER=$$(( $(BUILD_NUMBER) + 1 ))" > ../_build_number
 
 clean_fpga:
 	$(MAKE) -C fpga clean
 	-$(RM) target -rf
-	-$(RM) target_dbg -rf
-	-$(RM) target_rld -rf
 	rm red_pitaya.bit
 	echo "BUILD_NUMBER=$$(( $BUILD_NUMBER + 1 ))" > ../_build_number
 

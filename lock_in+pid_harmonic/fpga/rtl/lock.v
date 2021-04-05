@@ -758,8 +758,10 @@ module lock(
 
 
     //wire signed [37-1:0] Xo_37,Yo_37,F1o_37,F2o_37,F3o_37;
-    wire signed [47-1:0] Xo_47,Yo_47;
-    wire signed [37-1:0] F1o_37,F2o_37,F3o_37;
+    // wire signed [47-1:0] Xo_47,Yo_47;
+    wire signed [53-1:0] Xo_53,Yo_53;
+    //wire signed [37-1:0] F1o_37,F2o_37,F3o_37;
+    wire signed [43-1:0] F1o_43,F2o_43,F3o_43;
 
     //wire signed [28-1:0] Xo_28,Yo_28,F1o_28,F2o_28,F3o_28;
     wire signed [38-1:0] Xo_38,Yo_38;
@@ -773,22 +775,27 @@ module lock(
 
 
 
-    assign Xo_47    = ( cos_ref_lpf2   <<< sg_amp0  );
-    assign Yo_47    = ( sin_ref_lpf2   <<< sg_amp0  );
-    assign F1o_37   = ( F1_28  <<< sg_amp1  );
-    assign F2o_37   = ( F2_28  <<< sg_amp2  );
-    assign F3o_37   = ( F3_28  <<< sg_amp3  );
+    assign Xo_53    = ( cos_ref_lpf2   <<< sg_amp0  );
+    assign Yo_53    = ( sin_ref_lpf2   <<< sg_amp0  );
+    assign F1o_47   = ( F1_28  <<< sg_amp1  );
+    assign F2o_47   = ( F2_28  <<< sg_amp2  );
+    assign F3o_47   = ( F3_28  <<< sg_amp3  );
 
 
 
 
-    satprotect #(.Ri(47),.Ro(38),.SAT(38)) i_satprotect_Xo_47   ( .in( Xo_47  ), .out( Xo_38  ) );
-    satprotect #(.Ri(47),.Ro(38),.SAT(38)) i_satprotect_Yo_47   ( .in( Yo_47  ), .out( Yo_38  ) );
-    satprotect #(.Ri(37),.Ro(28),.SAT(28)) i_satprotect_F1o_37  ( .in( F1o_37 ), .out( F1o_28 ) );
-    satprotect #(.Ri(37),.Ro(28),.SAT(28)) i_satprotect_F2o_37  ( .in( F2o_37 ), .out( F2o_28 ) );
-    satprotect #(.Ri(37),.Ro(28),.SAT(28)) i_satprotect_F3o_37  ( .in( F3o_37 ), .out( F3o_28 ) );
+    // satprotect #(.Ri(47),.Ro(38),.SAT(38)) i_satprotect_Xo_47   ( .in( Xo_47  ), .out( Xo_38  ) );
+    // satprotect #(.Ri(47),.Ro(38),.SAT(38)) i_satprotect_Yo_47   ( .in( Yo_47  ), .out( Yo_38  ) );
+    // satprotect #(.Ri(37),.Ro(28),.SAT(28)) i_satprotect_F1o_37  ( .in( F1o_37 ), .out( F1o_28 ) );
+    // satprotect #(.Ri(37),.Ro(28),.SAT(28)) i_satprotect_F2o_37  ( .in( F2o_37 ), .out( F2o_28 ) );
+    // satprotect #(.Ri(37),.Ro(28),.SAT(28)) i_satprotect_F3o_37  ( .in( F3o_37 ), .out( F3o_28 ) );
 
 
+    satprotect2 #(.Ri(53),.Ro(38)) i_satprotect_Xo_53   ( .in( Xo_53  ), .out( Xo_38  ) );
+    satprotect2 #(.Ri(53),.Ro(38)) i_satprotect_Yo_53   ( .in( Yo_53  ), .out( Yo_38  ) );
+    satprotect2 #(.Ri(53),.Ro(38)) i_satprotect_F1o_47  ( .in( F1o_47 ), .out( F1o_28 ) );
+    satprotect2 #(.Ri(53),.Ro(38)) i_satprotect_F2o_47  ( .in( F2o_47 ), .out( F2o_28 ) );
+    satprotect2 #(.Ri(53),.Ro(38)) i_satprotect_F3o_47  ( .in( F3o_47 ), .out( F3o_28 ) );
 
 
 
@@ -854,11 +861,11 @@ module lock(
     //
 
 
-    satprotect2 #(.Ri(16),.Ro(14)) i_satprotect_Xo    ( .in(  Xo_38[  38-1:21] ),    .out( Xo    ) );
-    satprotect2 #(.Ri(16),.Ro(14)) i_satprotect_Yo    ( .in(  Yo_38[  38-1:21] ),    .out( Yo    ) );
-    satprotect2 #(.Ri(16),.Ro(14)) i_satprotect_F1o   ( .in( F1o_28[  28-1:11] ),    .out( F1o   ) );
-    satprotect2 #(.Ri(16),.Ro(14)) i_satprotect_F2o   ( .in( F2o_28[  28-1:11] ),    .out( F2o   ) );
-    satprotect2 #(.Ri(16),.Ro(14)) i_satprotect_F3o   ( .in( F3o_28[  28-1:11] ),    .out( F3o   ) );
+    satprotect2 #(.Ri(17),.Ro(14)) i_satprotect_Xo    ( .in(  Xo_38[  38-1:21] ),    .out( Xo    ) );
+    satprotect2 #(.Ri(17),.Ro(14)) i_satprotect_Yo    ( .in(  Yo_38[  38-1:21] ),    .out( Yo    ) );
+    satprotect2 #(.Ri(17),.Ro(14)) i_satprotect_F1o   ( .in( F1o_28[  28-1:11] ),    .out( F1o   ) );
+    satprotect2 #(.Ri(17),.Ro(14)) i_satprotect_F2o   ( .in( F2o_28[  28-1:11] ),    .out( F2o   ) );
+    satprotect2 #(.Ri(17),.Ro(14)) i_satprotect_F3o   ( .in( F3o_28[  28-1:11] ),    .out( F3o   ) );
 
 
 
