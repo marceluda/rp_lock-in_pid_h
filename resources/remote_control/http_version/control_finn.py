@@ -12,7 +12,7 @@ Library for remote control of Lock-in+PID App on RedPitaya
 
 import requests
 import numpy as np
-from time import sleep
+from time import sleep,time
 
 
 #%% Class for lock module
