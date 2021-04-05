@@ -14,6 +14,12 @@ This folder has some useful scripts and information for Development and App adva
 
 # Streaming Service
 
+
+Demostration of streaming service:
+
+[![New iface](http://img.youtube.com/vi/wm5kjj0XrAU/0.jpg)](http://www.youtube.com/watch?v=wm5kjj0XrAU "New R-phase interphase")
+
+
 The streaming service lets you send the oscilloscope channels data to a computer in a continued stream.
 
 It works by continuously reading the channels buffer and sending the information through TCP protocol to a server that must be listening on a remote computer.
