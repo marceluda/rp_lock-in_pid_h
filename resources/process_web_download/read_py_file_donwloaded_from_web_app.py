@@ -27,6 +27,9 @@ ch1=local_vars['ch1']
 t2 =local_vars[ 't2']
 ch2=local_vars['ch2']
 
+time_units = ['us', 'ms' , 's' ]
+tu         = time_units[local_vars[ 'params']['time_units']]
+
 del global_vars
 del local_vars
 
@@ -44,7 +47,7 @@ ax1.grid(b=True)
 ax1.legend(loc=0)
 
 ax1.set_ylabel('[V]')
-ax1.set_xlabel('Tiempo [s]')
+ax1.set_xlabel(f'Tiempo [{tu}]')
 
 plt.tight_layout()
 # plt.savefig(folder+filename.replace('.py','_auto.png'))
