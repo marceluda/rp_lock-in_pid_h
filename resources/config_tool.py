@@ -1718,6 +1718,7 @@ h['lock_sf_BfrzI'        ].control.text = 'B int'
 h['lock_sf_BfrzO'        ].control.text = 'B out'
 
 
+h['lock_stream_cmd'    ].control.text = 'Start'
 
 
 

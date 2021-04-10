@@ -27,11 +27,14 @@ void write_file(int sockfd){
     struct tm tm = *localtime(&t);
     //printf("now: %d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 
-
+    char time_str[9];
     char filename[21];
 
     sprintf( filename , "%d-%02d-%02d_%02d%02d%02d.bin", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec) ;
 
+    sprintf( time_str , "%02d:%02d:%02d", tm.tm_hour, tm.tm_min, tm.tm_sec) ;
+
+    printf("[+] New incomming connection at %s\n", time_str );
 
     fp = fopen(filename, "w");
 
