@@ -34,7 +34,7 @@ void write_file(int sockfd){
 
     sprintf( time_str , "%02d:%02d:%02d", tm.tm_hour, tm.tm_min, tm.tm_sec) ;
 
-    printf("[+] New incomming connection at %s\n", time_str );
+    printf("[+] New incoming connection at %s\n", time_str );
 
     fp = fopen(filename, "w");
 
