@@ -49,12 +49,14 @@ if __name__ == "__main__":
         do_html    = True
         do_py      = True
         do_clean   = False
+        do_c       = False
     else:
         do_verilog = False
         do_main    = False
         do_html    = False
         do_py      = False
         do_clean   = False
+        do_c       = False
         if ('html'    in sys.argv[1:]) or 'all' in sys.argv[1:]:
             do_html       = True
         if ('verilog' in sys.argv[1:]) or 'all' in sys.argv[1:] or ('fpga' in sys.argv[1:]) :
