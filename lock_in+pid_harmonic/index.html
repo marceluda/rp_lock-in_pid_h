@@ -1177,9 +1177,9 @@
     // [LOLO DOCK PAGELOAD]
 
     // Number inputs
-    var input_number=['lock_lock_trig_val','lock_lock_trig_time_val','lock_rl_error_threshold','lock_rl_signal_threshold','lock_sf_jumpA', 
-                      'lock_sf_jumpB','lock_error_offset','lock_mod_out1','lock_mod_out2','lock_gen_mod_phase','lock_gen_mod_hp','lock_ramp_step', 
-                      'lock_ramp_low_lim','lock_ramp_hig_lim','lock_ramp_B_factor','lock_pidA_sp','lock_pidA_kp','lock_pidA_ki','lock_pidA_kd', 
+    var input_number=['lock_lock_trig_val','lock_lock_trig_time_val','lock_rl_error_threshold','lock_rl_signal_threshold','lock_sf_jumpA',
+                      'lock_sf_jumpB','lock_error_offset','lock_mod_out1','lock_mod_out2','lock_gen_mod_phase','lock_gen_mod_hp','lock_ramp_step',
+                      'lock_ramp_low_lim','lock_ramp_hig_lim','lock_ramp_B_factor','lock_pidA_sp','lock_pidA_kp','lock_pidA_ki','lock_pidA_kd',
                       'lock_pidB_sp','lock_pidB_kp','lock_pidB_ki','lock_pidB_kd','lock_aux_A','lock_aux_B','lock_stream_port'];
 
     for(ii in input_number){
@@ -1319,7 +1319,10 @@
             $(this).parent().removeClass('input-group');
             if(ValidateIPaddress($(this).val())) {
               params.local[iname] = IPtoInt32($(this).val()) ;
-              sendParams();
+              //sendParams();
+              $.get( "lock",  { stream_ip: params.local[iname] }).done( function( data ) {
+                console.log(data);
+              });
             }
             //else {
             //  $(this).val(params.local[iname])
@@ -1384,7 +1387,7 @@
 
     $('#lock_stream_ip_label'    ).on('click', function() {
       $.get( "get_ip", function( data ) {
-        $("#lock_stream_ip").focus().val( data ); sendParams();
+        $("#lock_stream_ip").focus().val( data ); //sendParams();
       });
     });
 
@@ -2947,7 +2950,7 @@
     $('#lock_ctrl_aux_set_pidA_enable').prop('checked', (params.original.lock_ctrl_aux_set_pidA_enable    ? true : false));
     $('#lock_ctrl_aux_set_ramp_enable').prop('checked', (params.original.lock_ctrl_aux_set_ramp_enable    ? true : false));
     $('#lock_ctrl_aux_lock_trig_rise' ).prop('checked', (params.original.lock_ctrl_aux_lock_trig_rise     ? true : false));
-    
+
     // Numbers
     $('#lock_lock_trig_val'      ).val(params.original.lock_lock_trig_val         );
     $('#lock_lock_trig_time_val' ).val(params.original.lock_lock_trig_time_val    );
@@ -2975,7 +2978,7 @@
     $('#lock_aux_A'              ).val(params.original.lock_aux_A                 );
     $('#lock_aux_B'              ).val(params.original.lock_aux_B                 );
     $('#lock_stream_port'        ).val(params.original.lock_stream_port           );
-    
+
     // Switches
     $('#lock_oscA_sw'           ).val(params.original.lock_oscA_sw              );
     $('#lock_oscB_sw'           ).val(params.original.lock_oscB_sw              );
@@ -3011,7 +3014,7 @@
     $('#lock_pidB_SAT'          ).val(params.original.lock_pidB_SAT             );
     $('#lock_stream_rate'       ).val(params.original.lock_stream_rate          );
     $('#lock_ctrl_aux_trig_type').val(params.original.lock_ctrl_aux_trig_type   );
-    
+
     // Buttons
     if (params.original.lock_osc_raw_mode){                 // lock_osc_raw_mode
       $('#lock_osc_raw_mode').removeClass('btn-default').addClass('btn-primary').data('checked',true);
@@ -3063,10 +3066,10 @@
     }else{
       $('#lock_mod_harmonic_on').removeClass('btn-primary').addClass('btn-default').data('checked',false);
     }
-    
+
     // [LOLO DOCK LOADPARAMS END]
 
-    $('#lock_stream_ip'          ).val( Int32toIP(params.original.lock_stream_ip)         );
+    //$('#lock_stream_ip'          ).val( Int32toIP(params.original.lock_stream_ip)         );
 
     lock_ramp_step_update();
     lock_modulation_update();
@@ -6256,7 +6259,7 @@
                             <form class="form-horizontal" role="form" onsubmit="return false;">
                               <div class="form-group">
                                 <!--label for="lock_stream_ip" class="col-xs-4 control-label">IP:</label-->
-                                <button id="lock_stream_ip_label" class="col-xs-4 btn btn-sm btn-default" data-checked="true">IP: </button>
+                                <button id="lock_stream_ip_label" class="col-xs-4 btn btn-sm btn-default" data-checked="true" type="button">IP: </button>
                                 <div class="col-xs-4 col-sm-8">
                                   <input autocomplete="off" class="form-control" id="lock_stream_ip">
                                   <span style="display: none;" class="input-group-btn" id="lock_stream_ip_apply">
