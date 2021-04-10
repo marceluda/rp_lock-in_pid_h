@@ -22,7 +22,8 @@
 /** Base LOCK FPGA address */
 #define LOCK_BASE_ADDR 0x40600000
 /** Base LOCK FPGA core size */
-#define LOCK_BASE_SIZE 0x190
+//#define LOCK_BASE_SIZE 0x190
+#define LOCK_BASE_SIZE 0x3000
 
 /** @brief LOCK FPGA registry structure.
  *

@@ -203,6 +203,7 @@ int lock_update(rp_app_params_t *params)
     g_lock_reg->stream_cmd                = (int)params[LOCK_STREAM_CMD               ].value;
   // [FPGAUPDATE DOCK END]
 
+  //TRACE("LOLO: stream_ip = %d \n",  (int)params[LOCK_STREAM_IP                ].value );
     return 0;
 }
 

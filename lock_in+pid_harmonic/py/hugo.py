@@ -371,6 +371,7 @@ li.add( fpga_reg(name='stream_cmd'         , index= 98, rw=True , nbits=32,signe
 
 
 
+
 #%%
 
 if __name__ == '__main__':

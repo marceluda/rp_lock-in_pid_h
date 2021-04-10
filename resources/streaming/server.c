@@ -40,14 +40,14 @@ void write_file(int sockfd){
         exit(1);
     }
 
-    int no_data;
+    long int no_data;
 
     char  sign;
 
     while (1) {
         n = recv(sockfd, buffer, SIZE, 0);
         if (n <= 0) no_data++ ;
-        if (no_data > 1000){
+        if (no_data > 100000){
             break;
             return;
         }
