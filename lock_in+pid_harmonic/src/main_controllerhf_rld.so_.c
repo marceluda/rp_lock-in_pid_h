@@ -419,7 +419,7 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { "lock_aux_B"                    ,      0, 1, 0,        -8192,         8191 }, /** auxiliar value of 14 bits **/
     { "lock_stream_ip"                ,      0, 1, 0,            0,   0xffffffff }, /** Client IP for streaming **/
     { "lock_stream_port"              ,   6000, 1, 0,            0,   0xffffffff }, /** Client TCP port for streaming **/
-    { "lock_stream_rate"              ,    128, 1, 0,            0,         8192 }, /** Streaming rate config **/
+    { "lock_stream_rate"              ,    128, 1, 0,            0,        65536 }, /** Streaming rate config **/
     { "lock_stream_cmd"               ,      0, 1, 0,            0,   0xffffffff }, /** Streaming commands **/
     { "lock_ctrl_aux_lock_now"        ,      0, 0, 0,            0,            1 }, /** todo **/
     { "lock_ctrl_aux_launch_lock_trig",      0, 0, 0,            0,            1 }, /** todo **/

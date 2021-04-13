@@ -303,7 +303,7 @@ f.add( name="aux_B"              , group=grp , val=    0, rw=True ,  nbits=14, m
 grp='streaming'
 f.add( name="stream_ip"          , group=grp , val=    0, rw=True,  nbits=32, min_val= 0   , max_val=  4294967295, fpga_update=True , signed=False , desc="Client IP for streaming" )
 f.add( name="stream_port"        , group=grp , val= 6000, rw=True,  nbits=32, min_val= 0   , max_val=  4294967295, fpga_update=True , signed=False , desc="Client TCP port for streaming" )
-f.add( name="stream_rate"        , group=grp , val=  128, rw=True,  nbits=14, min_val= 0   , max_val=     8192   , fpga_update=True , signed=False , desc="Streaming rate config" )
+f.add( name="stream_rate"        , group=grp , val=  128, rw=True,  nbits=17, min_val= 0   , max_val=       65536, fpga_update=True , signed=False , desc="Streaming rate config" )
 f.add( name="stream_cmd"         , group=grp , val=    0, rw=True,  nbits=32, min_val= 0   , max_val=  4294967295, fpga_update=True , signed=False , desc="Streaming commands" )
 
 
@@ -894,7 +894,7 @@ m.add( name="lock_aux_B"         , fpga_reg="aux_B"         , val=0    , rw=True
 grp='streaming'
 m.add( name="lock_stream_ip"     , fpga_reg="stream_ip"     , val=0    , rw=True, nbits=32, min_val=0          , max_val=4294967295, fpga_update=True, signed=False, group="streaming", desc="Client IP for streaming")
 m.add( name="lock_stream_port"   , fpga_reg="stream_port"   , val=6000 , rw=True, nbits=32, min_val=0          , max_val=4294967295, fpga_update=True, signed=False, group="streaming", desc="Client TCP port for streaming")
-m.add( name="lock_stream_rate"   , fpga_reg="stream_rate"   , val=128  , rw=True, nbits=14, min_val=0          , max_val=      8192, fpga_update=True, signed=False, group="streaming", desc="Streaming rate config")
+m.add( name="lock_stream_rate"   , fpga_reg="stream_rate"   , val=128  , rw=True, nbits=17, min_val=0          , max_val=     65536, fpga_update=True, signed=False, group="streaming", desc="Streaming rate config")
 m.add( name="lock_stream_cmd"    , fpga_reg="stream_cmd"    , val=0    , rw=True, nbits=32, min_val=0          , max_val=4294967295, fpga_update=True, signed=False, group="streaming", desc="Streaming commands")
 
 

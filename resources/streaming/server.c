@@ -33,7 +33,6 @@ void write_file(int sockfd){
     sprintf( filename , "%d-%02d-%02d_%02d%02d%02d.bin", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec) ;
 
     sprintf( time_str , "%02d:%02d:%02d", tm.tm_hour, tm.tm_min, tm.tm_sec) ;
-
     printf("[+] New incoming connection at %s\n", time_str );
 
     fp = fopen(filename, "w");
@@ -67,6 +66,11 @@ void write_file(int sockfd){
         fwrite( buffer , 1 , n, fp );
         bzero(buffer, SIZE);
     }
+
+    t  = time(NULL);
+    tm = *localtime(&t);
+    sprintf( time_str , "%02d:%02d:%02d", tm.tm_hour, tm.tm_min, tm.tm_sec) ;
+    printf("[+] Connection finished at %s\n", time_str );
 
     printf("[+] File Written: %s\n", filename );
 

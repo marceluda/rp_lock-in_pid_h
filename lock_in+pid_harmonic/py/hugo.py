@@ -340,9 +340,12 @@ li.add( fpga_reg(name='aux_A'              , index= 93, rw=True , nbits=14,signe
 li.add( fpga_reg(name='aux_B'              , index= 94, rw=True , nbits=14,signed=True ) )
 li.add( fpga_reg(name='stream_ip'          , index= 95, rw=True , nbits=32,signed=False) )
 li.add( fpga_reg(name='stream_port'        , index= 96, rw=True , nbits=32,signed=False) )
-li.add( fpga_reg(name='stream_rate'        , index= 97, rw=True , nbits=14,signed=False) )
+li.add( fpga_reg(name='stream_rate'        , index= 97, rw=True , nbits=17,signed=False) )
 li.add( fpga_reg(name='stream_cmd'         , index= 98, rw=True , nbits=32,signed=False) )
 # [REGSET DOCK END]
+
+
+
 
 
 

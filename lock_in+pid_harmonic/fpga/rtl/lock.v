@@ -59,16 +59,16 @@ module lock(
     // gen_mod --------------------------
     reg         [12-1:0] gen_mod_phase;
     reg         [14-1:0] gen_mod_hp;
-    
+
     // gen_ramp --------------------------
     reg                  ramp_reset,ramp_enable,ramp_direction,ramp_sawtooth;
     reg         [32-1:0] ramp_step;
     reg  signed [14-1:0] ramp_low_lim,ramp_hig_lim,ramp_B_factor;
     wire signed [14-1:0] ramp_A,ramp_B;
-    
+
     // inout --------------------------
     wire signed [14-1:0] oscA,oscB;
-    
+
     // lock-in --------------------------
     reg         [ 3-1:0] signal_sw,error_sw;
     reg         [ 4-1:0] sg_amp1,sg_amp2,sg_amp3;
@@ -77,7 +77,7 @@ module lock(
     reg  signed [14-1:0] error_offset,mod_out1,mod_out2;
     wire signed [14-1:0] signal_i,error;
     wire signed [32-1:0] error_mean,error_std;
-    
+
     // lock_control --------------------------
     reg         [ 3-1:0] rl_signal_sw,rl_config;
     reg         [ 4-1:0] lock_trig_sw;
@@ -88,16 +88,16 @@ module lock(
     reg  signed [14-1:0] lock_trig_val,rl_signal_threshold,sf_jumpA,sf_jumpB;
     wire        [ 5-1:0] rl_state;
     wire        [11-1:0] lock_feedback;
-    
+
     // mix --------------------------
     reg  signed [14-1:0] aux_A,aux_B;
-    
+
     // modulation --------------------------
     wire signed [14-1:0] sin_ref,cos_ref,cos_1f,cos_2f,cos_3f;
-    
+
     // outputs --------------------------
     reg         [ 4-1:0] out1_sw,out2_sw;
-    
+
     // pidA --------------------------
     reg         [ 3-1:0] pidA_PSR,pidA_DSR,pidA_ctrl;
     reg         [ 4-1:0] pidA_ISR;
@@ -105,7 +105,7 @@ module lock(
     reg         [14-1:0] pidA_SAT;
     reg  signed [14-1:0] pidA_sp,pidA_kp,pidA_ki,pidA_kd;
     wire signed [14-1:0] pidA_in,pidA_out,ctrl_A;
-    
+
     // pidB --------------------------
     reg         [ 3-1:0] pidB_PSR,pidB_DSR,pidB_ctrl;
     reg         [ 4-1:0] pidB_ISR;
@@ -113,20 +113,20 @@ module lock(
     reg         [14-1:0] pidB_SAT;
     reg  signed [14-1:0] pidB_sp,pidB_kp,pidB_ki,pidB_kd;
     wire signed [14-1:0] pidB_in,pidB_out,ctrl_B;
-    
+
     // product_signals --------------------------
     reg         [ 3-1:0] read_ctrl;
     wire        [32-1:0] cnt_clk,cnt_clk2;
     wire signed [28-1:0] X_28,Y_28,F1_28,F2_28,F3_28;
-    
+
     // scope --------------------------
     reg         [ 5-1:0] oscA_sw,oscB_sw;
     reg         [ 8-1:0] trig_sw;
-    
+
     // streaming --------------------------
-    reg         [14-1:0] stream_rate;
+    reg         [17-1:0] stream_rate;
     reg         [32-1:0] stream_ip,stream_port,stream_cmd;
-    
+
     // [WIREREG DOCK END]
 
 
@@ -250,7 +250,7 @@ module lock(
     assign stream_cmd_last_next =  stream_cmd ;
 
     // Oscilloscope control
-    assign osc_ctrl_w = { 14'b0, &{stream_cmd_last==1'b1,stream_cmd==1'b0} , stream_rate   , stream_cmd[0] , osc_ctrl };
+    assign osc_ctrl_w = { 11'b0, &{stream_cmd_last==1'b1,stream_cmd==1'b0} , stream_rate   , stream_cmd[0] , osc_ctrl };
 
 
 
@@ -777,9 +777,9 @@ module lock(
 
     assign Xo_53    = ( cos_ref_lpf2   <<< sg_amp0  );
     assign Yo_53    = ( sin_ref_lpf2   <<< sg_amp0  );
-    assign F1o_47   = ( F1_28  <<< sg_amp1  );
-    assign F2o_47   = ( F2_28  <<< sg_amp2  );
-    assign F3o_47   = ( F3_28  <<< sg_amp3  );
+    assign F1o_43   = ( F1_28  <<< sg_amp1  );
+    assign F2o_43   = ( F2_28  <<< sg_amp2  );
+    assign F3o_43   = ( F3_28  <<< sg_amp3  );
 
 
 
@@ -793,9 +793,9 @@ module lock(
 
     satprotect2 #(.Ri(53),.Ro(38)) i_satprotect_Xo_53   ( .in( Xo_53  ), .out( Xo_38  ) );
     satprotect2 #(.Ri(53),.Ro(38)) i_satprotect_Yo_53   ( .in( Yo_53  ), .out( Yo_38  ) );
-    satprotect2 #(.Ri(53),.Ro(38)) i_satprotect_F1o_47  ( .in( F1o_47 ), .out( F1o_28 ) );
-    satprotect2 #(.Ri(53),.Ro(38)) i_satprotect_F2o_47  ( .in( F2o_47 ), .out( F2o_28 ) );
-    satprotect2 #(.Ri(53),.Ro(38)) i_satprotect_F3o_47  ( .in( F3o_47 ), .out( F3o_28 ) );
+    satprotect2 #(.Ri(43),.Ro(28)) i_satprotect_F1o_43  ( .in( F1o_43 ), .out( F1o_28 ) );
+    satprotect2 #(.Ri(43),.Ro(28)) i_satprotect_F2o_43  ( .in( F2o_43 ), .out( F2o_28 ) );
+    satprotect2 #(.Ri(43),.Ro(28)) i_satprotect_F3o_43  ( .in( F3o_43 ), .out( F3o_28 ) );
 
 
 
@@ -972,9 +972,9 @@ module lock(
     //---------------------------------------------------------------------------------
     //
     //  System bus connection
-    
+
     // SO --> MEMORIA --> FPGA
-    
+
     always @(posedge clk)
     if (rst) begin
         oscA_sw                <=   5'd1     ; // switch for muxer oscA
@@ -990,10 +990,10 @@ module lock(
         rl_error_threshold     <=  13'd0     ; // Threshold for error signal. Launchs relock when |error| > rl_error_threshold
         rl_signal_sw           <=   3'd0     ; // selects signal for relock trigger
         rl_signal_threshold    <=  14'd0     ; // Threshold for signal. Launchs relock when signal < rl_signal_threshold
-        rl_config              <=   3'd0     ; // Relock enable. [relock_reset,enable_signal_th,enable_error_th] 
+        rl_config              <=   3'd0     ; // Relock enable. [relock_reset,enable_signal_th,enable_error_th]
         sf_jumpA               <=  14'd0     ; // Step function measure jump value for ctrl_A
         sf_jumpB               <=  14'd0     ; // Step function measure jump value for ctrl_B
-        sf_config              <=   5'd0     ; // Step function configuration. [pidB_ifreeze,pidB_freeze,pidA_ifreeze,pidA_freeze,start] 
+        sf_config              <=   5'd0     ; // Step function configuration. [pidB_ifreeze,pidB_freeze,pidA_ifreeze,pidA_freeze,start]
         signal_sw              <=   3'd0     ; // Input selector for signal_i
         sg_amp0                <=   5'd0     ; // amplification of Xo, Yo
         sg_amp1                <=   4'd0     ; // amplification F1o
@@ -1042,7 +1042,7 @@ module lock(
         aux_B                  <=  14'd0     ; // auxiliar value of 14 bits
         stream_ip              <=  32'd0     ; // Client IP for streaming
         stream_port            <=  32'd6000  ; // Client TCP port for streaming
-        stream_rate            <=  14'd128   ; // Streaming rate config
+        stream_rate            <=  17'd128   ; // Streaming rate config
         stream_cmd             <=  32'd0     ; // Streaming commands
     end else begin
         if (sys_wen) begin
@@ -1060,11 +1060,11 @@ module lock(
             if (sys_addr[19:0]==20'h0002C)  rl_error_threshold    <=  sys_wdata[13-1: 0] ; // Threshold for error signal. Launchs relock when |error| > rl_error_threshold
             if (sys_addr[19:0]==20'h00030)  rl_signal_sw          <=  sys_wdata[ 3-1: 0] ; // selects signal for relock trigger
             if (sys_addr[19:0]==20'h00034)  rl_signal_threshold   <=  sys_wdata[14-1: 0] ; // Threshold for signal. Launchs relock when signal < rl_signal_threshold
-            if (sys_addr[19:0]==20'h00038)  rl_config             <=  sys_wdata[ 3-1: 0] ; // Relock enable. [relock_reset,enable_signal_th,enable_error_th] 
-          //if (sys_addr[19:0]==20'h0003C)  rl_state              <=  sys_wdata[ 5-1: 0] ; // Relock state: [state:idle|searching|failed,signal_fail,error_fail,locked] 
+            if (sys_addr[19:0]==20'h00038)  rl_config             <=  sys_wdata[ 3-1: 0] ; // Relock enable. [relock_reset,enable_signal_th,enable_error_th]
+          //if (sys_addr[19:0]==20'h0003C)  rl_state              <=  sys_wdata[ 5-1: 0] ; // Relock state: [state:idle|searching|failed,signal_fail,error_fail,locked]
             if (sys_addr[19:0]==20'h00040)  sf_jumpA              <=  sys_wdata[14-1: 0] ; // Step function measure jump value for ctrl_A
             if (sys_addr[19:0]==20'h00044)  sf_jumpB              <=  sys_wdata[14-1: 0] ; // Step function measure jump value for ctrl_B
-            if (sys_addr[19:0]==20'h00048)  sf_config             <=  sys_wdata[ 5-1: 0] ; // Step function configuration. [pidB_ifreeze,pidB_freeze,pidA_ifreeze,pidA_freeze,start] 
+            if (sys_addr[19:0]==20'h00048)  sf_config             <=  sys_wdata[ 5-1: 0] ; // Step function configuration. [pidB_ifreeze,pidB_freeze,pidA_ifreeze,pidA_freeze,start]
             if (sys_addr[19:0]==20'h0004C)  signal_sw             <=  sys_wdata[ 3-1: 0] ; // Input selector for signal_i
           //if (sys_addr[19:0]==20'h00050)  signal_i              <=  sys_wdata[14-1: 0] ; // signal for demodulation
             if (sys_addr[19:0]==20'h00054)  sg_amp0               <=  sys_wdata[ 5-1: 0] ; // amplification of Xo, Yo
@@ -1143,7 +1143,7 @@ module lock(
             if (sys_addr[19:0]==20'h00178)  aux_B                 <=  sys_wdata[14-1: 0] ; // auxiliar value of 14 bits
             if (sys_addr[19:0]==20'h0017C)  stream_ip             <=  sys_wdata[32-1: 0] ; // Client IP for streaming
             if (sys_addr[19:0]==20'h00180)  stream_port           <=  sys_wdata[32-1: 0] ; // Client TCP port for streaming
-            if (sys_addr[19:0]==20'h00184)  stream_rate           <=  sys_wdata[14-1: 0] ; // Streaming rate config
+            if (sys_addr[19:0]==20'h00184)  stream_rate           <=  sys_wdata[17-1: 0] ; // Streaming rate config
             if (sys_addr[19:0]==20'h00188)  stream_cmd            <=  sys_wdata[32-1: 0] ; // Streaming commands
         end
     end
@@ -1151,14 +1151,14 @@ module lock(
     // FPGA --> MEMORIA --> SO
     wire sys_en;
     assign sys_en = sys_wen | sys_ren;
-    
+
     always @(posedge clk, posedge rst)
     if (rst) begin
         sys_err <= 1'b0  ;
         sys_ack <= 1'b0  ;
     end else begin
         sys_err <= 1'b0 ;
-        
+
         casez (sys_addr[19:0])
             20'h00000 : begin sys_ack <= sys_en;  sys_rdata <= {  27'b0                   ,          oscA_sw  }; end // switch for muxer oscA
             20'h00004 : begin sys_ack <= sys_en;  sys_rdata <= {  27'b0                   ,          oscB_sw  }; end // switch for muxer oscB
@@ -1174,11 +1174,11 @@ module lock(
             20'h0002C : begin sys_ack <= sys_en;  sys_rdata <= {  19'b0                   ,  rl_error_threshold  }; end // Threshold for error signal. Launchs relock when |error| > rl_error_threshold
             20'h00030 : begin sys_ack <= sys_en;  sys_rdata <= {  29'b0                   ,     rl_signal_sw  }; end // selects signal for relock trigger
             20'h00034 : begin sys_ack <= sys_en;  sys_rdata <= {  {18{rl_signal_threshold[13]}} ,  rl_signal_threshold  }; end // Threshold for signal. Launchs relock when signal < rl_signal_threshold
-            20'h00038 : begin sys_ack <= sys_en;  sys_rdata <= {  29'b0                   ,        rl_config  }; end // Relock enable. [relock_reset,enable_signal_th,enable_error_th] 
-            20'h0003C : begin sys_ack <= sys_en;  sys_rdata <= {  27'b0                   ,         rl_state  }; end // Relock state: [state:idle|searching|failed,signal_fail,error_fail,locked] 
+            20'h00038 : begin sys_ack <= sys_en;  sys_rdata <= {  29'b0                   ,        rl_config  }; end // Relock enable. [relock_reset,enable_signal_th,enable_error_th]
+            20'h0003C : begin sys_ack <= sys_en;  sys_rdata <= {  27'b0                   ,         rl_state  }; end // Relock state: [state:idle|searching|failed,signal_fail,error_fail,locked]
             20'h00040 : begin sys_ack <= sys_en;  sys_rdata <= {  {18{sf_jumpA[13]}}      ,         sf_jumpA  }; end // Step function measure jump value for ctrl_A
             20'h00044 : begin sys_ack <= sys_en;  sys_rdata <= {  {18{sf_jumpB[13]}}      ,         sf_jumpB  }; end // Step function measure jump value for ctrl_B
-            20'h00048 : begin sys_ack <= sys_en;  sys_rdata <= {  27'b0                   ,        sf_config  }; end // Step function configuration. [pidB_ifreeze,pidB_freeze,pidA_ifreeze,pidA_freeze,start] 
+            20'h00048 : begin sys_ack <= sys_en;  sys_rdata <= {  27'b0                   ,        sf_config  }; end // Step function configuration. [pidB_ifreeze,pidB_freeze,pidA_ifreeze,pidA_freeze,start]
             20'h0004C : begin sys_ack <= sys_en;  sys_rdata <= {  29'b0                   ,        signal_sw  }; end // Input selector for signal_i
             20'h00050 : begin sys_ack <= sys_en;  sys_rdata <= {  {18{signal_i_reg[13]}}  ,     signal_i_reg  }; end // signal for demodulation
             20'h00054 : begin sys_ack <= sys_en;  sys_rdata <= {  27'b0                   ,          sg_amp0  }; end // amplification of Xo, Yo
@@ -1257,7 +1257,7 @@ module lock(
             20'h00178 : begin sys_ack <= sys_en;  sys_rdata <= {  {18{aux_B[13]}}         ,            aux_B  }; end // auxiliar value of 14 bits
             20'h0017C : begin sys_ack <= sys_en;  sys_rdata <=                                     stream_ip   ; end // Client IP for streaming
             20'h00180 : begin sys_ack <= sys_en;  sys_rdata <=                                   stream_port   ; end // Client TCP port for streaming
-            20'h00184 : begin sys_ack <= sys_en;  sys_rdata <= {  18'b0                   ,      stream_rate  }; end // Streaming rate config
+            20'h00184 : begin sys_ack <= sys_en;  sys_rdata <= {  15'b0                   ,      stream_rate  }; end // Streaming rate config
             20'h00188 : begin sys_ack <= sys_en;  sys_rdata <=                                    stream_cmd   ; end // Streaming commands
             default   : begin sys_ack <= sys_en;  sys_rdata <=  32'h0        ; end
         endcase

@@ -143,7 +143,7 @@ static registers_t registers[PARAMS_NUM] = {
     { "aux_B"                  ,  94, 1, 0,      -8192,       8191 },
     { "stream_ip"              ,  95, 0, 0,          0, 4294967295 },
     { "stream_port"            ,  96, 0, 0,          0, 4294967295 },
-    { "stream_rate"            ,  97, 0, 0,          0,       8192 },
+    { "stream_rate"            ,  97, 0, 0,          0,      65536 },
     { "stream_cmd"             ,  98, 0, 0,          0, 4294967295 }
     // [LOCKREGS DOCK END]
 };

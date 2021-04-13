@@ -169,7 +169,7 @@ reg             set_avg_en    ;
 reg             adc_dv        ;
 
 
-assign set_dec =  osc_ctrl_i[2] ?  {3'b0,osc_ctrl_i[17-1:3]}   :  set_dec_r ;
+assign set_dec =  osc_ctrl_i[2] ?  osc_ctrl_i[20-1:3]   :  set_dec_r ;
 
 
 always @(posedge adc_clk_i)

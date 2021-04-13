@@ -806,8 +806,8 @@ typedef struct lock_reg_t {
     /** @brief Offset 20'h00184 - stream_rate
       *  Streaming rate config
       *
-      *  bits [31:14] - Reserved
-      *  bits [13: 0] - Data
+      *  bits [31:17] - Reserved
+      *  bits [16: 0] - Data
       */
     uint32_t stream_rate;
     
