@@ -36,6 +36,8 @@ rp.osc.measure('A_rising', dec=256 , trig_pos=20 , wait=True)
 
 rp.wait_osc_finish()
 
+tt, ch1, ch2 = rp.osc.curv()
+
 rp.plot_meas()
 
 
@@ -83,7 +85,7 @@ print(f"You saved data in file: {fn}")
 
 
 
-#%% Load saveda data 
+#%% Load saveda data
 rp2 =  RedPitayaApp(fn)
 
 # rp2._last_osc_dump is a dict with the saved data
@@ -112,7 +114,7 @@ from control_finn import reg_labels
 for reg in 'oscA_sw oscB_sw'.split():
     value = rp.lock.get(reg)
     print(f'{reg} = {value}')
-    
+
 for reg in 'oscA_sw oscB_sw'.split():
     value = rp.lock.get(reg)
     label = reg_labels[reg][value]
@@ -133,10 +135,10 @@ fn = 'RP.json'
 
 if os.path.isfile(fn):
     with open(fn,'r') as rpcur_fp:
-        rpcur_config = json.load(rpcur_fp)    
-    
+        rpcur_config = json.load(rpcur_fp)
+
     config_lock = { k[5:]:v for k,v in rpcur_config['data'].items() if k[:5]=='lock_' }
-    
+
     # Load only RW registers
     for key, val in config_lock.items():
         if key in rp.lock._registers.keys() and not rp.lock._registers[key][2]:
@@ -152,7 +154,7 @@ def IPtoReg(txt):
     vec = txt.strip().split('.')
     if not len(vec) == 4:
         raise ValueError('this is not an IPv4')
-    
+
     return sum([ int(v)<<(i*8) for i,v in enumerate(vec) ])
 
 def REgtoIP(val):
@@ -164,9 +166,9 @@ rp.lock.oscB_sw  = 'cos_3f'
 
 
 
-rp.lock.stream_rate = 1024 
+rp.lock.stream_rate = 1024
 
-rp.lock.stream_port = 6000 
+rp.lock.stream_port = 6000
 
 REgtoIP( rp.lock.stream_ip )
 
@@ -177,23 +179,3 @@ rp.streaming_prepare()
 rp.streaming_start()
 
 rp.streaming_stop()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
