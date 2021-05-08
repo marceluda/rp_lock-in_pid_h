@@ -30,10 +30,12 @@ module LP_filter3 #(parameter R=14)
 
     // R resolution of input and output signals (aka: bus width)
     // Low Pass Filter characteristic time is: 8 ns * 2**tau
-    // max tau value = 62-R . For R=14, max tau=48
+    // max tau value =   S-R . For R=14, max tau=48
     //                        For R=28, max tau=34
 
-    localparam S=58; // 45 works great
+    //localparam S=58; // 45 works great
+    localparam S=64; // 45 works great
+
 
     reg  signed [S-1 :0] sum;
     wire signed [S   :0] sum_next;
