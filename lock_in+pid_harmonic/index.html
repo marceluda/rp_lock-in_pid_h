@@ -2760,8 +2760,9 @@
         plot_holder,
         getData(ranges.xaxis.from, ranges.xaxis.to),
         $.extend(true, plot_options, {
-          xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
-          yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
+          xaxis:  { min: ranges.xaxis.from, max: ranges.xaxis.to },
+          yaxis:  { min: ranges.yaxis.from, max: ranges.yaxis.to },
+          y2axis: { min: ranges.yaxis.from, max: ranges.yaxis.to },
         })
       );
 
@@ -3524,8 +3525,9 @@
       plot.getData(),
       $.extend(true, plot_options, {
         selection: { mode: 'xy' },
-        xaxis: { min: axes.xaxis.min, max: axes.xaxis.max },
-        yaxis: { min: axes.yaxis.min, max: axes.yaxis.max }
+        xaxis:  { min: axes.xaxis.min, max: axes.xaxis.max },
+        yaxis:  { min: axes.yaxis.min, max: axes.yaxis.max },
+        y2axis: { min: axes.yaxis.min, max: axes.yaxis.max }
       })
     );
   }
@@ -3553,8 +3555,9 @@
       plot_pholder,
       plot.getData(),
       $.extend(true, plot_options, {
-        xaxis: { min: axes.xaxis.min, max: axes.xaxis.max },
-        yaxis: { min: axes.yaxis.min, max: axes.yaxis.max }
+        xaxis:  { min: axes.xaxis.min, max: axes.xaxis.max },
+        yaxis:  { min: axes.yaxis.min, max: axes.yaxis.max },
+        y2axis: { min: axes.yaxis.min, max: axes.yaxis.max }
       })
     );
   }
@@ -3578,8 +3581,9 @@
       plot.getData(),
       $.extend(true, plot_options, {
         pan: { interactive: true },
-        xaxis: { min: axes.xaxis.min, max: axes.xaxis.max },
-        yaxis: { min: axes.yaxis.min, max: axes.yaxis.max }
+        xaxis:  { min: axes.xaxis.min, max: axes.xaxis.max },
+        yaxis:  { min: axes.yaxis.min, max: axes.yaxis.max },
+        y2axis: { min: axes.yaxis.min, max: axes.yaxis.max }
       })
     );
   }
