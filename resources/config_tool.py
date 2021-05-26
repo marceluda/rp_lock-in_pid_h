@@ -1814,10 +1814,29 @@ h["lock_sg_amp2"  ].control = select(idd="lock_sg_amp2"   ,items=['x1','x2','x4'
 h["lock_sg_amp3"  ].control = select(idd="lock_sg_amp3"   ,items=['x1','x2','x4','x8','x16','x32','x64','x128','x256','x512'])
 # h["lock_sg_amp_sq"].control = select(idd="lock_sg_amp_sq" ,items=['x1','x2','x4','x8','x16','x32','x64','x128','x256','x512'])
 
-h["lock_lpf_F0_tau"   ].control = select(idd="lock_lpf_F0_tau"    ,items=['131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz',' 34ms | 29.8 Hz',' 67ms | 14.9 Hz','134ms |  7.5 Hz','268ms |  3.7 Hz','537ms |  1.9 Hz','  1 s | 931.3mHz','  2 s | 465.7mHz','  4 s | 232.8mHz'])
-h["lock_lpf_F1_tau"   ].control = select(idd="lock_lpf_F1_tau"    ,items=['131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz',' 34ms | 29.8 Hz',' 67ms | 14.9 Hz','134ms |  7.5 Hz','268ms |  3.7 Hz','537ms |  1.9 Hz','  1 s | 931.3mHz','  2 s | 465.7mHz','  4 s | 232.8mHz'])
-h["lock_lpf_F2_tau"   ].control = select(idd="lock_lpf_F2_tau"    ,items=['131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz',' 34ms | 29.8 Hz',' 67ms | 14.9 Hz','134ms |  7.5 Hz','268ms |  3.7 Hz','537ms |  1.9 Hz','  1 s | 931.3mHz','  2 s | 465.7mHz','  4 s | 232.8mHz'])
-h["lock_lpf_F3_tau"   ].control = select(idd="lock_lpf_F3_tau"    ,items=['131us |  7.6kHz','262us |  3.8kHz','524us |  1.9kHz','  1ms | 953.7 Hz','  2ms | 476.8 Hz','  4ms | 238.4 Hz','  8ms | 119.2 Hz',' 17ms | 59.6 Hz',' 34ms | 29.8 Hz',' 67ms | 14.9 Hz','134ms |  7.5 Hz','268ms |  3.7 Hz','537ms |  1.9 Hz','  1 s | 931.3mHz','  2 s | 465.7mHz','  4 s | 232.8mHz'])
+
+
+# lock_lpf_F0_tau ##############################
+units={ -3: 'n', -2: 'u', -1: 'm', 0: ' ', 1: 'k', 2: 'M', 3: 'G' }
+lpf_F0_tau_items = []
+
+for i in arange(16):
+    tau =8e-9 * 2**(i+14)
+    oom =floor(log10(tau)/3).astype(int)
+    val =tau/10.0**(3*oom)
+    freq=1/(2*pi*tau)
+    foom=floor(log10(freq)/3).astype(int)
+    fval=freq/10.0**(3*foom)
+
+    lpf_F0_tau_items += [ '{:4.0f} {:s}s'.format(val,units[oom])+' | {:4.1f} {:s}Hz'.format(fval,units[foom]) ]
+
+
+
+
+h["lock_lpf_F0_tau"   ].control = select(idd="lock_lpf_F0_tau"    ,items=lpf_F0_tau_items )
+h["lock_lpf_F1_tau"   ].control = select(idd="lock_lpf_F1_tau"    ,items=lpf_F0_tau_items )
+h["lock_lpf_F2_tau"   ].control = select(idd="lock_lpf_F2_tau"    ,items=lpf_F0_tau_items )
+h["lock_lpf_F3_tau"   ].control = select(idd="lock_lpf_F3_tau"    ,items=lpf_F0_tau_items )
 
 h["lock_lpf_F0_order"   ].control = select(idd="lock_lpf_F0_order"    ,items=['OFF', '1', '2'])
 h["lock_lpf_F1_order"   ].control = select(idd="lock_lpf_F1_order"    ,items=['OFF', '1', '2'])
