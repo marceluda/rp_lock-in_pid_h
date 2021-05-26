@@ -1,6 +1,5 @@
 # Resources
 
-
 This folder has some useful scripts and information for Development and App advances usage.
 
 
@@ -10,7 +9,6 @@ This folder has some useful scripts and information for Development and App adva
   * `rp_cmds`: Scripts to run inside RedPitaya device shell
   * `streaming`: Streaming oscilloscope channels to a computer
   * `remote_control`: Remote control of the App using programing language
-
 
 # Streaming Service
 
