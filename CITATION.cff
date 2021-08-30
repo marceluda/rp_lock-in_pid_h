@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using these metadata."
+authors:
+  - family-names: Luda
+    given-names: "Marcelo Alejandro"
+    orcid: "https://orcid.org/0000-0002-1850-2282"
+title: "Red Pitaya Lock-in+PID Application with HARMONIC modulation"
+doi: "10.1063/1.5080345"
+keywords:
+  - FPGA
+  - Optics
+  - Spectroscopy
+license: "GPL-3.0-only"
+url: "https://github.com/marceluda/rp_lock-in_pid_h"
