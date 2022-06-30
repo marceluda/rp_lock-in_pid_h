@@ -14,3 +14,8 @@ v0.3.3
 v0.3.4
 - ADDED Sawtooth waveform for Ramp intrument
 - ADDED larger decimation for Scope instrument: up to 64 seconds time range
+
+v0.3.8
+- Better remote control
+- ADDED server restart function
+- ADDED some HTML interface features
