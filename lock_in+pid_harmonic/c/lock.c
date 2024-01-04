@@ -177,20 +177,30 @@ typedef enum {
  *
  * @return Indicates if the operation succeeded, or why it failed.
  */
-str2int_errno str2int(int32_t *out, char *s, int base) {
+str2int_errno str2int(int32_t *out, char *s, int is_signed, int base) {
     char *end;
     if (s[0] == '\0' || isspace(s[0]))
         return STR2INT_INCONVERTIBLE;
     errno = 0;
-    long l = strtol(s, &end, base);
-    /* Both checks are needed because INT_MAX == LONG_MAX is possible. */
-    if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX))
-        return STR2INT_OVERFLOW;
-    if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN))
-        return STR2INT_UNDERFLOW;
+    if (is_signed) {
+        long l = strtol(s, &end, base);
+        /* Both checks are needed because INT_MAX == LONG_MAX is possible. */
+        if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX))
+            return STR2INT_OVERFLOW;
+        if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN))
+            return STR2INT_UNDERFLOW;
+        *out = l;
+    }
+    else {
+        unsigned long l = strtoul(s, &end, base);
+        if (l > UINT_MAX || (errno == ERANGE && l == ULONG_MAX))
+            return STR2INT_OVERFLOW;
+        if (errno == ERANGE && l == 0)
+            return STR2INT_UNDERFLOW;
+        *out = l;
+    }
     if (*end != '\0')
         return STR2INT_INCONVERTIBLE;
-    *out = l;
     return STR2INT_SUCCESS;
 }
 
@@ -214,8 +224,9 @@ int32_t   *lock ;
  * @return Returns the register value
  *
  **/
-void read_reg(int index){
-    printf("%s:%d\n" , registers[index].name , lock[index] );
+void read_reg(int index, int is_signed){
+    if (is_signed) printf("%s:%d\n" , registers[index].name , lock[index] );
+    else printf("%s:%u\n" , registers[index].name , lock[index] );
 }
 
 
@@ -228,9 +239,10 @@ void read_reg(int index){
  * @return Returns the register value
  *
  **/
-void write_reg(int index, int32_t val ){
+void write_reg(int index, int32_t val, int is_signed){
     lock[index] = val ;
-    printf("%s:%d\n" , registers[index].name , lock[index] );
+    if (is_signed) printf("%s:%d\n" , registers[index].name , lock[index] );
+    else printf("%s:%u\n" , registers[index].name , lock[index] );
 }
 
 
@@ -290,35 +302,32 @@ int main(int argc, char *argv[]) {
         for(jj=1; jj<argc ; jj++){
 
             index = reg_name_to_index(argv[jj]);
+            int is_signed = registers[index].is_signed;
 
             if( index<0 ){
                 fprintf(stdout,"ERROR: parameter '%s' not found\n", argv[jj]);
                 return -1 ;
             }
 
-            if( (jj+1<argc) &&  (str2int(&s_value, argv[jj+1], 10)==STR2INT_SUCCESS)   ){
+            if( (jj+1<argc) &&  (str2int(&s_value, argv[jj+1], is_signed, 10)==STR2INT_SUCCESS)   ){
                 // Next arg is a number. Must be a write operation
 
                 if(registers[index].read_only) {
                     printf("ERROR: %s is read-only and cannot be written\n",registers[index].name );
                     return -2;
                 }
-                if( (!registers[index].is_signed) && (s_value<0) ) {
-                    printf("ERROR: %s is not a signed register and you tried to sed value %d\n",registers[index].name, s_value );
-                    return -2;
-                }
-                write_reg(index, s_value);
+                write_reg(index, s_value, is_signed);
 
                 jj++; // skip value
             }else{
                 // There's no next or it's not a number. Must be a read operation
-                read_reg(index);
+                read_reg(index, is_signed);
             }
         }
     }else{
         // Just print all the values
         for(jj=0; jj<PARAMS_NUM ; jj++){
-            read_reg(jj);
+            read_reg(jj, registers[jj].is_signed);
             //printf("%d\n" , lock[jj] );
         }
     }

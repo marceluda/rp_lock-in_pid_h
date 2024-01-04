@@ -197,7 +197,10 @@ int lock_update(rp_app_params_t *params)
   //g_lock_reg->ctrl_B                    = (int)params[LOCK_CTRL_B                   ].value;
     g_lock_reg->aux_A                     = (int)params[LOCK_AUX_A                    ].value;
     g_lock_reg->aux_B                     = (int)params[LOCK_AUX_B                    ].value;
-    g_lock_reg->stream_ip                 = (int)params[LOCK_STREAM_IP                ].value;
+    g_lock_reg->stream_ip                 = (uint32_t)params[LOCK_STREAM_IP0].value | 
+                                            ((uint32_t)params[LOCK_STREAM_IP1].value<<8) |
+                                            ((uint32_t)params[LOCK_STREAM_IP2].value<<16) |
+                                            ((uint32_t)params[LOCK_STREAM_IP3].value<<24);
     g_lock_reg->stream_port               = (int)params[LOCK_STREAM_PORT              ].value;
     g_lock_reg->stream_rate               = (int)params[LOCK_STREAM_RATE              ].value;
     g_lock_reg->stream_cmd                = (int)params[LOCK_STREAM_CMD               ].value;
@@ -353,20 +356,23 @@ int lock_update_main(rp_app_params_t *params)
     params[190].value = (float)g_lock_reg->ctrl_B                ; // lock_ctrl_B
     params[191].value = (float)g_lock_reg->aux_A                 ; // lock_aux_A
     params[192].value = (float)g_lock_reg->aux_B                 ; // lock_aux_B
-    params[193].value = (float)g_lock_reg->stream_ip             ; // lock_stream_ip
-    params[194].value = (float)g_lock_reg->stream_port           ; // lock_stream_port
-    params[195].value = (float)g_lock_reg->stream_rate           ; // lock_stream_rate
-    params[196].value = (float)g_lock_reg->stream_cmd            ; // lock_stream_cmd
-    params[197].value = (float) (( g_lock_reg->lock_feedback >> 0 ) & 0x01 ) ; // lock_ctrl_aux_lock_now
-    params[198].value = (float) (( g_lock_reg->lock_feedback >> 1 ) & 0x01 ) ; // lock_ctrl_aux_launch_lock_trig
-    params[199].value = (float) (( g_lock_reg->lock_feedback >> 2 ) & 0x01 ) ; // lock_ctrl_aux_pidB_enable_ctrl
-    params[200].value = (float) (( g_lock_reg->lock_feedback >> 3 ) & 0x01 ) ; // lock_ctrl_aux_pidA_enable_ctrl
-    params[201].value = (float) (( g_lock_reg->lock_feedback >> 4 ) & 0x01 ) ; // lock_ctrl_aux_ramp_enable_ctrl
-    params[202].value = (float) (( g_lock_reg->lock_feedback >> 5 ) & 0x01 ) ; // lock_ctrl_aux_set_pidB_enable
-    params[203].value = (float) (( g_lock_reg->lock_feedback >> 6 ) & 0x01 ) ; // lock_ctrl_aux_set_pidA_enable
-    params[204].value = (float) (( g_lock_reg->lock_feedback >> 7 ) & 0x01 ) ; // lock_ctrl_aux_set_ramp_enable
-    params[205].value = (float) (( g_lock_reg->lock_feedback >> 8 ) & 0x03 ) ; // lock_ctrl_aux_trig_type
-    params[206].value = (float) (( g_lock_reg->lock_feedback >>10 ) & 0x01 ) ; // lock_ctrl_aux_lock_trig_rise
+    params[193].value = (float)(g_lock_reg->stream_ip & 0xff)    ; // lock_stream_ip0
+    params[194].value = (float)(g_lock_reg->stream_ip>>8 & 0xff) ; // lock_stream_ip1
+    params[195].value = (float)(g_lock_reg->stream_ip>>16 & 0xff); // lock_stream_ip2
+    params[196].value = (float)(g_lock_reg->stream_ip>>24)       ; // lock_stream_ip3
+    params[197].value = (float)g_lock_reg->stream_port           ; // lock_stream_port
+    params[198].value = (float)g_lock_reg->stream_rate           ; // lock_stream_rate
+    params[199].value = (float)g_lock_reg->stream_cmd            ; // lock_stream_cmd
+    params[200].value = (float) (( g_lock_reg->lock_feedback >> 0 ) & 0x01 ) ; // lock_ctrl_aux_lock_now
+    params[201].value = (float) (( g_lock_reg->lock_feedback >> 1 ) & 0x01 ) ; // lock_ctrl_aux_launch_lock_trig
+    params[202].value = (float) (( g_lock_reg->lock_feedback >> 2 ) & 0x01 ) ; // lock_ctrl_aux_pidB_enable_ctrl
+    params[203].value = (float) (( g_lock_reg->lock_feedback >> 3 ) & 0x01 ) ; // lock_ctrl_aux_pidA_enable_ctrl
+    params[204].value = (float) (( g_lock_reg->lock_feedback >> 4 ) & 0x01 ) ; // lock_ctrl_aux_ramp_enable_ctrl
+    params[205].value = (float) (( g_lock_reg->lock_feedback >> 5 ) & 0x01 ) ; // lock_ctrl_aux_set_pidB_enable
+    params[206].value = (float) (( g_lock_reg->lock_feedback >> 6 ) & 0x01 ) ; // lock_ctrl_aux_set_pidA_enable
+    params[207].value = (float) (( g_lock_reg->lock_feedback >> 7 ) & 0x01 ) ; // lock_ctrl_aux_set_ramp_enable
+    params[208].value = (float) (( g_lock_reg->lock_feedback >> 8 ) & 0x03 ) ; // lock_ctrl_aux_trig_type
+    params[209].value = (float) (( g_lock_reg->lock_feedback >>10 ) & 0x01 ) ; // lock_ctrl_aux_lock_trig_rise
     // [PARAMSUPDATE DOCK END]
 
     return 0;
