@@ -25,8 +25,10 @@ This started being a striped version of [lock-in+PID](https://github.com/marcelu
 [![New iface](http://img.youtube.com/vi/DzSK8IQkUE4/0.jpg)](http://www.youtube.com/watch?v=DzSK8IQkUE4 "New R-phase interphase")
 
 **More decimaion values**
+
+
 | dec    | max oscilloscope lenght |
-------------------------------------
+|--------|-------------------------|
 |      1 |             0.131072 ms |
 |      8 |             1.048576 ms |
 |     64 |             8.388608 ms |
