@@ -24,6 +24,22 @@ This started being a striped version of [lock-in+PID](https://github.com/marcelu
 
 [![New iface](http://img.youtube.com/vi/DzSK8IQkUE4/0.jpg)](http://www.youtube.com/watch?v=DzSK8IQkUE4 "New R-phase interphase")
 
+**More decimaion values**
+
+
+| dec    | max oscilloscope lenght |
+|--------|-------------------------|
+|      1 |             0.131072 ms |
+|      8 |             1.048576 ms |
+|     64 |             8.388608 ms |
+|    128 |            16.777216 ms |
+|    256 |            33.554432 ms |
+|    512 |            67.108864 ms |
+|   1024 |           134.217728 ms |
+|   8192 |           1.073741824 s |
+|  65536 |           8.589934592 s |
+| 524288 |          68.719476736 s |
+
 
 ## Lock-in and PID application for RedPitaya environment
 
