@@ -10,7 +10,7 @@
 ################################################################
 # Check if script is running in correct Vivado version.
 ################################################################
-set scripts_vivado_version 2015.2
+set scripts_vivado_version 2024.2
 set current_vivado_version [version -short]
 
 if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
@@ -231,7 +231,7 @@ CONFIG.PCW_USE_S_AXI_HP0 {1} CONFIG.PCW_USE_S_AXI_HP1 {1} \
  ] $processing_system7
 
   # Create instance: xadc, and set properties
-  set xadc [ create_bd_cell -type ip -vlnv xilinx.com:ip:xadc_wiz:3.1 xadc ]
+  set xadc [ create_bd_cell -type ip -vlnv xilinx.com:ip:xadc_wiz:3.3 xadc ]
   set_property -dict [ list CONFIG.CHANNEL_ENABLE_VAUXP0_VAUXN0 {true} CONFIG.CHANNEL_ENABLE_VAUXP1_VAUXN1 {true} CONFIG.CHANNEL_ENABLE_VAUXP8_VAUXN8 {true} CONFIG.CHANNEL_ENABLE_VAUXP9_VAUXN9 {true} CONFIG.CHANNEL_ENABLE_VP_VN {true} CONFIG.EXTERNAL_MUX_CHANNEL {VP_VN} CONFIG.SEQUENCER_MODE {Off} CONFIG.SINGLE_CHANNEL_SELECTION {TEMPERATURE} CONFIG.XADC_STARUP_SELECTION {independent_adc}  ] $xadc
 
   # Create instance: xlconstant, and set properties
