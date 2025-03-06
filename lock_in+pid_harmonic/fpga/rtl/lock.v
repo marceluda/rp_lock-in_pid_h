@@ -57,7 +57,7 @@ module lock(
 
     // [WIREREG DOCK]
     // gen_mod --------------------------
-    reg         [12-1:0] gen_mod_phase;
+    reg         [13-1:0] gen_mod_phase;
     reg         [14-1:0] gen_mod_hp;
 
     // gen_ramp --------------------------
@@ -574,7 +574,6 @@ module lock(
       .hp        (  gen_mod_hp       ),  // harmonic period
 
       // output
-      .cntu_w    (               ),  // LOLO ERASE
       .sin_ref   (  sin_ref      ),  // sinus
       .cos_1f    (  cos_1f       ),  // sinus with phase
       .cos_2f    (  cos_2f       ),  // sinus with phase and 2f
@@ -1007,7 +1006,7 @@ module lock(
         error_offset           <=  14'd0     ; // offset for the error signal
         mod_out1               <= -14'd1     ; // Modulation amplitud for out1
         mod_out2               <= -14'd1     ; // Modulation amplitud for out2
-        gen_mod_phase          <=  12'd0     ; // phase relation of cos_?f signals
+        gen_mod_phase          <=  13'd0     ; // phase relation of cos_?f signals
         gen_mod_hp             <=  14'd0     ; // harmonic period set
         ramp_step              <=  32'd0     ; // period of the triangular ramp signal
         ramp_low_lim           <= -14'd5000  ; // ramp low limit
@@ -1082,7 +1081,7 @@ module lock(
           //if (sys_addr[19:0]==20'h00084)  error_std             <=  sys_wdata[32-1: 0] ; // 1 sec error square sum val
             if (sys_addr[19:0]==20'h00088)  mod_out1              <=  sys_wdata[14-1: 0] ; // Modulation amplitud for out1
             if (sys_addr[19:0]==20'h0008C)  mod_out2              <=  sys_wdata[14-1: 0] ; // Modulation amplitud for out2
-            if (sys_addr[19:0]==20'h00090)  gen_mod_phase         <=  sys_wdata[12-1: 0] ; // phase relation of cos_?f signals
+            if (sys_addr[19:0]==20'h00090)  gen_mod_phase         <=  sys_wdata[13-1: 0] ; // phase relation of cos_?f signals
             if (sys_addr[19:0]==20'h00094)  gen_mod_hp            <=  sys_wdata[14-1: 0] ; // harmonic period set
           //if (sys_addr[19:0]==20'h00098)  ramp_A                <=  sys_wdata[14-1: 0] ; // ramp signal A
           //if (sys_addr[19:0]==20'h0009C)  ramp_B                <=  sys_wdata[14-1: 0] ; // ramp signal B

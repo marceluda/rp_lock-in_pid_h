@@ -2051,32 +2051,32 @@
 
     if( lock_gen_mod_phase_arr.length === 2) {
       if ( lock_gen_mod_phase_arr[1].toLowerCase()=="g" || lock_gen_mod_phase_arr[1].toLowerCase()=="deg" || lock_gen_mod_phase_arr[1].toLowerCase()=="°" )
-        mod_phase = Math.round( (mod_phase % 360 ) / 360 * 2520 );
+        mod_phase = Math.round( (mod_phase % 360 ) / 360 * 5000 );
       if ( lock_gen_mod_phase_arr[1].toLowerCase()=="rad" )
-        mod_phase = Math.round( ( mod_phase % (2*Math.PI) ) / (2*Math.PI) * 2520 );
+        mod_phase = Math.round( ( mod_phase % (2*Math.PI) ) / (2*Math.PI) * 5000 );
       if ( lock_gen_mod_phase_arr[1].toLowerCase()=="pi" )
-        mod_phase = Math.round( mod_phase / 2  * 2520 );
-      mod_phase = Math.min(  2520 , mod_phase  ) ;
+        mod_phase = Math.round( mod_phase / 2  * 5000 );
+      mod_phase = Math.min(  5000 , mod_phase  ) ;
       mod_phase = Math.max(     0 , mod_phase  ) ;
       $("#lock_gen_mod_phase").val(""+mod_phase);
     }
 
     if( lock_gen_mod_hp_arr.length === 2) {
       if ( lock_gen_mod_hp_arr[1].toLowerCase()=="s" || lock_gen_mod_hp_arr[1].toLowerCase()=="seg" )
-        mod_hp = Math.round( mod_hp / (2520*8e-9) )-1;
+        mod_hp = Math.round( mod_hp / (5000*8e-9) )-1;
       if ( lock_gen_mod_hp_arr[1].toLowerCase()=="ms" )
-        mod_hp = Math.round( mod_hp / (2520*8e-9*1000) )-1;
+        mod_hp = Math.round( mod_hp / (5000*8e-9*1000) )-1;
       if ( lock_gen_mod_hp_arr[1].toLowerCase()=="us"  || lock_gen_mod_hp_arr[1].toLowerCase()=="μs"   )
-        mod_hp = Math.round( mod_hp / (2520*8e-9*1000*1000) )-1;
+        mod_hp = Math.round( mod_hp / (5000*8e-9*1000*1000) )-1;
       mod_hp = Math.min(  819100 , mod_hp  ) ;
       mod_hp = Math.max(       0 , mod_hp  ) ;
       $("#lock_gen_mod_hp").val(""+mod_hp);
     }
 
 
-    $('#lock_gen_mod_phase_text'   ).html( "<small><b>" + (mod_phase   /2520*360).toFixed(1) + "&nbsp;deg&nbsp;|&nbsp;" +   (mod_phase   /2520*2).toFixed(1) + "&nbsp;п&nbsp;rad</b></small>");
+    $('#lock_gen_mod_phase_text'   ).html( "<small><b>" + (mod_phase   /5000*360).toFixed(1) + "&nbsp;deg&nbsp;|&nbsp;" +   (mod_phase   /5000*2).toFixed(1) + "&nbsp;п&nbsp;rad</b></small>");
 
-    hp_period=(mod_hp+1)*2520*8e-9;
+    hp_period=(mod_hp+1)*5000*8e-9;
     if ( hp_period === 0 ){
       txt=" OFF ";
     }else{
@@ -4765,7 +4765,7 @@
                         <div class="form-group">
                           <label for="lock_gen_mod_phase" class="col-xs-4 control-label">Phase:</label>
                           <div class="col-xs-4 col-sm-8">
-                            <input type="number" autocomplete="off" class="form-control" value="0" id="lock_gen_mod_phase" step="1" min="0" max="2519">
+                            <input type="number" autocomplete="off" class="form-control" value="0" id="lock_gen_mod_phase" step="1" min="0" max="4999">
                             <span style="display: none;" class="input-group-btn" id="lock_gen_mod_phase_apply">
                               <button type="button" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-ok-circle"></span></button>
                             </span>
