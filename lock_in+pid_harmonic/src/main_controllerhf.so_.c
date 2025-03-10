@@ -335,11 +335,11 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { "lock_sf_BfrzI"                 ,      0, 1, 0,            0,            1 }, /** Step function pidB_ifreeze  **/
     { "lock_signal_sw"                ,      0, 1, 0,            0,            7 }, /** Input selector for signal_i **/
     { "lock_signal_i"                 ,      0, 0, 1,        -8192,         8191 }, /** signal for demodulation **/
-    { "lock_sg_amp0"                  ,      0, 1, 0,            0,           31 }, /** amplification of Xo, Yo **/
-    { "lock_sg_amp1"                  ,      0, 1, 0,            0,           15 }, /** amplification of F1o **/
-    { "lock_sg_amp2"                  ,      0, 1, 0,            0,           15 }, /** amplification of F2o **/
-    { "lock_sg_amp3"                  ,      0, 1, 0,            0,           15 }, /** amplification of F3o **/
-    { "lock_lpf_F0_tau"               ,      0, 1, 0,            0,           15 }, /** Low Pass Filter TAU of X, Y **/
+    { "lock_sg_amp0"                  ,      0, 1, 0,            0,           15 }, /** amplification of F0o **/
+    { "lock_sg_amp1"                  ,      0, 1, 0,            0,           15 }, /** amplification of F1Xo, F1Yo **/
+    { "lock_sg_amp2"                  ,      0, 1, 0,            0,           15 }, /** amplification of F2Xo, F2Yo **/
+    { "lock_sg_amp3"                  ,      0, 1, 0,            0,           15 }, /** amplification of F3Xo, F3Yo **/
+    { "lock_lpf_F0_tau"               ,      0, 1, 0,            0,           15 }, /** Low Pass Filter TAU of F0 **/
     { "lock_lpf_F0_order"             ,      2, 1, 0,            0,            2 }, /** Low Pass Filter order / off **/
     { "lock_lpf_F1_tau"               ,      0, 1, 0,            0,           15 }, /** Low Pass Filter TAU of F1 **/
     { "lock_lpf_F1_order"             ,      2, 1, 0,            0,            2 }, /** Low Pass Filter order / off **/
@@ -368,20 +368,25 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { "lock_ramp_B_factor"            ,   4096, 1, 0,        -4096,         4096 }, /** proportional factor ramp_A/ramp_B. // ramp_B=ramp_A*ramp_B_factor/4096 **/
     { "lock_sin_ref"                  ,      0, 0, 1,        -8192,         8191 }, /** lock-in modulation sinus harmonic reference **/
     { "lock_cos_ref"                  ,      0, 0, 1,        -8192,         8191 }, /** lock-in modulation cosinus harmonic reference **/
-    { "lock_cos_1f"                   ,      0, 0, 1,        -8192,         8191 }, /** lock-in modulation sinus harmonic signal with phase relation to reference **/
-    { "lock_cos_2f"                   ,      0, 0, 1,        -8192,         8191 }, /** lock-in modulation sinus harmonic signal with phase relation to reference and double frequency **/
-    { "lock_cos_3f"                   ,      0, 0, 1,        -8192,         8191 }, /** lock-in modulation sinus harmonic signal with phase relation to reference and triple frequency **/
+    { "lock_sin_1f"                   ,      0, 0, 1,        -8192,         8191 }, /** lock-in modulation sinus harmonic signal with phase relation to reference **/
+    { "lock_cos_1f"                   ,      0, 0, 1,        -8192,         8191 }, /** lock-in modulation cosinus harmonic signal with phase relation to reference **/
+    { "lock_sin_2f"                   ,      0, 0, 1,        -8192,         8191 }, /** lock-in modulation sinus harmonic signal with phase relation to reference and double frequency **/
+    { "lock_cos_2f"                   ,      0, 0, 1,        -8192,         8191 }, /** lock-in modulation cosinus harmonic signal with phase relation to reference and double frequency **/
+    { "lock_sin_3f"                   ,      0, 0, 1,        -8192,         8191 }, /** lock-in modulation sinus harmonic signal with phase relation to reference and triple frequency **/
+    { "lock_cos_3f"                   ,      0, 0, 1,        -8192,         8191 }, /** lock-in modulation cosinus harmonic signal with phase relation to reference and triple frequency **/
     { "lock_in1"                      ,      0, 0, 1,        -8192,         8191 }, /** Input signal IN1 **/
     { "lock_in2"                      ,      0, 0, 1,        -8192,         8191 }, /** Input signal IN2 **/
     { "lock_out1"                     ,      0, 0, 1,        -8192,         8191 }, /** signal for RP RF DAC Out1 **/
     { "lock_out2"                     ,      0, 0, 1,        -8192,         8191 }, /** signal for RP RF DAC Out2 **/
     { "lock_oscA"                     ,      0, 0, 1,        -8192,         8191 }, /** signal for Oscilloscope Channel A **/
     { "lock_oscB"                     ,      0, 0, 1,        -8192,         8191 }, /** signal for Oscilloscope Channel B **/
-    { "lock_X"                        ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from sin_ref **/
-    { "lock_Y"                        ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from cos_ref **/
-    { "lock_F1"                       ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from cos_1f **/
-    { "lock_F2"                       ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from cos_2f **/
-    { "lock_F3"                       ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from cos_3f **/
+    { "lock_F0"                       ,      0, 0, 1,   -134217728,    134217727 }, /** Filtered signal **/
+    { "lock_F1X"                      ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from cos_1f **/
+    { "lock_F1Y"                      ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from sin_1f **/
+    { "lock_F2X"                      ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from cos_2f **/
+    { "lock_F2Y"                      ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from sin_2f **/
+    { "lock_F3X"                      ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from cos_3f **/
+    { "lock_F3Y"                      ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from sin_3f **/
     { "lock_cnt_clk"                  ,      0, 0, 1,            0,   0xffffffff }, /** Clock count **/
     { "lock_cnt_clk2"                 ,      0, 0, 1,            0,   0xffffffff }, /** Clock count **/
     { "lock_read_ctrl"                ,      0, 1, 0,            0,            7 }, /** [unused,start_clk,Freeze] **/
@@ -417,7 +422,10 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { "lock_ctrl_B"                   ,      0, 0, 1,        -8192,         8191 }, /** control_B: pidA_out + ramp_B **/
     { "lock_aux_A"                    ,      0, 1, 0,        -8192,         8191 }, /** auxiliar value of 14 bits **/
     { "lock_aux_B"                    ,      0, 1, 0,        -8192,         8191 }, /** auxiliar value of 14 bits **/
-    { "lock_stream_ip"                ,      0, 1, 0,            0,   0xffffffff }, /** Client IP for streaming **/
+    { "lock_stream_ip0"               ,      0, 1, 0,            0,          255 }, /** Client IP for streaming **/
+    { "lock_stream_ip1"               ,      0, 1, 0,            0,          255 }, /** Client IP for streaming **/
+    { "lock_stream_ip2"               ,      0, 1, 0,            0,          255 }, /** Client IP for streaming **/
+    { "lock_stream_ip3"               ,      0, 1, 0,            0,          255 }, /** Client IP for streaming **/
     { "lock_stream_port"              ,   6000, 1, 0,            0,   0xffffffff }, /** Client TCP port for streaming **/
     { "lock_stream_rate"              ,    128, 1, 0,            0,        65536 }, /** Streaming rate config **/
     { "lock_stream_cmd"               ,      0, 1, 0,            0,   0xffffffff }, /** Streaming commands **/

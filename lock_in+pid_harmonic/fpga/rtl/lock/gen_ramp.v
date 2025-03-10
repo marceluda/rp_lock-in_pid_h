@@ -31,7 +31,7 @@ module gen_ramp #(parameter R=14)
     reg  signed [ R-1:0] ramp_signal;
     wire signed [ R-1:0] ramp_signal_next;
     // Second output
-    wire signed [28-1:0] outB_28;
+    reg  signed [28-1:0] outB_28;
 
     // Counter
     reg         [32-1:0] cnt;
@@ -176,10 +176,9 @@ module gen_ramp #(parameter R=14)
 
     // outputs
     assign outA    = ramp_signal ;
-
-    // assign outB_28  = $signed(ramp_signal) * $signed(ramp_B_factor) ;
-
-    mult_dsp_14  i_mult_dps_error_pow (.CLK(clk), .A($signed(ramp_signal)) , .B($signed(ramp_B_factor)), .P(outB_28));
+    always @ (posedge clk) begin 
+        outB_28 <= $signed(ramp_signal) * $signed(ramp_B_factor);
+    end
 
     assign outB     = $signed(outB_28[26:0]) >>> 12 ;
     //assign outB     = relock_hig_lim ;

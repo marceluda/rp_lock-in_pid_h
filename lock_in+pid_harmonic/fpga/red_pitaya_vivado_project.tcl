@@ -64,7 +64,6 @@ add_files                      $path_rtl/lock/LP_filter2.v
 #add_files                      $path_rtl/lock/LP_filter2_pipe.v
 add_files                      $path_rtl/lock/LP_filter3.v
 #add_files                      $path_rtl/lock/LP_filter3_pipe.v
-add_files                      $path_rtl/lock/mult_dsp_14.v
 add_files                      $path_rtl/lock/sq_mult.v
 add_files                      $path_rtl/lock/muxer3.v
 add_files                      $path_rtl/lock/muxer4.v
