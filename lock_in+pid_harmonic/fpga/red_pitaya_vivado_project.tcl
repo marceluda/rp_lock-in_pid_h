@@ -38,7 +38,7 @@ generate_target all [get_files    system.bd]
 # 3. constraints
 ################################################################################
 
-read_verilog                      .srcs/sources_1/bd/system/hdl/system_wrapper.v
+read_verilog                      .gen/sources_1/bd/system/hdl/system_wrapper.v
 
 add_files                         $path_rtl/axi_master.v
 add_files                         $path_rtl/axi_slave.v
@@ -64,7 +64,6 @@ add_files                      $path_rtl/lock/LP_filter2.v
 #add_files                      $path_rtl/lock/LP_filter2_pipe.v
 add_files                      $path_rtl/lock/LP_filter3.v
 #add_files                      $path_rtl/lock/LP_filter3_pipe.v
-add_files                      $path_rtl/lock/mult_dsp_14.v
 add_files                      $path_rtl/lock/sq_mult.v
 add_files                      $path_rtl/lock/muxer3.v
 add_files                      $path_rtl/lock/muxer4.v

@@ -56,7 +56,7 @@ write_hwdef              -file    $path_sdk/red_pitaya.hwdef
 # template
 #read_verilog                      $path_rtl/...
 
-read_verilog                      .srcs/sources_1/bd/system/hdl/system_wrapper.v
+read_verilog                      .gen/sources_1/bd/system/hdl/system_wrapper.v
 
 read_verilog                      $path_rtl/axi_master.v
 read_verilog                      $path_rtl/axi_slave.v
@@ -82,7 +82,6 @@ read_verilog                      $path_rtl/lock/LP_filter2.v
 #read_verilog                      $path_rtl/lock/LP_filter2_pipe.v
 read_verilog                      $path_rtl/lock/LP_filter3.v
 #read_verilog                      $path_rtl/lock/LP_filter3_pipe.v
-read_verilog                      $path_rtl/lock/mult_dsp_14.v
 read_verilog                      $path_rtl/lock/sq_mult.v
 read_verilog                      $path_rtl/lock/muxer3.v
 read_verilog                      $path_rtl/lock/muxer4.v

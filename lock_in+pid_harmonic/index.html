@@ -138,7 +138,7 @@
                        'lock_ramp_direction,lock_ramp_sawtooth,lock_ramp_B_factor,lock_read_ctrl,lock_pidA_sw,lock_pidA_PSR,lock_pidA_ISR,'+
                        'lock_pidA_DSR,lock_pidA_SAT,lock_pidA_sp,lock_pidA_kp,lock_pidA_ki,lock_pidA_kd,lock_pidA_irst,lock_pidA_freeze,'+
                        'lock_pidA_ifreeze,lock_pidB_sw,lock_pidB_PSR,lock_pidB_ISR,lock_pidB_DSR,lock_pidB_SAT,lock_pidB_sp,lock_pidB_kp,'+
-                       'lock_pidB_ki,lock_pidB_kd,lock_pidB_irst,lock_pidB_freeze,lock_pidB_ifreeze,lock_aux_A,lock_aux_B,lock_stream_ip,'+
+                       'lock_pidB_ki,lock_pidB_kd,lock_pidB_irst,lock_pidB_freeze,lock_pidB_ifreeze,lock_aux_A,lock_aux_B,lock_stream_ip0,lock_stream_ip1,lock_stream_ip2,lock_stream_ip3,'+
                        'lock_stream_port,lock_stream_rate,lock_stream_cmd,lock_ctrl_aux_lock_now,lock_ctrl_aux_launch_lock_trig,lock_ctrl_aux_pidB_enable_ctrl,'+
                        'lock_ctrl_aux_pidA_enable_ctrl,lock_ctrl_aux_ramp_enable_ctrl,lock_ctrl_aux_set_pidB_enable,lock_ctrl_aux_set_pidA_enable,'+
                        'lock_ctrl_aux_set_ramp_enable,lock_ctrl_aux_trig_type,lock_ctrl_aux_lock_trig_rise,lock_mod_harmonic_on';
@@ -1180,7 +1180,7 @@
     var input_number=['lock_lock_trig_val','lock_lock_trig_time_val','lock_rl_error_threshold','lock_rl_signal_threshold','lock_sf_jumpA',
                       'lock_sf_jumpB','lock_error_offset','lock_mod_out1','lock_mod_out2','lock_gen_mod_phase','lock_gen_mod_hp','lock_ramp_step',
                       'lock_ramp_low_lim','lock_ramp_hig_lim','lock_ramp_B_factor','lock_pidA_sp','lock_pidA_kp','lock_pidA_ki','lock_pidA_kd',
-                      'lock_pidB_sp','lock_pidB_kp','lock_pidB_ki','lock_pidB_kd','lock_aux_A','lock_aux_B','lock_stream_port'];
+                      'lock_pidB_sp','lock_pidB_kp','lock_pidB_ki','lock_pidB_kd','lock_aux_A','lock_aux_B','lock_stream_ip0','lock_stream_ip1','lock_stream_ip2','lock_stream_ip3','lock_stream_port'];
 
     for(ii in input_number){
       $('#'+input_number[ii])
@@ -1318,15 +1318,20 @@
             text_param_editor='';
             $(this).parent().removeClass('input-group');
             if(ValidateIPaddress($(this).val())) {
-              params.local[iname] = IPtoInt32($(this).val()) ;
-              //sendParams();
-              $.get( "lock",  { stream_ip: params.local[iname] }).done( function( data ) {
-                console.log(data);
-              });
+              params.local.lock_stream_ip0 = +$(this).val().split('.')[0];
+              params.local.lock_stream_ip1 = +$(this).val().split('.')[1];
+              params.local.lock_stream_ip2 = +$(this).val().split('.')[2];
+              params.local.lock_stream_ip3 = +$(this).val().split('.')[3];
+              sendParams();
             }
-            //else {
-            //  $(this).val(params.local[iname])
-            //}
+            else {
+                $('#lock_stream_ip ').val(
+                    params.local.lock_stream_ip0+'.'+
+                    params.local.lock_stream_ip1+'.'+
+                    params.local.lock_stream_ip2+'.'+
+                    params.local.lock_stream_ip3
+                );
+            }
             if(event.relatedTarget)
               if(event.relatedTarget.tagName=="INPUT")
                 setTimeout(function(){ user_editing = true; }, update_interval ) ;
@@ -1387,7 +1392,7 @@
 
     $('#lock_stream_ip_label'    ).on('click', function() {
       $.get( "get_ip", function( data ) {
-        $("#lock_stream_ip").focus().val( data ); //sendParams();
+        $("#lock_stream_ip").focus().val( data ); sendParams();
       });
     });
 
@@ -1683,14 +1688,14 @@
     for (jj = 0; jj < 4 ; ++jj) {
         rta = rta + (  parseInt(ip_array[jj])<<(jj*8)  ) ;
     }
-    return (rta) ;
+    return (rta >>>0) ;
   }
 
   function Int32toIP(IP){
         var rta = [0,0,0,0] ;
         var jj;
         for (jj = 0; jj < 4 ; ++jj) {
-            rta[jj] = ( IP >> (8*jj) ) & 255 ;
+            rta[jj] = ( IP >>> (8*jj) ) & 255 ;
         }
         return ( rta.join('.') ) ;
     }
@@ -2046,32 +2051,32 @@
 
     if( lock_gen_mod_phase_arr.length === 2) {
       if ( lock_gen_mod_phase_arr[1].toLowerCase()=="g" || lock_gen_mod_phase_arr[1].toLowerCase()=="deg" || lock_gen_mod_phase_arr[1].toLowerCase()=="°" )
-        mod_phase = Math.round( (mod_phase % 360 ) / 360 * 2520 );
+        mod_phase = Math.round( (mod_phase % 360 ) / 360 * 5000 );
       if ( lock_gen_mod_phase_arr[1].toLowerCase()=="rad" )
-        mod_phase = Math.round( ( mod_phase % (2*Math.PI) ) / (2*Math.PI) * 2520 );
+        mod_phase = Math.round( ( mod_phase % (2*Math.PI) ) / (2*Math.PI) * 5000 );
       if ( lock_gen_mod_phase_arr[1].toLowerCase()=="pi" )
-        mod_phase = Math.round( mod_phase / 2  * 2520 );
-      mod_phase = Math.min(  2520 , mod_phase  ) ;
+        mod_phase = Math.round( mod_phase / 2  * 5000 );
+      mod_phase = Math.min(  5000 , mod_phase  ) ;
       mod_phase = Math.max(     0 , mod_phase  ) ;
       $("#lock_gen_mod_phase").val(""+mod_phase);
     }
 
     if( lock_gen_mod_hp_arr.length === 2) {
       if ( lock_gen_mod_hp_arr[1].toLowerCase()=="s" || lock_gen_mod_hp_arr[1].toLowerCase()=="seg" )
-        mod_hp = Math.round( mod_hp / (2520*8e-9) )-1;
+        mod_hp = Math.round( mod_hp / (5000*8e-9) )-1;
       if ( lock_gen_mod_hp_arr[1].toLowerCase()=="ms" )
-        mod_hp = Math.round( mod_hp / (2520*8e-9*1000) )-1;
+        mod_hp = Math.round( mod_hp / (5000*8e-9*1000) )-1;
       if ( lock_gen_mod_hp_arr[1].toLowerCase()=="us"  || lock_gen_mod_hp_arr[1].toLowerCase()=="μs"   )
-        mod_hp = Math.round( mod_hp / (2520*8e-9*1000*1000) )-1;
+        mod_hp = Math.round( mod_hp / (5000*8e-9*1000*1000) )-1;
       mod_hp = Math.min(  819100 , mod_hp  ) ;
       mod_hp = Math.max(       0 , mod_hp  ) ;
       $("#lock_gen_mod_hp").val(""+mod_hp);
     }
 
 
-    $('#lock_gen_mod_phase_text'   ).html( "<small><b>" + (mod_phase   /2520*360).toFixed(1) + "&nbsp;deg&nbsp;|&nbsp;" +   (mod_phase   /2520*2).toFixed(1) + "&nbsp;п&nbsp;rad</b></small>");
+    $('#lock_gen_mod_phase_text'   ).html( "<small><b>" + (mod_phase   /5000*360).toFixed(1) + "&nbsp;deg&nbsp;|&nbsp;" +   (mod_phase   /5000*2).toFixed(1) + "&nbsp;п&nbsp;rad</b></small>");
 
-    hp_period=(mod_hp+1)*2520*8e-9;
+    hp_period=(mod_hp+1)*5000*8e-9;
     if ( hp_period === 0 ){
       txt=" OFF ";
     }else{
@@ -2978,6 +2983,12 @@
     $('#lock_pidB_kd'            ).val(params.original.lock_pidB_kd               );
     $('#lock_aux_A'              ).val(params.original.lock_aux_A                 );
     $('#lock_aux_B'              ).val(params.original.lock_aux_B                 );
+    $('#lock_stream_ip ').val(
+        params.original.lock_stream_ip0+'.'+
+        params.original.lock_stream_ip1+'.'+
+        params.original.lock_stream_ip2+'.'+
+        params.original.lock_stream_ip3
+    );
     $('#lock_stream_port'        ).val(params.original.lock_stream_port           );
 
     // Switches
@@ -3069,8 +3080,6 @@
     }
 
     // [LOLO DOCK LOADPARAMS END]
-
-    //$('#lock_stream_ip'          ).val( Int32toIP(params.original.lock_stream_ip)         );
 
     lock_ramp_step_update();
     lock_modulation_update();
@@ -4341,22 +4350,22 @@
                             <option  value="11">PID B out</option>
                             <option  value="12">sin_ref</option>
                             <option  value="13">cos_ref</option>
-                            <option  value="14">cos_1f</option>
-                            <option  value="15">cos_2f</option>
-                            <option  value="16">cos_3f</option>
-                            <option  value="17">Xo</option>
-                            <option  value="18">Yo</option>
-                            <option  value="19">F1o</option>
-                            <option  value="20">F2o</option>
-                            <option  value="21">F3o</option>
-                            <option  value="22">signal_i</option>
-                            <option  value="23">out1</option>
-                            <option  value="24">out2</option>
-                            <!--option value="25">0</option-->
-                            <!--option value="26">0</option-->
-                            <!--option value="27">0</option-->
-                            <!--option value="28">0</option-->
-                            <!--option value="29">0</option-->
+                            <option  value="14">sin_1f</option>
+                            <option  value="15">cos_1f</option>
+                            <option  value="16">sin_2f</option>
+                            <option  value="17">cos_2f</option>
+                            <option  value="18">sin_3f</option>
+                            <option  value="19">cos_3f</option>
+                            <option  value="20">signal_i</option>
+                            <option  value="21">F0o</option>
+                            <option  value="22">F1Xo</option>
+                            <option  value="23">F1Yo</option>
+                            <option  value="24">F2Xo</option>
+                            <option  value="25">F2Yo</option>
+                            <option  value="26">F3Xo</option>
+                            <option  value="27">F3Yo</option>
+                            <option  value="28">out1</option>
+                            <option  value="29">out2</option>
                             <!--option value="30">0</option-->
                             <!--option value="31">0</option-->
                           </select>
@@ -4384,22 +4393,22 @@
                             <option  value="11">PID B out</option>
                             <option  value="12">sin_ref</option>
                             <option  value="13">cos_ref</option>
-                            <option  value="14">cos_1f</option>
-                            <option  value="15">cos_2f</option>
-                            <option  value="16">cos_3f</option>
-                            <option  value="17">Xo</option>
-                            <option  value="18">Yo</option>
-                            <option  value="19">F1o</option>
-                            <option  value="20">F2o</option>
-                            <option  value="21">F3o</option>
-                            <option  value="22">signal_i</option>
-                            <option  value="23">out1</option>
-                            <option  value="24">out2</option>
-                            <!--option value="25">0</option-->
-                            <!--option value="26">0</option-->
-                            <!--option value="27">0</option-->
-                            <!--option value="28">0</option-->
-                            <!--option value="29">0</option-->
+                            <option  value="14">sin_1f</option>
+                            <option  value="15">cos_1f</option>
+                            <option  value="16">sin_2f</option>
+                            <option  value="17">cos_2f</option>
+                            <option  value="18">sin_3f</option>
+                            <option  value="19">cos_3f</option>
+                            <option  value="20">signal_i</option>
+                            <option  value="21">F0o</option>
+                            <option  value="22">F1Xo</option>
+                            <option  value="23">F1Yo</option>
+                            <option  value="24">F2Xo</option>
+                            <option  value="25">F2Yo</option>
+                            <option  value="26">F3Xo</option>
+                            <option  value="27">F3Yo</option>
+                            <option  value="28">out1</option>
+                            <option  value="29">out2</option>
                             <!--option value="30">0</option-->
                             <!--option value="31">0</option-->
                           </select>
@@ -4756,7 +4765,7 @@
                         <div class="form-group">
                           <label for="lock_gen_mod_phase" class="col-xs-4 control-label">Phase:</label>
                           <div class="col-xs-4 col-sm-8">
-                            <input type="number" autocomplete="off" class="form-control" value="0" id="lock_gen_mod_phase" step="1" min="0" max="2519">
+                            <input type="number" autocomplete="off" class="form-control" value="0" id="lock_gen_mod_phase" step="1" min="0" max="4999">
                             <span style="display: none;" class="input-group-btn" id="lock_gen_mod_phase_apply">
                               <button type="button" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-ok-circle"></span></button>
                             </span>
@@ -4774,7 +4783,7 @@
                     </div>
                     <div class="panel-group col-xs-12 col-sm-12 col-md-12" id='Fnavtabs'>
                       <ul class="nav nav-tabs">
-                        <li id="tab_F0_head" class="active"><a href="#!">X & Y</a></li>
+                        <li id="tab_F0_head" class="active"><a href="#!">F0</a></li>
                         <li id="tab_F1_head"><a href="#!">F1</a></li>
                         <li id="tab_F2_head"><a href="#!">F2</a></li>
                         <li id="tab_F3_head"><a href="#!">F3</a></li>
@@ -4842,10 +4851,6 @@
                               <option  value="13">x8k</option>
                               <option  value="14">x16k</option>
                               <option  value="15">x32k</option>
-                              <option  value="16">x64k</option>
-                              <option  value="17">x128k</option>
-                              <option  value="18">x256k</option>
-                              <option  value="19">x512k</option>
                             </select>
                           </div>
                         </div>
@@ -4907,6 +4912,12 @@
                               <option  value="7">x128</option>
                               <option  value="8">x256</option>
                               <option  value="9">x512</option>
+                              <option  value="10">x1k</option>
+                              <option  value="11">x2k</option>
+                              <option  value="12">x4k</option>
+                              <option  value="13">x8k</option>
+                              <option  value="14">x16k</option>
+                              <option  value="15">x32k</option>
                             </select>
                           </div>
                         </div>
@@ -4968,6 +4979,12 @@
                               <option  value="7">x128</option>
                               <option  value="8">x256</option>
                               <option  value="9">x512</option>
+                              <option  value="10">x1k</option>
+                              <option  value="11">x2k</option>
+                              <option  value="12">x4k</option>
+                              <option  value="13">x8k</option>
+                              <option  value="14">x16k</option>
+                              <option  value="15">x32k</option>
                             </select>
                           </div>
                         </div>
@@ -5028,6 +5045,12 @@
                               <option  value="7">x128</option>
                               <option  value="8">x256</option>
                               <option  value="9">x512</option>
+                              <option  value="10">x1k</option>
+                              <option  value="11">x2k</option>
+                              <option  value="12">x4k</option>
+                              <option  value="13">x8k</option>
+                              <option  value="14">x16k</option>
+                              <option  value="15">x32k</option>
                             </select>
                           </div>
                         </div>
@@ -5286,11 +5309,11 @@
                       <div class="col-xs-8">
                         <select id="lock_error_sw" class="form-control">
                           <option  value="0" selected="selected">0</option>
-                          <option  value="1">Xo</option>
-                          <option  value="2">Yo</option>
-                          <option  value="3">F1o</option>
-                          <option  value="4">F2o</option>
-                          <option  value="5">F3o</option>
+                          <option  value="1">F1Xo</option>
+                          <option  value="2">F1Yo</option>
+                          <option  value="3">F2Xo</option>
+                          <option  value="4">F2Yo</option>
+                          <option  value="5">F3Xo</option>
                           <option  value="6">in1</option>
                           <option  value="7">in1-in2</option>
                         </select>
@@ -5334,11 +5357,11 @@
                           <div class="col-xs-8">
                             <select id="lock_pidA_sw" class="form-control">
                               <option  value="0" selected="selected">error</option>
-                              <option data-tag="pidA_more" value="1">Xo</option>
-                              <option data-tag="pidA_more" value="2">Yo</option>
-                              <option data-tag="pidA_more" value="3">F1o</option>
-                              <option data-tag="pidA_more" value="4">F2o</option>
-                              <option data-tag="pidA_more" value="5">F3o</option>
+                              <option data-tag="pidA_more" value="1">F1Xo</option>
+                              <option data-tag="pidA_more" value="2">F1Yo</option>
+                              <option data-tag="pidA_more" value="3">F2Xo</option>
+                              <option data-tag="pidA_more" value="4">F2Yo</option>
+                              <option data-tag="pidA_more" value="5">F3Xo</option>
                               <option data-tag="pidA_more" value="6">signal_i</option>
                               <option data-tag="pidA_more" value="7">Ramp A</option>
                               <option data-tag="pidA_more" value="8">in1-in2</option>
@@ -5601,11 +5624,11 @@
                           <div class="col-xs-8">
                             <select id="lock_pidB_sw" class="form-control">
                               <option  value="0" selected="selected">error</option>
-                              <option data-tag="pidB_more" value="1">Xo</option>
-                              <option data-tag="pidB_more" value="2">Yo</option>
-                              <option data-tag="pidB_more" value="3">F1o</option>
-                              <option data-tag="pidB_more" value="4">F2o</option>
-                              <option data-tag="pidB_more" value="5">F3o</option>
+                              <option data-tag="pidB_more" value="1">F1Xo</option>
+                              <option data-tag="pidB_more" value="2">F1Yo</option>
+                              <option data-tag="pidB_more" value="3">F2Xo</option>
+                              <option data-tag="pidB_more" value="4">F2Yo</option>
+                              <option data-tag="pidB_more" value="5">F3Xo</option>
                               <option data-tag="pidB_more" value="6">signal_i</option>
                               <option data-tag="pidB_more" value="7">Ramp A</option>
                               <option data-tag="pidB_more" value="8">in1-in2</option>
@@ -6173,12 +6196,12 @@
                           <div class="col-xs-8">
                             <select id="lock_lock_trig_sw" class="form-control">
                               <option  value="0" selected="selected">error</option>
-                              <option  value="1">Xo</option>
-                              <option  value="2">Yo</option>
-                              <option  value="3">F1o</option>
-                              <option  value="4">F2o</option>
-                              <option  value="5">F3o</option>
-                              <option  value="6">/*sqXo */ 14'b0</option>
+                              <option  value="1">F1Xo</option>
+                              <option  value="2">F1Yo</option>
+                              <option  value="3">F2Xo</option>
+                              <option  value="4">F2Yo</option>
+                              <option  value="5">F3Xo</option>
+                              <option  value="6">F3Yo</option>
                               <option  value="7">/*sqYo */ 14'b0</option>
                               <option  value="8">/*sqFo */ 14'b0</option>
                               <option  value="9">signal_i</option>

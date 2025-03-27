@@ -11,6 +11,7 @@ lock_in+pid_harmonic/target_dbg/
 lock_in+pid_harmonic/target_rld/
 lock_in+pid_harmonic/fpga/out/
 lock_in+pid_harmonic/fpga/.srcs/
+lock_in+pid_harmonic/fpga/.gen/
 archive/
 lock_in+pid_harmonic/fpga/.Xil
 lock_in+pid_harmonic/fpga/sdk
@@ -43,6 +44,8 @@ lock_in+pid_harmonic/fpga/sdk
 vivado*.str
 usage_statistics_webtalk.*
 fsm_encoding.os
+clockInfo.txt
+tight_setup_hold_pins.txt
 
 
 # OS generated files #

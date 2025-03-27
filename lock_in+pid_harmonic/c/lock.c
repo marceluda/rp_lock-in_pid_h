@@ -18,7 +18,7 @@
 
 
 
-#define PARAMS_NUM 99
+#define PARAMS_NUM 104
 
 
 
@@ -67,7 +67,7 @@ static registers_t registers[PARAMS_NUM] = {
     { "sf_config"              ,  18, 0, 0,          0,         31 },
     { "signal_sw"              ,  19, 0, 0,          0,          7 },
     { "signal_i"               ,  20, 1, 1,      -8192,       8191 },
-    { "sg_amp0"                ,  21, 0, 0,          0,         31 },
+    { "sg_amp0"                ,  21, 0, 0,          0,         15 },
     { "sg_amp1"                ,  22, 0, 0,          0,         15 },
     { "sg_amp2"                ,  23, 0, 0,          0,         15 },
     { "sg_amp3"                ,  24, 0, 0,          0,         15 },
@@ -82,7 +82,7 @@ static registers_t registers[PARAMS_NUM] = {
     { "error_std"              ,  33, 1, 1, -2147483648, 2147483647 },
     { "mod_out1"               ,  34, 1, 0,      -8192,       8191 },
     { "mod_out2"               ,  35, 1, 0,      -8192,       8191 },
-    { "gen_mod_phase"          ,  36, 0, 0,          0,       2519 },
+    { "gen_mod_phase"          ,  36, 0, 0,          0,       4999 },
     { "gen_mod_hp"             ,  37, 0, 0,          0,      16383 },
     { "ramp_A"                 ,  38, 1, 1,      -8192,       8191 },
     { "ramp_B"                 ,  39, 1, 1,      -8192,       8191 },
@@ -96,55 +96,60 @@ static registers_t registers[PARAMS_NUM] = {
     { "ramp_B_factor"          ,  47, 1, 0,      -4096,       4096 },
     { "sin_ref"                ,  48, 1, 1,      -8192,       8191 },
     { "cos_ref"                ,  49, 1, 1,      -8192,       8191 },
-    { "cos_1f"                 ,  50, 1, 1,      -8192,       8191 },
-    { "cos_2f"                 ,  51, 1, 1,      -8192,       8191 },
-    { "cos_3f"                 ,  52, 1, 1,      -8192,       8191 },
-    { "in1"                    ,  53, 1, 1,      -8192,       8191 },
-    { "in2"                    ,  54, 1, 1,      -8192,       8191 },
-    { "out1"                   ,  55, 1, 1,      -8192,       8191 },
-    { "out2"                   ,  56, 1, 1,      -8192,       8191 },
-    { "oscA"                   ,  57, 1, 1,      -8192,       8191 },
-    { "oscB"                   ,  58, 1, 1,      -8192,       8191 },
-    { "X_28"                   ,  59, 1, 1, -134217728,  134217727 },
-    { "Y_28"                   ,  60, 1, 1, -134217728,  134217727 },
-    { "F1_28"                  ,  61, 1, 1, -134217728,  134217727 },
-    { "F2_28"                  ,  62, 1, 1, -134217728,  134217727 },
-    { "F3_28"                  ,  63, 1, 1, -134217728,  134217727 },
-    { "cnt_clk"                ,  64, 0, 1,          0, 4294967295 },
-    { "cnt_clk2"               ,  65, 0, 1,          0, 4294967295 },
-    { "read_ctrl"              ,  66, 0, 0,          0,          7 },
-    { "pidA_sw"                ,  67, 0, 0,          0,         31 },
-    { "pidA_PSR"               ,  68, 0, 0,          0,          4 },
-    { "pidA_ISR"               ,  69, 0, 0,          0,          9 },
-    { "pidA_DSR"               ,  70, 0, 0,          0,          5 },
-    { "pidA_SAT"               ,  71, 0, 0,          0,         13 },
-    { "pidA_sp"                ,  72, 1, 0,      -8192,       8191 },
-    { "pidA_kp"                ,  73, 1, 0,      -8192,       8191 },
-    { "pidA_ki"                ,  74, 1, 0,      -8192,       8191 },
-    { "pidA_kd"                ,  75, 1, 0,      -8192,       8191 },
-    { "pidA_in"                ,  76, 1, 1,      -8192,       8191 },
-    { "pidA_out"               ,  77, 1, 1,      -8192,       8191 },
-    { "pidA_ctrl"              ,  78, 0, 0,          0,          7 },
-    { "ctrl_A"                 ,  79, 1, 1,      -8192,       8191 },
-    { "pidB_sw"                ,  80, 0, 0,          0,         31 },
-    { "pidB_PSR"               ,  81, 0, 0,          0,          4 },
-    { "pidB_ISR"               ,  82, 0, 0,          0,          9 },
-    { "pidB_DSR"               ,  83, 0, 0,          0,          5 },
-    { "pidB_SAT"               ,  84, 0, 0,          0,         13 },
-    { "pidB_sp"                ,  85, 1, 0,      -8192,       8191 },
-    { "pidB_kp"                ,  86, 1, 0,      -8192,       8191 },
-    { "pidB_ki"                ,  87, 1, 0,      -8192,       8191 },
-    { "pidB_kd"                ,  88, 1, 0,      -8192,       8191 },
-    { "pidB_in"                ,  89, 1, 1,      -8192,       8191 },
-    { "pidB_out"               ,  90, 1, 1,      -8192,       8191 },
-    { "pidB_ctrl"              ,  91, 0, 0,          0,          7 },
-    { "ctrl_B"                 ,  92, 1, 1,      -8192,       8191 },
-    { "aux_A"                  ,  93, 1, 0,      -8192,       8191 },
-    { "aux_B"                  ,  94, 1, 0,      -8192,       8191 },
-    { "stream_ip"              ,  95, 0, 0,          0, 4294967295 },
-    { "stream_port"            ,  96, 0, 0,          0, 4294967295 },
-    { "stream_rate"            ,  97, 0, 0,          0,      65536 },
-    { "stream_cmd"             ,  98, 0, 0,          0, 4294967295 }
+    { "sin_1f"                 ,  50, 1, 1,      -8192,       8191 },
+    { "cos_1f"                 ,  51, 1, 1,      -8192,       8191 },
+    { "sin_2f"                 ,  52, 1, 1,      -8192,       8191 },
+    { "cos_2f"                 ,  53, 1, 1,      -8192,       8191 },
+    { "sin_3f"                 ,  54, 1, 1,      -8192,       8191 },
+    { "cos_3f"                 ,  55, 1, 1,      -8192,       8191 },
+    { "in1"                    ,  56, 1, 1,      -8192,       8191 },
+    { "in2"                    ,  57, 1, 1,      -8192,       8191 },
+    { "out1"                   ,  58, 1, 1,      -8192,       8191 },
+    { "out2"                   ,  59, 1, 1,      -8192,       8191 },
+    { "oscA"                   ,  60, 1, 1,      -8192,       8191 },
+    { "oscB"                   ,  61, 1, 1,      -8192,       8191 },
+    { "F0_28"                  ,  62, 1, 1, -134217728,  134217727 },
+    { "F1X_28"                 ,  63, 1, 1, -134217728,  134217727 },
+    { "F1Y_28"                 ,  64, 1, 1, -134217728,  134217727 },
+    { "F2X_28"                 ,  65, 1, 1, -134217728,  134217727 },
+    { "F2Y_28"                 ,  66, 1, 1, -134217728,  134217727 },
+    { "F3X_28"                 ,  67, 1, 1, -134217728,  134217727 },
+    { "F3Y_28"                 ,  68, 1, 1, -134217728,  134217727 },
+    { "cnt_clk"                ,  69, 0, 1,          0, 4294967295 },
+    { "cnt_clk2"               ,  70, 0, 1,          0, 4294967295 },
+    { "read_ctrl"              ,  71, 0, 0,          0,          7 },
+    { "pidA_sw"                ,  72, 0, 0,          0,         31 },
+    { "pidA_PSR"               ,  73, 0, 0,          0,          4 },
+    { "pidA_ISR"               ,  74, 0, 0,          0,          9 },
+    { "pidA_DSR"               ,  75, 0, 0,          0,          5 },
+    { "pidA_SAT"               ,  76, 0, 0,          0,         13 },
+    { "pidA_sp"                ,  77, 1, 0,      -8192,       8191 },
+    { "pidA_kp"                ,  78, 1, 0,      -8192,       8191 },
+    { "pidA_ki"                ,  79, 1, 0,      -8192,       8191 },
+    { "pidA_kd"                ,  80, 1, 0,      -8192,       8191 },
+    { "pidA_in"                ,  81, 1, 1,      -8192,       8191 },
+    { "pidA_out"               ,  82, 1, 1,      -8192,       8191 },
+    { "pidA_ctrl"              ,  83, 0, 0,          0,          7 },
+    { "ctrl_A"                 ,  84, 1, 1,      -8192,       8191 },
+    { "pidB_sw"                ,  85, 0, 0,          0,         31 },
+    { "pidB_PSR"               ,  86, 0, 0,          0,          4 },
+    { "pidB_ISR"               ,  87, 0, 0,          0,          9 },
+    { "pidB_DSR"               ,  88, 0, 0,          0,          5 },
+    { "pidB_SAT"               ,  89, 0, 0,          0,         13 },
+    { "pidB_sp"                ,  90, 1, 0,      -8192,       8191 },
+    { "pidB_kp"                ,  91, 1, 0,      -8192,       8191 },
+    { "pidB_ki"                ,  92, 1, 0,      -8192,       8191 },
+    { "pidB_kd"                ,  93, 1, 0,      -8192,       8191 },
+    { "pidB_in"                ,  94, 1, 1,      -8192,       8191 },
+    { "pidB_out"               ,  95, 1, 1,      -8192,       8191 },
+    { "pidB_ctrl"              ,  96, 0, 0,          0,          7 },
+    { "ctrl_B"                 ,  97, 1, 1,      -8192,       8191 },
+    { "aux_A"                  ,  98, 1, 0,      -8192,       8191 },
+    { "aux_B"                  ,  99, 1, 0,      -8192,       8191 },
+    { "stream_ip"              , 100, 0, 0,          0, 4294967295 },
+    { "stream_port"            , 101, 0, 0,          0, 4294967295 },
+    { "stream_rate"            , 102, 0, 0,          0,      65536 },
+    { "stream_cmd"             , 103, 0, 0,          0, 4294967295 }
     // [LOCKREGS DOCK END]
 };
 
@@ -177,20 +182,30 @@ typedef enum {
  *
  * @return Indicates if the operation succeeded, or why it failed.
  */
-str2int_errno str2int(int32_t *out, char *s, int base) {
+str2int_errno str2int(int32_t *out, char *s, int is_signed, int base) {
     char *end;
     if (s[0] == '\0' || isspace(s[0]))
         return STR2INT_INCONVERTIBLE;
     errno = 0;
-    long l = strtol(s, &end, base);
-    /* Both checks are needed because INT_MAX == LONG_MAX is possible. */
-    if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX))
-        return STR2INT_OVERFLOW;
-    if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN))
-        return STR2INT_UNDERFLOW;
+    if (is_signed) {
+        long l = strtol(s, &end, base);
+        /* Both checks are needed because INT_MAX == LONG_MAX is possible. */
+        if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX))
+            return STR2INT_OVERFLOW;
+        if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN))
+            return STR2INT_UNDERFLOW;
+        *out = l;
+    }
+    else {
+        unsigned long l = strtoul(s, &end, base);
+        if (l > UINT_MAX || (errno == ERANGE && l == ULONG_MAX))
+            return STR2INT_OVERFLOW;
+        if (errno == ERANGE && l == 0)
+            return STR2INT_UNDERFLOW;
+        *out = l;
+    }
     if (*end != '\0')
         return STR2INT_INCONVERTIBLE;
-    *out = l;
     return STR2INT_SUCCESS;
 }
 
@@ -214,8 +229,9 @@ int32_t   *lock ;
  * @return Returns the register value
  *
  **/
-void read_reg(int index){
-    printf("%s:%d\n" , registers[index].name , lock[index] );
+void read_reg(int index, int is_signed){
+    if (is_signed) printf("%s:%d\n" , registers[index].name , lock[index] );
+    else printf("%s:%u\n" , registers[index].name , lock[index] );
 }
 
 
@@ -228,9 +244,10 @@ void read_reg(int index){
  * @return Returns the register value
  *
  **/
-void write_reg(int index, int32_t val ){
+void write_reg(int index, int32_t val, int is_signed){
     lock[index] = val ;
-    printf("%s:%d\n" , registers[index].name , lock[index] );
+    if (is_signed) printf("%s:%d\n" , registers[index].name , lock[index] );
+    else printf("%s:%u\n" , registers[index].name , lock[index] );
 }
 
 
@@ -290,35 +307,32 @@ int main(int argc, char *argv[]) {
         for(jj=1; jj<argc ; jj++){
 
             index = reg_name_to_index(argv[jj]);
+            int is_signed = registers[index].is_signed;
 
             if( index<0 ){
                 fprintf(stdout,"ERROR: parameter '%s' not found\n", argv[jj]);
                 return -1 ;
             }
 
-            if( (jj+1<argc) &&  (str2int(&s_value, argv[jj+1], 10)==STR2INT_SUCCESS)   ){
+            if( (jj+1<argc) &&  (str2int(&s_value, argv[jj+1], is_signed, 10)==STR2INT_SUCCESS)   ){
                 // Next arg is a number. Must be a write operation
 
                 if(registers[index].read_only) {
                     printf("ERROR: %s is read-only and cannot be written\n",registers[index].name );
                     return -2;
                 }
-                if( (!registers[index].is_signed) && (s_value<0) ) {
-                    printf("ERROR: %s is not a signed register and you tried to sed value %d\n",registers[index].name, s_value );
-                    return -2;
-                }
-                write_reg(index, s_value);
+                write_reg(index, s_value, is_signed);
 
                 jj++; // skip value
             }else{
                 // There's no next or it's not a number. Must be a read operation
-                read_reg(index);
+                read_reg(index, is_signed);
             }
         }
     }else{
         // Just print all the values
         for(jj=0; jj<PARAMS_NUM ; jj++){
-            read_reg(jj);
+            read_reg(jj, registers[jj].is_signed);
             //printf("%d\n" , lock[jj] );
         }
     }
