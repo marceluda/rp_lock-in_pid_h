@@ -51,11 +51,23 @@ $(CONTROLLERHF):
 
 app: $(CONTROLLERHF)
 
-fpga: red_pitaya.bit
+fpga: red_pitaya.bit fpga.bit
 
 red_pitaya.bit:
 	cd fpga && $(MAKE) out/red_pitaya.bit
 	cp fpga/out/red_pitaya.bit .
+
+fpga.bit:
+	cp fpga/out/red_pitaya.bit ./fpga.bit
+
+fpga.bit.bin:
+	@( \
+		source /tools/Xilinx/Vivado/2020.1/settings64.sh ;\
+		echo -n "all:{ fpga.bit }" > fpga.bif ;\
+		bootgen -image  fpga.bif -arch zynq -process_bitstream bin ;\
+	)
+
+
 
 target/$(APP): red_pitaya.bit $(CONTROLLERHF) index.html
 	mkdir -p target/$(APP)

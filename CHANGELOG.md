@@ -19,3 +19,6 @@ v0.3.8
 - Better remote control
 - ADDED server restart function
 - ADDED some HTML interface features
+
+v0.3.9
+- ADDED support for ecosystem 2.0 of RedPitaya
