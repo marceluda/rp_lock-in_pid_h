@@ -19,12 +19,19 @@ CONTROLLERHF   = controllerhf.so
 CONTROLLER_DBG = controllerhf_dbg.so
 CONTROLLER_RLD = controllerhf_rld.so
 
+# Ecosystem 2.0: the FPGA is loaded from a .bin (fpgautil, called by fpga.sh).
+# bootgen (Vivado 2020.1) converts fpga.bit (a copy of red_pitaya.bit) into fpga.bit.bin.
+FPGA_BIN         = fpga.bit.bin
+BOOTGEN_SETTINGS ?= /tools/Xilinx/Vivado/2020.1/settings64.sh
+
 
 CFLAGS += -DVERSION=$(VER)-$(BUILD_NUMBER) -DREVISION=$(REVISION)
 export CFLAGS
 
 
-.PHONY: clean clean_fpga clean_app clean_target
+# fpga/app are PHONY: with fpga.sh present, make's implicit rule '%: %.sh' would
+# otherwise turn the target 'fpga' (a directory) into 'cat fpga.sh > fpga'
+.PHONY: clean clean_fpga clean_app clean_target fpga app
 
 all: $(CONTROLLERHF) fpga
 
@@ -51,28 +58,27 @@ $(CONTROLLERHF):
 
 app: $(CONTROLLERHF)
 
-fpga: red_pitaya.bit fpga.bit
+fpga: red_pitaya.bit fpga.bit $(FPGA_BIN)
 
 red_pitaya.bit:
 	cd fpga && $(MAKE) out/red_pitaya.bit
 	cp fpga/out/red_pitaya.bit .
 
-fpga.bit:
-	cp fpga/out/red_pitaya.bit ./fpga.bit
+fpga.bit: red_pitaya.bit
+	cp red_pitaya.bit ./fpga.bit
 
-fpga.bit.bin:
-	@( \
-		source /tools/Xilinx/Vivado/2020.1/settings64.sh ;\
-		echo -n "all:{ fpga.bit }" > fpga.bif ;\
-		bootgen -image  fpga.bif -arch zynq -process_bitstream bin ;\
-	)
+# .bit -> .bin for Ecosystem 2.0 (bash: make runs /bin/sh, which has no 'source')
+$(FPGA_BIN): fpga.bit
+	printf "all:{ fpga.bit }" > fpga.bif
+	bash -c '. $(BOOTGEN_SETTINGS) && bootgen -image fpga.bif -arch zynq -process_bitstream bin -w on'
 
 
 
-target/$(APP): red_pitaya.bit $(CONTROLLERHF) index.html
+target/$(APP): red_pitaya.bit $(FPGA_BIN) $(CONTROLLERHF) index.html
 	mkdir -p target/$(APP)
-	cp -r $(CONTROLLERHF) c nginx.conf fpga.conf info css js py red_pitaya.bit index.html target/$(APP)
+	cp -r $(CONTROLLERHF) c nginx.conf fpga.conf fpga.sh $(FPGA_BIN) info css js py red_pitaya.bit index.html target/$(APP)
 	rm target/$(APP)/info/icon_*.png
+	chmod 755 target/$(APP)/fpga.sh  # 2.0 runs it with system(): needs the exec bit (it is 644 in git)
 	cp -r upload_app.sh target/
 	cp -r ../resources target/
 	cp ../CHANGELOG.md ../README.md target/
@@ -104,8 +110,8 @@ clean_app:
 clean_fpga:
 	$(MAKE) -C fpga clean
 	-$(RM) target -rf
-	rm red_pitaya.bit
-	echo "BUILD_NUMBER=$$(( $BUILD_NUMBER + 1 ))" > ../_build_number
+	-$(RM) red_pitaya.bit fpga.bit $(FPGA_BIN)
+	echo "BUILD_NUMBER=$$(( $(BUILD_NUMBER) + 1 ))" > ../_build_number
 
 clean: clean_app clean_fpga clean_target
 
@@ -117,7 +123,7 @@ upload_bit:
 
 upload: target/$(APP)
 	ssh $(RPIP) $(RPOPTS) "PATH_REDPITAYA=/opt/redpitaya /boot/sbin/rw ; rm -rf /opt/redpitaya/www/apps/$(APP) ; mkdir -p /opt/redpitaya/www/apps/$(APP)"
-	cd target/$(APP) ; scp  $(RPSCP) -r controllerhf.so css js py c nginx.conf fpga.conf index.html info red_pitaya.bit  root@$(RPIP):/opt/redpitaya/www/apps/$(APP)/
+	cd target/$(APP) ; scp  $(RPSCP) -r controllerhf.so css js py c nginx.conf fpga.conf fpga.sh $(FPGA_BIN) index.html info red_pitaya.bit  root@$(RPIP):/opt/redpitaya/www/apps/$(APP)/
 
 upload_html: target/$(APP) target_dbg/$(APP)_DEBUG target_rld/$(APP)_RELOAD
 	ssh $(RPIP) $(RPOPTS) "PATH_REDPITAYA=/opt/redpitaya /boot/sbin/rw ; rm -rf /opt/redpitaya/www/apps/$(APP)/{index.html,js,css}"
