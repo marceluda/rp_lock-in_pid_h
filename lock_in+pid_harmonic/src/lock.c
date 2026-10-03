@@ -197,7 +197,15 @@ int lock_update(rp_app_params_t *params)
   //g_lock_reg->ctrl_B                    = (int)params[LOCK_CTRL_B                   ].value;
     g_lock_reg->aux_A                     = (int)params[LOCK_AUX_A                    ].value;
     g_lock_reg->aux_B                     = (int)params[LOCK_AUX_B                    ].value;
-    g_lock_reg->stream_ip                 = (int)params[LOCK_STREAM_IP                ].value;
+    { /* v2.3.10: stream_ip is a full uint32 written exactly by c/lock; params are
+       * float (24-bit mantissa) and (int) of a value >= 2^31 saturates. Write it
+       * only if the param is not the float echo of the register (keep this block
+       * if the FPGAUPDATE dock is regenerated with config_tool.py). */
+        float ip_v = params[LOCK_STREAM_IP].value;
+        if (ip_v != (float)g_lock_reg->stream_ip)
+            g_lock_reg->stream_ip = (ip_v <= 0.0f) ? 0u :
+                                    (ip_v >= 4294967296.0f) ? 0xffffffffu : (uint32_t)ip_v;
+    }
     g_lock_reg->stream_port               = (int)params[LOCK_STREAM_PORT              ].value;
     g_lock_reg->stream_rate               = (int)params[LOCK_STREAM_RATE              ].value;
     g_lock_reg->stream_cmd                = (int)params[LOCK_STREAM_CMD               ].value;

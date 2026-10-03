@@ -6,6 +6,18 @@ This started being a striped version of [lock-in+PID](https://github.com/marcelu
 [![Example of usage](http://img.youtube.com/vi/330eYE75MYQ/0.jpg)](http://www.youtube.com/watch?v=330eYE75MYQ "Fast demosatration of usage")
 
 
+## Version 2.3.10 (Ecosystem 2.0)
+
+Current version: **2.3.10**
+
+This version is **the same as v0.3.10, but with the FPGA design built in Vivado 2020.1**,
+using the project structure of [RedPitaya-FPGA](https://github.com/RedPitaya/RedPitaya-FPGA).
+It is intended for the Red Pitaya **Ecosystem 2.0** (e.g. `RedPitaya_OS_2.04`).
+
+- Web interface and C controller: same as v0.3.10 (still built with Vivado 2015.2 SDK + Linaro toolchain).
+- FPGA: ported to Vivado 2020.1 (see [Building](#building)).
+
+
 ## Features
 
 - Lock-in amplifier
@@ -57,8 +69,9 @@ https://marceluda.github.io/rp_lock-in_pid/TheApp/install/
 # Development
 
 To build of modify the App you need a linux development environment with:
-  - Vivado 2015.2
+  - Vivado 2015.2 (for the C controller / web App)
   - gcc-linaro-4.9-2015.02-3-x86_64_arm-linux-gnueabihf (installed on `/opt/linaro/gcc-linaro-4.9-2015.02-3-x86_64_arm-linux-gnueabihf/`)
+  - Vivado 2020.1 (for the FPGA design, since version 2.3.10)
 
 
 The App was based on code from project:
@@ -134,11 +147,23 @@ For web controller building:
 make app
 ```
 
-For FPGA implementation:
+For FPGA implementation (versions 0.x, Vivado 2015.2):
 
 ```bash
 make fpga
 ```
+
+**FPGA implementation for version 2.3.10 (Ecosystem 2.0):** the FPGA design now
+follows the [RedPitaya-FPGA](https://github.com/RedPitaya/RedPitaya-FPGA) project
+structure and **requires Vivado 2020.1**. Build it from the `lock_in+pid_harmonic/fpga` folder:
+
+```bash
+source /tools/Xilinx/Vivado/2020.1/settings64.sh
+cd lock_in+pid_harmonic/fpga
+make
+```
+
+The C controller and web App are still built as before (Vivado 2015.2 + Linaro toolchain).
 
 
 For tar.gz packaging

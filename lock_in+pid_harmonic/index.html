@@ -16,7 +16,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Harmonic lock-in+PID (v0.3.10)</title>
+  <title>Harmonic lock-in+PID (v2.3.10)</title>
   <link href="../assets/bootstrap-3.0.0/css/bootstrap.css" rel="stylesheet" type="text/css">
   <link href="../assets/style.css?6" rel="stylesheet" type="text/css">
   <script src="../assets/bootstrap-3.0.0/js/jquery.js"></script>
@@ -111,6 +111,7 @@
   var scope_stop = false;
   var sending = false;
   var send_que = false;
+  var single_que = false;  // a Single click arrived while a POST was in flight: send it when the POST ends
   var use_long_timeout = false;
   var trig_dragging = false;
   var touch_last_y = 0;
@@ -124,6 +125,18 @@
   var claim_unknown_count = 0;           // Consecutive /get_client_id checks without answer
   var start_retries = 3;                 // bazaar?start attempts (2.0: the worker may die during the start)
   var state_key = 'lockin_state_' + app_id;  // sessionStorage key of the last server-confirmed settings
+  // Transient commands: never saved in the state nor restored by Restart; forced to 0 by restoreState()
+  // and Config -> load (a restored stream_cmd = 1 froze the scope after a Restart: the worker leaves the
+  // scope to c/stream_tcp_osc_cmd while it is != 0). lock_stream_ip is handled apart (see stream_ip_exact).
+  var state_transient_zero = ['lock_stream_cmd', 'lock_ctrl_aux_lock_now', 'lock_ctrl_aux_launch_lock_trig'];
+  // Streaming IP as an exact uint32. The server params are float (24-bit mantissa): its echo of
+  // 3089104906 (10.0.32.184) is 3089104896 (0.0.32.184). Set when the user enters the IP, saved in the
+  // state as state_stream_ip and written back with GET /lock?stream_ip= after a Restart. 0 = unknown.
+  var stream_ip_exact = 0;
+  // sessionStorage flag: Restart after onControlLost() -> restoreState() even if our App is still loaded
+  // (another tab of this same App took control). While set, saveState() does not overwrite state_key.
+  var restore_pending_key = 'lockin_restore_pending_' + app_id;
+  var restart_restores = false;          // The Restart button of the shown modal comes from onControlLost()
   // Read-only params that the display uses but that are not saved in a config (config_params_keys).
   // When they are missing (e.g. loading a saved config) the previous values of params.local are kept.
   var display_keep_keys = ('meas_min_ch1,meas_max_ch1,meas_amp_ch1,meas_avg_ch1,meas_freq_ch1,meas_per_ch1,'+
@@ -1105,6 +1118,7 @@
     });
 
     $('.btn-app-restart').on('click', function() {
+      if(restart_restores) setRestorePending(true);  // "took control" modal: restore after the reload
       location.reload();
     });
 
@@ -1354,6 +1368,7 @@
             $(this).parent().removeClass('input-group');
             if(ValidateIPaddress($(this).val())) {
               params.local[iname] = IPtoInt32($(this).val()) ;
+              stream_ip_exact     = params.local[iname] ;   // exact value for saveState()
               //sendParams();
               $.get( "lock",  { stream_ip: params.local[iname] }).done( function( data ) {
                 console.log(data);
@@ -1450,6 +1465,7 @@
         $.get( "check_streaming", function check_streaming( data ) {
           //console.log("check_streaming:"+data);
           if( parseInt(data) == 0 ){  // if process is active:
+              $('#disp_stream_status').removeClass('label-danger').addClass('label-info');
               $('#stream_connect').removeClass('btn-default').addClass('btn-primary');
               setTimeout( function(){ $.get( "check_streaming", check_streaming ) } , 500  );
           }else if(parseInt(data)<0){
@@ -1676,6 +1692,7 @@
 
     // Load first data
     if(window.location.href[0]!='f'){
+      initStreamIp();  // Exact streaming IP of the last state of this tab (survives Restart without restore)
       claimBoard().always(resumeApp);  // Claim, then probe which App is loaded before any GET /data
     } else{
       $('#bottom_panel').find('select').prop('disabled', false); // LOLO lock panel
@@ -1718,7 +1735,7 @@
     for (jj = 0; jj < 4 ; ++jj) {
         rta = rta + (  parseInt(ip_array[jj])<<(jj*8)  ) ;
     }
-    return (rta) ;
+    return (rta >>> 0) ;  // unsigned 32 bits (c/lock parses stream_ip as uint32)
   }
 
   function Int32toIP(IP){
@@ -2596,7 +2613,10 @@
   // Page load and Retry button: GET /data only if our App is the loaded one, otherwise start it
   function resumeApp() {
     probeApp().done(function(id) {
-      if(id === app_id) { app_started = true; control_lost = false; updateGraphData(); }  // already running: keep its state
+      if(id === app_id) {
+        if(isRestorePending()) { restoreState(); }  // Restart after onControlLost(): restore, no stop/start
+        else { readStreamIp(); app_started = true; control_lost = false; updateGraphData(); }  // already running: keep its state
+      }
       else { startApp(1, id); }
     });
   }
@@ -2621,26 +2641,122 @@
     }
     showModalError('Another client (main menu or another App) took control of the Red Pitaya.<br>' +
                    'Press Restart to take it back: your last settings will be restored.', false, true);
+    restart_restores = true;  // after showModalError(), which clears it
+  }
+
+  function isRestorePending() {
+    try { return sessionStorage.getItem(restore_pending_key) === '1'; } catch(e) { return false; }
+  }
+
+  function setRestorePending(on) {
+    try {
+      if(on) sessionStorage.setItem(restore_pending_key, '1');
+      else   sessionStorage.removeItem(restore_pending_key);
+    } catch(e) {}
+  }
+
+  // Last saved state of this tab (or null)
+  function loadSavedState() {
+    var saved = null;
+    try { saved = JSON.parse(sessionStorage.getItem(state_key)); } catch(e) {}
+    return (saved && typeof saved === 'object') ? saved : null;
+  }
+
+  // Valid exact streaming IP (uint32 > 0) or 0
+  function validStreamIp(v) {
+    v = Number(v);
+    return (v >= 1 && v <= 4294967295 && Math.floor(v) === v) ? v : 0;
+  }
+
+  // Page load: stream_ip_exact and the IP input from the saved state of this tab. Without it a Restart that
+  // finds our App still loaded (no restoreState()) left stream_ip_exact = 0, and saveState() then dropped
+  // state_stream_ip: the next real restart wrote 0 to the register (testAgent 2026-10-03 16:25).
+  function initStreamIp() {
+    var saved = loadSavedState();
+    var ip = saved ? validStreamIp(saved.state_stream_ip) : 0;
+    if(ip) {
+      stream_ip_exact = ip;
+      $('#lock_stream_ip').val( Int32toIP(ip) );
+    }
+  }
+
+  // App already running: the register is the reference (exact uint32 through GET /lock?stream_ip). The float
+  // echo of /data is not used (inexact). Register 0 or no answer: the value of initStreamIp() is kept.
+  // No cache:false here: its '_=' arg would reach c/lock as an unknown register name.
+  function readStreamIp() {
+    $.ajax({ url: 'lock?stream_ip', timeout: 3000, dataType: 'text', headers: { 'Cache-Control': 'no-cache' } })
+    .done(function(txt) {
+      var m = /stream_ip:(\d+)/.exec(String(txt));
+      var ip = m ? validStreamIp(m[1]) : 0;
+      if(ip && !$('#lock_stream_ip').is(':focus')) {
+        stream_ip_exact = ip;
+        $('#lock_stream_ip').val( Int32toIP(ip) );
+      }
+    })
+    .fail(function() { console.log('readStreamIp: could not read the streaming IP register'); });
   }
 
   // Last server-confirmed user settings (same keys as Config save). sessionStorage: per tab, survives
   // location.reload() (Restart), is not shared with other tabs and is cleared when the tab is closed.
   function saveState(srv, force) {
     if(!srv || (force !== true && Date.now() - last_state_save < 2000)) return;
+    if(isRestorePending()) return;  // Keep the state to restore (the board may have another tab's settings)
+    // Values that cannot be taken from this answer keep the previously saved ones (never dropped)
+    var prev = loadSavedState() || {};
     var s = {};
     for(var i in config_params_keys) {
       var k = config_params_keys[i];
       if(srv[k] !== null && srv[k] !== undefined && isFinite(srv[k])) s[k] = Number(srv[k]);
+      else if(prev[k] !== undefined && isFinite(prev[k]))               s[k] = Number(prev[k]);
+    }
+    // Transient commands and the float echo of the streaming IP are not saved (see state_transient_zero).
+    for(var ti = 0; ti < state_transient_zero.length; ti++) delete s[ state_transient_zero[ti] ];
+    delete s.lock_stream_ip;
+    // Exact streaming IP, only while the server echo still matches it (a float32 of a value < 2^32 is
+    // within 128 of it). Otherwise (stream_ip_exact unknown, or the register changed by someone else: c/lock,
+    // another tab) the previously saved exact IP is kept: it must not be dropped (see initStreamIp()).
+    var ip_srv = Number(srv.lock_stream_ip);
+    if(stream_ip_exact > 0 && isFinite(ip_srv) && Math.abs(ip_srv - stream_ip_exact) <= 256)
+      s.state_stream_ip = stream_ip_exact;
+    else if(validStreamIp(prev.state_stream_ip))
+      s.state_stream_ip = validStreamIp(prev.state_stream_ip);
+    // Time scale: xmin/xmax are in [time_units] (0 us, 1 ms, 2 s), which the server picks from the decimation.
+    // Also saved in seconds: restoreState() converts them to the units the server uses after the restart.
+    var tu = Number(srv.time_units);
+    if(isFinite(srv.xmin) && isFinite(srv.xmax) && (tu === 0 || tu === 1 || tu === 2) &&
+       Number(srv.xmax) > Number(srv.xmin)) {
+      s.state_xmin_s = Number(srv.xmin) / timeUnitFactor(tu);
+      s.state_xmax_s = Number(srv.xmax) / timeUnitFactor(tu);
+    }
+    else if(isFinite(prev.state_xmin_s) && isFinite(prev.state_xmax_s) && Number(prev.state_xmax_s) > Number(prev.state_xmin_s)) {
+      s.state_xmin_s = Number(prev.state_xmin_s);
+      s.state_xmax_s = Number(prev.state_xmax_s);
     }
     try { sessionStorage.setItem(state_key, JSON.stringify(s)); last_state_save = Date.now(); } catch(e) {}
   }
 
+  // GUI time units (0 us, 1 ms, 2 s) -> factor from seconds (same as the server: 10^(3*(2-time_units)))
+  function timeUnitFactor(tu) {
+    return Math.pow(10, 3 * (2 - tu));
+  }
+
   // After each start: send def_params + the saved state (the server side App starts with its static defaults)
   function restoreState() {
-    var p = $.extend({}, def_params), saved = null;
-    try { saved = JSON.parse(sessionStorage.getItem(state_key)); } catch(e) {}
+    var p = $.extend({}, def_params), saved = loadSavedState(), x_s = null, ip_restore = 0;
     if(saved) {
       $.extend(p, saved);
+      // Time scale saved in seconds: sent last, converted to the server units (see below). The saved
+      // xmin/xmax are in the units of the old session, which the restarted server may not be using.
+      if(isFinite(saved.state_xmin_s) && isFinite(saved.state_xmax_s) && saved.state_xmax_s > saved.state_xmin_s) {
+        x_s = [ Number(saved.state_xmin_s), Number(saved.state_xmax_s) ];
+        delete p.xmin;
+        delete p.xmax;
+      }
+      delete p.state_xmin_s;
+      delete p.state_xmax_s;
+      // Exact streaming IP: written with GET /lock?stream_ip= after the POSTs (not as a float param)
+      ip_restore = validStreamIp(saved.state_stream_ip);
+      delete p.state_stream_ip;
       /* LOLO load_config_block_start */
       // Same safety rule as Config -> load: an unexpected restart should not close the loops by itself
       if(load_config_block_start == 1) {
@@ -2652,15 +2768,39 @@
         p.lock_ctrl_aux_launch_lock_trig = 0;   // lock_control[1]: would arm the lock trigger
       }
     }
+    // Always (also with states saved by older versions): transient commands to 0, no float streaming IP
+    for(var ti = 0; ti < state_transient_zero.length; ti++) p[ state_transient_zero[ti] ] = 0;
+    delete p.lock_stream_ip;
+    // With a saved exact IP: also posted (as the IP input does), so that the server param holds its float
+    // value and the controller does not overwrite the exact register written by /lock afterwards (it
+    // writes stream_ip only when the param differs from the float of the register, see src/lock.c)
+    if(ip_restore) p.lock_stream_ip = ip_restore;
     // Split in several sequential POSTs if needed (Ecosystem 2.0 hangs with big POST bodies)
     postParamsChunks(splitParams(p), post_chunk_timeout, post_chunk_retries)
+    .then(function(dresult) {
+      // Time scale last, in the units the server uses now (time_units is read-only on the server side). The
+      // server picks the decimation from it and, if the units change, forces the new range (forcex_flag).
+      var srv = (dresult && dresult.datasets) ? dresult.datasets.params : null;
+      if(!x_s || !srv || !isFinite(srv.time_units)) return dresult;
+      var f = timeUnitFactor(Number(srv.time_units));
+      return postParamsChunks([ { xmin: x_s[0] * f, xmax: x_s[1] * f } ], post_chunk_timeout, post_chunk_retries);
+    })
     .done(function() {
+      setRestorePending(false);
+      if(ip_restore) {
+        // Exact uint32 through c/lock (as the IP input does); the server echo then reads it back
+        stream_ip_exact = ip_restore;
+        $('#lock_stream_ip').val( Int32toIP(ip_restore) );
+        $.get( "lock", { stream_ip: ip_restore } )
+        .fail(function() { console.log('restoreState: could not restore the streaming IP'); });
+      }
       app_started = true;
       control_lost = false;
       auto_restarts = 0;
       updateGraphData();
     })
     .fail(function() {
+      setRestorePending(false);
       showModalError('Could not restore the application parameters.', false, true);
     });
   }
@@ -2704,6 +2844,7 @@
   function showModalError(err_msg, retry_btn, restart_btn, ignore_btn) {
     var err_modal = $('#modal_err');
 
+    restart_restores = false;  // onControlLost() sets it again after this call
     err_modal.find('#btn_retry_get')[retry_btn ? 'show' : 'hide']();
     err_modal.find('.btn-app-restart')[restart_btn ? 'show' : 'hide']();
     err_modal.find('#btn_ignore')[ignore_btn ? 'show' : 'hide']();
@@ -3416,6 +3557,12 @@
     }
     if(sending ||(force_send !== true && !isParamChanged())) {
       send_que = sending;
+      // v2.3.10: do not lose a Single click made while another POST is in flight
+      // (e.g. the one of the trig_mode change: the first Single after switching
+      // to Single mode gave no trace)
+      if(sending && single_btn === true) {
+        single_que = true;
+      }
       return;
     }
 
@@ -3485,6 +3632,7 @@
       else if(dresult.status == 'ERROR') {
         showModalError((dresult.reason ? dresult.reason : 'Error while sending data (E1).'), false, true, true);
         send_que = false;
+        single_que = false;
       }
       else {
         showModalError('Error while sending data (E2).', false, true, true);
@@ -3500,8 +3648,15 @@
 
       if(send_que) {
         send_que = false;
+        var do_single = single_que;
+        single_que = false;
         setTimeout(function(refresh_data) {
-          sendParams(refresh_data);
+          if(do_single) {
+            sendParams(true, true, true);
+          }
+          else {
+            sendParams(refresh_data);
+          }
         }, 100);
       }
     });
@@ -4407,6 +4562,14 @@
       params.storage[num].data['lock_ctrl_aux_launch_lock_trig']   = 0 ;  // would arm the lock trigger
     }
     // */
+    // Transient commands are never loaded from a config (a saved stream_cmd = 1 would freeze the scope),
+    // and the saved streaming IP is a float echo (inexact): the current one is kept.
+    for(var ti = 0; ti < state_transient_zero.length; ti++)
+      params.storage[num].data[ state_transient_zero[ti] ] = 0 ;
+    if(params.local && params.local.lock_stream_ip !== undefined)
+      params.storage[num].data['lock_stream_ip'] = params.local.lock_stream_ip ;
+    else
+      delete params.storage[num].data['lock_stream_ip'] ;
     user_editing = true;
     //sending = true;
 
@@ -4594,7 +4757,7 @@
     <div class="container">
       <a id="btn_exit" class="pull-left" href="/index.html"><span class="glyphicon glyphicon-chevron-left" title="Exit" alt="Exit"></span></a>
       <img class="logo pull-left" src="../assets/images/logo_white.png">
-      <h2 class="page-title">Harmonic lock-in+PID (v0.3.10)</h2>
+      <h2 class="page-title">Harmonic lock-in+PID (v2.3.10)</h2>
     </div>
   </div>
   <div class="container">

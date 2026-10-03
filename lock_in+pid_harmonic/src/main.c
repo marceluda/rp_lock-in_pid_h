@@ -20,6 +20,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <errno.h>
+#include <signal.h>
+#include <dirent.h>
 
 #include "main.h"
 #include "version.h"
@@ -29,6 +31,7 @@
 #include "generate.h"
 #include "pid.h"
 #include "lock.h"
+#include "fpga_lock.h"
 
 
 /* Describe app. parameters with some info/limitations */
@@ -499,9 +502,86 @@ int rp_app_init(void)
     return 0;
 }
 
+/* v2.3.10: send sig to every c/streaming (from first = 0) and c/stream_tcp_osc_cmd of this App.
+ * Returns how many were found alive (zombies are not counted). */
+static int stream_procs_scan(int sig, unsigned first)
+{
+    static const char *names[] = { "/lock_in+pid_harmonic/c/streaming",
+                                   "/lock_in+pid_harmonic/c/stream_tcp_osc_cmd" };
+    char path[64], exe[512];
+    int  found = 0;
+    unsigned i;
+    DIR *d = opendir("/proc");
+    if(!d)
+        return 0;
+    struct dirent *e;
+    while((e = readdir(d)) != NULL) {
+        char *end;
+        long pid = strtol(e->d_name, &end, 10);
+        if(*end != '\0' || pid <= 1 || pid == (long)getpid())
+            continue;
+        snprintf(path, sizeof(path), "/proc/%ld/exe", pid);
+        ssize_t n = readlink(path, exe, sizeof(exe) - 1);   /* fails for zombies */
+        if(n <= 0)
+            continue;
+        exe[n] = '\0';
+        for(i = first; i < sizeof(names)/sizeof(names[0]); i++) {
+            size_t ln = strlen(names[i]);
+            char  *p  = strstr(exe, names[i]);
+            /* exact name (optionally followed by " (deleted)") */
+            if(p && (p[ln] == '\0' || p[ln] == ' ')) {
+                kill((pid_t)pid, sig);
+                found++;
+                break;
+            }
+        }
+    }
+    closedir(d);
+    return found;
+}
+
+static int stream_procs_signal(int sig)
+{
+    return stream_procs_scan(sig, 0);
+}
+
+/* Used by the worker: after stream_cmd goes to 0 it waits for c/stream_tcp_osc_cmd to end
+ * before touching the scope again. */
+int stream_tcp_alive(void)
+{
+    return stream_procs_scan(0, 1);
+}
+
+/* v2.3.10: stop the streaming before leaving the App. c/streaming and c/stream_tcp_osc_cmd
+ * read the PL through /dev/mem: if they were still running when Ecosystem 2.0 loads the
+ * FPGA of another App, a read during the reprogramming can hang the board. */
+static void stream_stop_all(void)
+{
+    if(g_lock_reg)
+        *(volatile uint32_t *)&g_lock_reg->stream_cmd = 0;   /* c/streaming stops its child too */
+
+    int i, n = stream_procs_signal(SIGTERM);
+    if(n == 0)
+        return;
+    fprintf(stderr, "rp_app_exit: stopping %d streaming process(es)\n", n);
+    /* up to 0.5 s for a clean exit, then SIGKILL and up to 0.5 s more */
+    for(i = 0; i < 50 && stream_procs_signal(0) > 0; i++)
+        usleep(10000);
+    if(stream_procs_signal(SIGKILL) > 0) {
+        for(i = 0; i < 50 && stream_procs_signal(0) > 0; i++)
+            usleep(10000);
+        n = stream_procs_signal(0);
+        if(n > 0)
+            fprintf(stderr, "rp_app_exit: %d streaming process(es) still alive\n", n);
+    }
+}
+
 int rp_app_exit(void)
 {
     fprintf(stderr, "Unloading scope (with gen+pid+lock extensions) version %s-%s.\n", VERSION_STR, REVISION_STR);
+
+    TRACE("LOLO(rp_app_exit): Now: stream_stop_all\n");
+    stream_stop_all();
 
     TRACE("LOLO(rp_app_exit): Now: rp_osc_worker_exit\n");
     rp_osc_worker_exit();
@@ -786,6 +866,7 @@ int rp_set_params(rp_app_params_t *p, int len)
     int awg_params_change = 0;
     int pid_params_change = 0;
     int lock_params_change = 0;
+    int got_xmin = 0, got_xmax = 0;
 
 
     TRACE("%s()\n", __FUNCTION__);
@@ -824,6 +905,9 @@ int rp_set_params(rp_app_params_t *p, int len)
         if(rp_main_params[p_idx].read_only)
             continue;
 
+        if(p_idx == MIN_GUI_PARAM) got_xmin = 1;
+        if(p_idx == MAX_GUI_PARAM) got_xmax = 1;
+
         if(rp_main_params[p_idx].value != p[i].value) {
             if(p_idx < PARAMS_AWG_PARAMS)
                 params_change = 1;
@@ -856,7 +940,15 @@ int rp_set_params(rp_app_params_t *p, int len)
 
         pthread_mutex_lock(&rp_main_params_mutex);
         /* Xmin & Xmax public copy to be served to clients */
-        /* p may be a partial list (split POSTs): use the values already copied by name in the loop above */
+        /* p may be a partial list (split POSTs): use the values already copied by name in the loop above.
+         * xmin/xmax not in this POST: after the previous rp_set_params() the MIN/MAX_GUI_PARAM slots hold
+         * the worker window in seconds (see "write back" below), not GUI units, and transform_acq_params()
+         * would read them as [time_units] (e.g. 131 us -> 0.000131072 us after a restore without xmin/xmax).
+         * Use the last GUI values instead (GUI_XMIN/GUI_XMAX, in the current TIME_UNIT_PARAM). */
+        if(!got_xmin)
+            rp_main_params[MIN_GUI_PARAM].value = rp_main_params[GUI_XMIN].value;
+        if(!got_xmax)
+            rp_main_params[MAX_GUI_PARAM].value = rp_main_params[GUI_XMAX].value;
         rp_main_params[GUI_XMIN].value = rp_main_params[MIN_GUI_PARAM].value;
         rp_main_params[GUI_XMAX].value = rp_main_params[MAX_GUI_PARAM].value;
         transform_acq_params(rp_main_params);

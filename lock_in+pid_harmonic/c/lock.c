@@ -194,6 +194,24 @@ str2int_errno str2int(int32_t *out, char *s, int base) {
     return STR2INT_SUCCESS;
 }
 
+/* Convert string s to an unsigned 32-bit value (strtoul).
+ * Same rules as str2int; a leading '-' is inconvertible.
+ * Needed for 32-bit unsigned registers such as stream_ip: an IP with the
+ * last octet >= 128 is > INT32_MAX and str2int() rejects it. */
+str2int_errno str2uint(uint32_t *out, char *s, int base) {
+    char *end;
+    if (s[0] == '\0' || isspace(s[0]) || s[0] == '-')
+        return STR2INT_INCONVERTIBLE;
+    errno = 0;
+    unsigned long l = strtoul(s, &end, base);
+    if (errno == ERANGE || l > UINT32_MAX)
+        return STR2INT_OVERFLOW;
+    if (*end != '\0')
+        return STR2INT_INCONVERTIBLE;
+    *out = (uint32_t) l;
+    return STR2INT_SUCCESS;
+}
+
 
 //***************************************************************************
 
@@ -215,7 +233,10 @@ int32_t   *lock ;
  *
  **/
 void read_reg(int index){
-    printf("%s:%d\n" , registers[index].name , lock[index] );
+    if(registers[index].is_signed)
+        printf("%s:%d\n" , registers[index].name , lock[index] );
+    else
+        printf("%s:%u\n" , registers[index].name , (uint32_t) lock[index] );
 }
 
 
@@ -228,9 +249,9 @@ void read_reg(int index){
  * @return Returns the register value
  *
  **/
-void write_reg(int index, int32_t val ){
-    lock[index] = val ;
-    printf("%s:%d\n" , registers[index].name , lock[index] );
+void write_reg(int index, uint32_t val ){
+    lock[index] = (int32_t) val ;
+    read_reg(index);
 }
 
 
@@ -296,18 +317,38 @@ int main(int argc, char *argv[]) {
                 return -1 ;
             }
 
-            if( (jj+1<argc) &&  (str2int(&s_value, argv[jj+1], 10)==STR2INT_SUCCESS)   ){
+            // Next arg is a number? Signed registers: int32 (str2int).
+            // Unsigned registers: uint32 (str2uint, e.g. stream_ip with the last
+            // octet >= 128); a negative int32 is accepted only for full 32-bit
+            // registers (raw two's complement bits, as sent by older UIs).
+            int is_num = 0 ;
+            int is_neg = 0 ;
+            uint32_t w_value = 0 ;
+            if( jj+1<argc ){
+                if( (!registers[index].is_signed) &&
+                    (str2uint(&u_value, argv[jj+1], 10)==STR2INT_SUCCESS) ){
+                    is_num  = 1 ;
+                    w_value = u_value ;
+                } else if( str2int(&s_value, argv[jj+1], 10)==STR2INT_SUCCESS ){
+                    is_num  = 1 ;
+                    is_neg  = (s_value<0) ;
+                    w_value = (uint32_t) s_value ;
+                }
+            }
+
+            if( is_num ){
                 // Next arg is a number. Must be a write operation
 
                 if(registers[index].read_only) {
                     printf("ERROR: %s is read-only and cannot be written\n",registers[index].name );
                     return -2;
                 }
-                if( (!registers[index].is_signed) && (s_value<0) ) {
+                if( (!registers[index].is_signed) && is_neg &&
+                    (registers[index].max_val < 4294967295.0f) ) {
                     printf("ERROR: %s is not a signed register and you tried to sed value %d\n",registers[index].name, s_value );
                     return -2;
                 }
-                write_reg(index, s_value);
+                write_reg(index, w_value);
 
                 jj++; // skip value
             }else{

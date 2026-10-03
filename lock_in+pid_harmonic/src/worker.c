@@ -23,6 +23,7 @@
 
 #include "worker.h"
 #include "fpga.h"
+#include "fpga_lock.h"
 
 pthread_t *rp_osc_thread_handler = NULL;
 void *rp_osc_worker_thread(void *args);
@@ -232,6 +233,7 @@ void *rp_osc_worker_thread(void *args)
     int                   time_vect_update = 0;
     uint32_t              trig_source = 0;
     int                   params_dirty = 0;
+    int                   stream_was_on = 0;   /* stream_cmd was != 0 (see the loop) */
 
     /* Long acquisition special function */
     int long_acq = 0; /* long_acq if acq_time > 1 [s] */
@@ -291,6 +293,28 @@ void *rp_osc_worker_thread(void *args)
         if(state == rp_osc_quit_state) {
             rp_clean_params(curr_params);
             return 0;
+        }
+
+        /* v2.3.10: while streaming (lock stream_cmd != 0) c/stream_tcp_osc_cmd owns the
+         * scope (it resets and arms it and follows its write pointer): do not reset, arm or
+         * configure it here. Pending changes (fpga_update) are applied when streaming stops. */
+        if(g_lock_reg && *(volatile uint32_t *)&g_lock_reg->stream_cmd) {
+            stream_was_on = 1;
+            usleep(10000);
+            continue;
+        }
+        /* v2.3.10-13: stream_cmd went 1 -> 0 (Stop). c/stream_tcp_osc_cmd sees it and ends by
+         * itself after its current read (it drops a block read after the change); wait for it
+         * (at least 50 ms, at most 500 ms) so that the scope is not reconfigured under its last
+         * read: that corrupted the last ~9000-16000 samples of each streaming. */
+        if(stream_was_on) {
+            int w;
+            stream_was_on = 0;
+            usleep(50000);
+            for(w = 0; w < 45 && stream_tcp_alive() > 0; w++)
+                usleep(10000);
+            if(stream_tcp_alive() > 0)
+                fprintf(stderr, "worker: c/stream_tcp_osc_cmd still running 0.5 s after stream_cmd = 0\n");
         }
 
 
@@ -1000,8 +1024,9 @@ int rp_osc_auto_set(rp_app_params_t *orig_params,
 
         /* Get the signals - available at rp_fpga_chX_signal vectors */
         for(smpl_cnt = 0; smpl_cnt < OSC_FPGA_SIG_LEN; smpl_cnt++) {
-            int cha_smpl = rp_fpga_cha_signal[smpl_cnt];
-            int chb_smpl = rp_fpga_chb_signal[smpl_cnt];
+            /* keep the 14 ADC bits (2.0 FPGA: 16-bit sign-extended samples) */
+            int cha_smpl = rp_fpga_cha_signal[smpl_cnt] & ((1<<c_osc_fpga_adc_bits)-1);
+            int chb_smpl = rp_fpga_chb_signal[smpl_cnt] & ((1<<c_osc_fpga_adc_bits)-1);
 
             // TWO'S COMPLEMENT
             // LOLO
@@ -1307,7 +1332,9 @@ int rp_osc_meas_clear(rp_osc_meas_res_t *ch_meas)
 /*----------------------------------------------------------------------------------*/
 inline int rp_osc_adc_sign(int in_data)
 {
-    int s_data = in_data;
+    /* 14-bit sample (0.9x) or 16-bit sign-extended sample (2.0 FPGA of
+     * v2.3.10): keep the 14 ADC bits before converting (see fpga.c). */
+    int s_data = in_data & ((1<<c_osc_fpga_adc_bits)-1);
     if(s_data & (1<<(c_osc_fpga_adc_bits-1)))
         s_data = -1 * ((s_data ^ ((1<<c_osc_fpga_adc_bits)-1)) + 1);
     return s_data;

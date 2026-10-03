@@ -19,10 +19,14 @@ CONTROLLERHF   = controllerhf.so
 CONTROLLER_DBG = controllerhf_dbg.so
 CONTROLLER_RLD = controllerhf_rld.so
 
-# Ecosystem 2.0: the FPGA is loaded from a .bin (fpgautil, called by fpga.sh).
-# bootgen (Vivado 2020.1) converts fpga.bit (a copy of red_pitaya.bit) into fpga.bit.bin.
-FPGA_BIN         = fpga.bit.bin
-BOOTGEN_SETTINGS ?= /tools/Xilinx/Vivado/2020.1/settings64.sh
+# FPGA: Vivado 2020.1, RedPitaya-FPGA structure (fpga/, project v0.94, model Z10).
+# fpga/Makefile loads Vivado 2020.1 by itself in a clean environment, so it does
+# not mix with the Vivado 2015.2 + Linaro environment of ../settings.sh used for C.
+# It produces red_pitaya.bit and, with bootgen, fpga.bit.bin (Ecosystem 2.0:
+# loaded with fpgautil by fpga.sh).
+FPGA_BIN  = fpga.bit.bin
+FPGA_PRJ ?= v0.94
+FPGA_OUT  = fpga/prj/$(FPGA_PRJ)/out
 
 
 CFLAGS += -DVERSION=$(VER)-$(BUILD_NUMBER) -DREVISION=$(REVISION)
@@ -31,9 +35,9 @@ export CFLAGS
 
 # fpga/app are PHONY: with fpga.sh present, make's implicit rule '%: %.sh' would
 # otherwise turn the target 'fpga' (a directory) into 'cat fpga.sh > fpga'
-.PHONY: clean clean_fpga clean_app clean_target fpga app
+.PHONY: clean clean_fpga clean_app clean_target fpga app c_tools
 
-all: $(CONTROLLERHF) fpga
+all: $(CONTROLLERHF) c_tools fpga
 
 $(CONTROLLERHF):
 	$(MAKE) -C src clean
@@ -56,25 +60,30 @@ $(CONTROLLERHF):
 	cp src/main.c src/main_$(CONTROLLERHF)_.c
 
 
-app: $(CONTROLLERHF)
+app: $(CONTROLLERHF) c_tools
+
+# Helper tools in c/ (lock, osc, streaming, stream_tcp_osc_cmd): cross compiled with the
+# flags of c/Makefile, so the binaries packaged in target/ always match their sources
+c_tools:
+	$(MAKE) -C c all
 
 fpga: red_pitaya.bit fpga.bit $(FPGA_BIN)
 
 red_pitaya.bit:
-	cd fpga && $(MAKE) out/red_pitaya.bit
-	cp fpga/out/red_pitaya.bit .
+	$(MAKE) -C fpga all PRJ=$(FPGA_PRJ)
+	cp $(FPGA_OUT)/red_pitaya.bit .
 
 fpga.bit: red_pitaya.bit
 	cp red_pitaya.bit ./fpga.bit
 
-# .bit -> .bin for Ecosystem 2.0 (bash: make runs /bin/sh, which has no 'source')
-$(FPGA_BIN): fpga.bit
-	printf "all:{ fpga.bit }" > fpga.bif
-	bash -c '. $(BOOTGEN_SETTINGS) && bootgen -image fpga.bif -arch zynq -process_bitstream bin -w on'
+# .bit -> .bin for Ecosystem 2.0: made by fpga/Makefile (bootgen of Vivado 2020.1)
+$(FPGA_BIN): red_pitaya.bit
+	$(MAKE) -C fpga bin PRJ=$(FPGA_PRJ)
+	cp $(FPGA_OUT)/fpga.bit.bin $(FPGA_BIN)
 
 
 
-target/$(APP): red_pitaya.bit $(FPGA_BIN) $(CONTROLLERHF) index.html
+target/$(APP): red_pitaya.bit $(FPGA_BIN) $(CONTROLLERHF) c_tools index.html
 	mkdir -p target/$(APP)
 	cp -r $(CONTROLLERHF) c nginx.conf fpga.conf fpga.sh $(FPGA_BIN) info css js py red_pitaya.bit index.html target/$(APP)
 	rm target/$(APP)/info/icon_*.png
@@ -103,14 +112,15 @@ clean_target:
 
 clean_app:
 	$(MAKE) -C src clean
+	$(MAKE) -C c clean
 	-$(RM) target -rf
 	-$(RM) *.so
 	echo "BUILD_NUMBER=$$(( $(BUILD_NUMBER) + 1 ))" > ../_build_number
 
 clean_fpga:
-	$(MAKE) -C fpga clean
+	$(MAKE) -C fpga clean PRJ=$(FPGA_PRJ)
 	-$(RM) target -rf
-	-$(RM) red_pitaya.bit fpga.bit $(FPGA_BIN)
+	-$(RM) red_pitaya.bit fpga.bit $(FPGA_BIN) fpga.bif
 	echo "BUILD_NUMBER=$$(( $(BUILD_NUMBER) + 1 ))" > ../_build_number
 
 clean: clean_app clean_fpga clean_target

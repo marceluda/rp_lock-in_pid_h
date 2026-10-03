@@ -133,6 +133,9 @@ str2int_errno str2int(int32_t *out, char *s, int base) {
 int32_t fix_sign(uint32_t value){
     int32_t *rta  = &value  ;
 
+    /* keep the 14 ADC bits: the 2.0 FPGA (v2.3.10) returns the samples
+     * sign-extended to 16 bits, the 0.9x FPGA returns 14 bits */
+    value &= 0x3fff ;
     if((value>>13)==1) value = value + 0xffffc000  ;
     //printf("lolo: %ud %d\n", value , *rta );
     return *rta ;

@@ -322,4 +322,7 @@ int rp_update_meas_data(rp_osc_meas_res_t ch1_meas, rp_osc_meas_res_t ch2_meas);
 /* Waveform generator frequency limiter. */
 float rp_gen_limit_freq(float freq, float gen_type);
 
+/* v2.3.10: number of c/stream_tcp_osc_cmd processes of this App alive (main.c) */
+int stream_tcp_alive(void);
+
 #endif /*  __MAIN_H */
