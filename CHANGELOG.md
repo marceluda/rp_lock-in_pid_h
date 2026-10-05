@@ -110,3 +110,24 @@ v2.3.10
   signals as inputs and lock trigger, filter bypass and streaming decimation controlled by the lock
   (osc_ctrl), slow analog outputs (PWM) driven by the lock, digital modulation / ramp direction
   outputs on exp_n_io[7:6], ASG (0x40200000) and PID (0x40300000) regions answered without error
+
+v2.3.11
+- same web interface fixes as v0.3.11 (FPGA unchanged, same bitstream as v2.3.10)
+  - FIXED second of two quick consecutive changes being lost while a POST was in flight
+    (unsent changes are kept when a POST/GET answer is loaded; Config load during a POST is sent too)
+  - FIXED indicators (R, X, Y, phase, scope) frozen after editing a field (edit timer / edit mode);
+    Escape cancels the edit; leaving a select or checkbox ends the edit mode
+  - FIXED Enter with an out-of-range value sending two POSTs (Enter is prevented, forms use novalidate)
+  - FIXED mouse wheel: no longer sends single_btn (scope stopped), and SHIFT + wheel uses the right sign
+  - FIXED duplicated POST when using the mouse wheel on a focused field
+  - ADDED cautious mode (from rp_lock-in_pid_h2 v0.4.1): if /get_client_id is slow or fails, /data is
+    not requested until the board answers fast again
+  - FIXED cautious mode entered without reason during active use: a single slow/failed /get_client_id
+    is retried at once (cautious only if the retry is slow/fails too), a slow answer overlapping our own
+    POST /data is not measured, and the checks to leave it are 1 s apart (was 3 s)
+  - FIXED endless POST loop (~15 POST/s, it crashed the nginx worker) after Config -> load of a config
+    without some keys (e.g. of another App): missing keys keep their current value, a select without
+    selection never gives NaN, NaN is never a pending change, and sendParams() has an anti-loop guard
+    (no POST without changes < 200 ms after the previous one, at most 10 POST/s)
+  - kept from v2.3.10: the queued Single click (single_que, also combined with a queued Config load),
+    the restore of the time scale and of the exact streaming IP, transient commands never saved

@@ -6,15 +6,16 @@ This started being a striped version of [lock-in+PID](https://github.com/marcelu
 [![Example of usage](http://img.youtube.com/vi/330eYE75MYQ/0.jpg)](http://www.youtube.com/watch?v=330eYE75MYQ "Fast demosatration of usage")
 
 
-## Version 2.3.10 (Ecosystem 2.0)
+## Version 2.3.11 (Ecosystem 2.0)
 
-Current version: **2.3.10**
+Current version: **2.3.11**
 
-This version is **the same as v0.3.10, but with the FPGA design built in Vivado 2020.1**,
+This version is **based on the 0.3.x series (v0.3.11), but with the FPGA design built in Vivado 2020.1**,
 using the project structure of [RedPitaya-FPGA](https://github.com/RedPitaya/RedPitaya-FPGA).
 It is intended for the Red Pitaya **Ecosystem 2.0** (e.g. `RedPitaya_OS_2.04`).
 
-- Web interface and C controller: same as v0.3.10 (still built with Vivado 2015.2 SDK + Linaro toolchain).
+- Web interface and C controller: those of v0.3.11 plus the Ecosystem 2.0 changes of v2.3.10 (see CHANGELOG)
+  (still built with Vivado 2015.2 SDK + Linaro toolchain).
 - FPGA: ported to Vivado 2020.1 (see [Building](#building)).
 
 
