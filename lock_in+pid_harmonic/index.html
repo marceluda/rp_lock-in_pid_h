@@ -16,7 +16,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Harmonic lock-in+PID (v2.3.11)</title>
+  <title>Harmonic lock-in+PID (v2.3.12)</title>
   <link href="../assets/bootstrap-3.0.0/css/bootstrap.css" rel="stylesheet" type="text/css">
   <link href="../assets/style.css?6" rel="stylesheet" type="text/css">
   <script src="../assets/bootstrap-3.0.0/js/jquery.js"></script>
@@ -205,6 +205,10 @@
 
   set_trigger_val=false;
   trigger_just_set=false;
+  // Time units (0 us, 1 ms, 2 s) of the x values of the plotted data (datasets), taken from the same GET /data
+  // answer. "Choose from graph" converts the click with these units, not with params.local.time_units, which a
+  // POST answer (zoom -> forceX) may change before the data in the new units arrive.
+  var plot_time_units = null;
   last_disp_units=false;
   lasttsp=Math.floor((new Date().getTime())/1000);
   last_unit_mode = 0 ;
@@ -1233,33 +1237,18 @@
     });
 
     $('#btn_set_trig').on('click', function() {
+      // v2.3.12: no "Auto-zoom" (it moved the zoom so that t = 0 was on screen): the click is converted from the
+      // absolute time of the x axis, with any zoom / offset / units (see clickToTrigTime()).
+      var tg = trigFromGraphTargets(params.local ? params.local.lock_ctrl_aux_trig_type : 0);
+      if(!tg.time && !tg.level) return;
       $('#btn_set_trig').prop('disabled', true);
-      if( $('#btn_set_trig_auto_zoom').is(':checked') ){
-        user_editing = true;
-        var max_time_val = 2*(params.local.lock_ramp_hig_lim-params.local.lock_ramp_low_lim)*(params.local.lock_ramp_step+1) ;
-        max_time_val = params.local.time_units == 0 ? max_time_val * 8 / 1000       :
-                       params.local.time_units == 1 ? max_time_val * 8 / 1000000    :
-                                                      max_time_val * 8 / 1000000000 ;
-
-
-        params.local.trig_source=2 ;
-        params.local.trig_mode=1 ;
-        params.local.lock_trig_sw=2
-
-        opt=plot.getOptions();
-        opt.xaxes[0].min=0-max_time_val*0.1;
-        opt.xaxes[0].max=max_time_val*1.1;
-
-        params.local.trig_delay=0-max_time_val*0.1;
-        params.local.xmin=0-max_time_val*0.1;
-        params.local.xmax=max_time_val*1.1;
-        params.local.gui_xmin=0-max_time_val*0.1;
-        params.local.gui_xmax=max_time_val*1.1;
-
-        setTimeout(function(){  autoscaleY(); }, update_interval*5 );
-
-        sendParams();
+      var msg = 'Click on the graph to set the ' + (tg.time && tg.level ? 'time and level' : (tg.time ? 'time' : 'level')) + ' trigger';
+      // The time is measured from t = 0 of the scope, which is the scan floor only with this scope trigger
+      if(tg.time && !(params.local.trig_mode != 0 && params.local.trig_source == 2 && params.local.lock_trig_sw == 2)) {
+        msg += '<br><span class="text-danger">Warning: t&nbsp;=&nbsp;0 of the graph is the scan floor only with the scope trigger ' +
+               'in Normal/Single, source External and Oscilloscope Ext&nbsp;Trig = Scan floor</span>';
       }
+      $('#btn_set_trig_msg').html('<small>' + msg + '</small>');
       set_trigger_val=true;
     });
 
@@ -1638,28 +1627,31 @@
 
     $("#plot_holder").on("plotclick", function (event, pos, item) {
         if (set_trigger_val) {
-            var time_raw =pos.x;
-            var level_raw=pos.y;
-
-            var time_val  = Math.round(  time_raw  *( Math.pow(10, (params.local.time_units-2)*3 ) )/8e-9) ;
-            var level_val = params.local.lock_osc_raw_mode==0 ? Math.round(level_raw*8192) : level_raw ;
-
-            var max_time_val = 2*(params.local.lock_ramp_hig_lim-params.local.lock_ramp_low_lim)*(params.local.lock_ramp_step+1) ;
-            time_val         = time_val % max_time_val;
-
-            if(time_val<0) time_val = time_val + max_time_val;
+            // pos.x / pos.y: absolute coordinates of the axes (not relative to the visible window)
+            var tg = trigFromGraphTargets(params.local.lock_ctrl_aux_trig_type);
+            var tu = (plot_time_units !== null ? plot_time_units : params.local.time_units);
+            var time_val  = clickToTrigTime(pos.x, tu, rampPeriodCycles(params.local));
+            var level_val = clickToTrigLevel(pos.y, params.local.lock_osc_raw_mode);
 
             user_editing=false;
             trigger_just_set=true;
-            $('#lock_lock_trig_time_val').val(time_val);
-            params.local.lock_lock_trig_time_val=time_val;
+            // Only the value(s) of the selected trigger type (the Level trigger is no longer overwritten by
+            // the y of a click made for the Time trigger, and vice versa)
+            if(tg.time && time_val !== null) {
+              $('#lock_lock_trig_time_val').val(time_val);
+              params.local.lock_lock_trig_time_val=time_val;
+            }
+            if(tg.level && level_val !== null) {
+              $('#lock_lock_trig_val').val(level_val);
+              params.local.lock_lock_trig_val=level_val;
+            }
+            console.log('Choose from graph: x=' + pos.x + ' [' + ['us','ms','s'][tu] + '] y=' + pos.y +
+                        (tg.time  ? ' -> lock_trig_time=' + time_val  : '') +
+                        (tg.level ? ' -> lock_trig_val='  + level_val : ''));
+            lock_ctrl_update();
+            sendParams();
 
-            $('#lock_lock_trig_val').val(level_val);
-            params.local.lock_lock_trig_val=level_val;
-
-            $('#lock_lock_trig_val').blur();
-
-
+            $('#btn_set_trig_msg').html('');
             $('#btn_set_trig').prop('disabled', false);
             set_trigger_val=false;
         }
@@ -2882,6 +2874,45 @@
     return Math.pow(10, 3 * (2 - tu));
   }
 
+  // [TRIG FROM GRAPH BEGIN] (pure functions, also run by test/trig_from_graph_sim.js)
+  // Ramp period in FPGA clock cycles (8 ns), as gen_ramp.v: one step every lock_ramp_step+1 cycles; a
+  // triangle goes low->high->low in 2*(high-low) steps, a sawtooth jumps back in one step: (high-low)+1 steps.
+  // 0 if the ramp can not be computed (high <= low).
+  function rampPeriodCycles(p) {
+    var span = Number(p.lock_ramp_hig_lim) - Number(p.lock_ramp_low_lim);
+    var cyc  = Number(p.lock_ramp_step) + 1;
+    if(!(span > 0) || !(cyc > 0)) return 0;
+    return (Number(p.lock_ramp_sawtooth) ? span + 1 : 2 * span) * cyc;
+  }
+
+  // Time trigger (lock_trig_time, 8 ns cycles counted by lock_ctrl.v from the scan floor) of a click on the plot.
+  //   x:          absolute x of the click in the units of the plotted data (flot pos.x). The scope time axis is
+  //               absolute (t = 0 is the scope trigger, which must be the scan floor), whatever the zoom/offset.
+  //   time_units: units of x (0 us, 1 ms, 2 s): 1 us = 125 cycles.
+  //   period:     ramp period in cycles (rampPeriodCycles), the counter restarts at each scan floor: the time is
+  //               taken modulo the period (t < 0 is the end of the previous period). 0: no modulo.
+  function clickToTrigTime(x, time_units, period) {
+    var cycles = Math.round(Number(x) * 125 * Math.pow(10, 3 * Number(time_units)));
+    if(!isFinite(cycles)) return null;
+    if(period > 0) cycles = ((cycles % period) + period) % period;
+    return Math.min(4294967295, Math.max(0, cycles));
+  }
+
+  // Level trigger (lock_trig_val, -8192..8191) of a click: y in V (1 V = 8192) or in counts in raw mode
+  function clickToTrigLevel(y, raw_mode) {
+    var v = Math.round(Number(raw_mode) ? Number(y) : Number(y) * 8192);
+    if(!isFinite(v)) return null;
+    return Math.min(8191, Math.max(-8192, v));
+  }
+
+  // Which values "Choose from graph" sets, from the lock trigger type (lock_ctrl_aux_trig_type):
+  // 1 Time -> only the time, 2 Level -> only the level, 3 Level+time -> both, 0 OFF -> none
+  function trigFromGraphTargets(trig_type) {
+    var t = Number(trig_type);
+    return { time: (t == 1 || t == 3), level: (t == 2 || t == 3) };
+  }
+  // [TRIG FROM GRAPH END]
+
   // After each start: send def_params + the saved state (the server side App starts with its static defaults)
   function restoreState() {
     var p = $.extend({}, def_params), saved = loadSavedState(), x_s = null, ip_restore = 0;
@@ -3097,6 +3128,9 @@
         var arun_after_ajax = autorun;
 
         datasets = [];
+        // Units of the x values of these data (see plot_time_units)
+        var dtu = Number(dresult.datasets.params.time_units);
+        if(dtu === 0 || dtu === 1 || dtu === 2) plot_time_units = dtu;
         for(var i=0; i<dresult.datasets.g1.length; i++) {
           dresult.datasets.g1[i].color = i;
           dresult.datasets.g1[i].label = 'Channel ' + (i+1);
@@ -5096,7 +5130,7 @@
     <div class="container">
       <a id="btn_exit" class="pull-left" href="/index.html"><span class="glyphicon glyphicon-chevron-left" title="Exit" alt="Exit"></span></a>
       <img class="logo pull-left" src="../assets/images/logo_white.png">
-      <h2 class="page-title">Harmonic lock-in+PID (v2.3.11)</h2>
+      <h2 class="page-title">Harmonic lock-in+PID (v2.3.12)</h2>
     </div>
   </div>
   <div class="container">
@@ -7071,8 +7105,7 @@
                       <form class="form-horizontal" role="form" onsubmit="return false;" novalidate>
                         <div class="form-group text-center">
                           <button id="btn_set_trig" class="btn btn-primary btn-lg" data-checked="true" disabled>Choose from graph</button>
-                          <br>
-                          <input type="checkbox" id="btn_set_trig_auto_zoom" checked>Auto-zoom
+                          <div id="btn_set_trig_msg" style="padding-top: 4px;"></div>
                         </div>
                       </form>
                     </div>

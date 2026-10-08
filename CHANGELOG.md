@@ -131,3 +131,21 @@ v2.3.11
     (no POST without changes < 200 ms after the previous one, at most 10 POST/s)
   - kept from v2.3.10: the queued Single click (single_que, also combined with a queued Config load),
     the restore of the time scale and of the exact streaming IP, transient commands never saved
+
+v2.3.12
+- FIXED "Choose from graph" of the Lock control trigger: the clicked time is taken from the absolute
+  x coordinate of the plot with any zoom, offset and time units (us/ms/s), with t = 0 on screen or
+  not, and converted with the time units of the plotted data (not the GUI units, which a zoom that
+  changes the units updates before the data in the new units arrive). It is taken modulo the real
+  ramp period: the sawtooth ramp period is (high-low+1)*(step+1) cycles (it used the triangle one,
+  2*(high-low)*(step+1), so a click outside the first period gave a time the counter never reaches)
+- REMOVED the "Auto-zoom" checkbox of "Choose from graph" (it moved the zoom so that t = 0 was on
+  screen and forced the scope trigger to Normal / External / Scan floor). Instead, a hint under the
+  button warns when the scope trigger is not Normal or Single / External / Ext Trig = Scan floor
+  (t = 0 of the graph is the scan floor only with that trigger). It never had a parameter: saved
+  configs are not affected
+- FIXED "Choose from graph" writing both triggers: it sets only the value of the selected trigger
+  type (Time trigger: only lock_trig_time; Level trigger: only lock_trig_val, from the y of the
+  click; Level+time: both). The level is clamped to -8192..8191
+- ADDED lock_in+pid_harmonic/test/trig_from_graph_sim.js (node): simulation of the click -> time
+  conversion (scope time vector of the C controller + flot axis) with several zooms and offsets
