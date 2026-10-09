@@ -4,7 +4,7 @@
 Example usage of remote control by control Finn
 
 Each "#%%" block is a cell (Spyder / VS Code / IPython): run them one by one.
-Tested with the App v2.3.15 on Ecosystem 2.0 (RedPitaya_OS 2.04).
+Tested with the App v2.3.15 on Ecosystem 2.0 (RedPitaya_OS 2.04); scope_stop()/scope_auto(): v2.3.16.
 """
 
 import os
@@ -30,10 +30,15 @@ print('Calibration constants read:', len(rp.calib))
 #%% Example configuration and acquisition #####################################
 
 """
-WARNING:
-    befor any acquisition you should stop the Web oscilloscope by
-    making a single acquisition.
+The C controller of the App (the scope of the web page) keeps acquiring in Auto after the App is
+started, even with no web page open, and uses the same scope. osc.measure() / acquire() stop it first
+(trig_mode = 2, as a Single acquisition of the page): rp.scope_stop(). Give the scope back to the page
+with rp.scope_auto() (see the cell "Give the scope back to the web page" below).
+If it can not be confirmed stopped (no answer of POST /data), acquire() raises
+control_finn.WebScopeNotStopped and does not acquire: try again, or press Single in the web page.
 """
+
+print('scope of the web page, trig_mode (0 Auto, 1 Normal, 2 Single):', rp.scope_mode())
 
 rp.lock.oscA_sw = 'cos_ref'
 rp.lock.oscB_sw = 'sin_ref'
@@ -78,6 +83,17 @@ tt, ch1, ch2 = rp.acquire('manual', dec=64, trig_pos=0.5)
 # external: the trigger made by the lock module (lock.trig_sw), e.g. the scan floor of the ramp
 rp.lock.trig_sw = 'Scan floor'
 tt, ch1, ch2 = rp.acquire('ext_rising', dec=1024, trig_pos=0.1, timeout=20)
+
+
+#%% Give the scope back to the web page  ######################################
+
+# The acquisitions above stopped the scope of the web page (C controller): restart it in Auto.
+rp.scope_auto()
+print('trig_mode:', rp.scope_mode())
+
+# To acquire from Python while the web page keeps its scope running (not recommended: the data
+# can be mixed), disable the automatic stop:
+#   rp.osc.auto_stop_web_scope = False      or      rp.acquire(..., stop_web_scope=False)
 
 
 #%% save data and load it later  ##############################################

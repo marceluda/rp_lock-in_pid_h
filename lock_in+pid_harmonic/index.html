@@ -16,7 +16,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Harmonic lock-in+PID (v2.3.15)</title>
+  <title>Harmonic lock-in+PID (v2.3.16)</title>
   <link href="../assets/bootstrap-3.0.0/css/bootstrap.css" rel="stylesheet" type="text/css">
   <link href="../assets/style.css?6" rel="stylesheet" type="text/css">
   <script src="../assets/bootstrap-3.0.0/js/jquery.js"></script>
@@ -1339,6 +1339,11 @@
         $max = parseFloat($this.attr('max'));
         $min = parseFloat($this.attr('min'));
         $currVal = parseInt($this.val());
+        // v2.3.16: fields with units: the converted value ("16.58 ms" is 2072500 ticks, not 16); not valid: the last one
+        if(input_unit_parsers[id]) {
+          $currVal = numberInputValue(id, $this.val());
+          if(isNaN($currVal) && params.local) $currVal = Number(params.local[id]);
+        }
         //console.log( $currVal );
         // If blank, assume value of 0
         if (isNaN($currVal)) {
@@ -2203,57 +2208,92 @@
     $('#lock_status_count').text(st ? st.count : '-');
   }
 
+  // v2.3.16: "Time trigger" and "Level trigger" are text fields that accept units (they were <input type="number">:
+  // "20 s" could not be typed, a pasted "19 s" gave "" and parseLocalFloat("") = 0 was sent: time trigger OFF).
+  // Value of the field in register units, NaN if it is empty or not valid (never sent: the last value is restored).
+  //   Time trigger:  8 ns ticks, 0..2^32-1 (v2.3.15: 32-bit unsigned, lock_ctrl.v). Units: s, ms, us (µs), ns,
+  //                  ticks (or no unit). E.g. "16.58 ms" -> 2072500, "20 s" -> 2500000000. Above 2^32-1: 2^32-1.
+  //   Level trigger: counts (1 V = 8192), -8192..8191. Units: V, mV, counts (or no unit). E.g. "0.1 V" -> 819.
+  // Decimal point or comma; the space between number and unit is optional ("16.58ms").
+  var lock_trig_time_units  = { '': 1, 'tick': 1, 'ticks': 1, 's': 125e6, 'seg': 125e6, 'ms': 125e3,
+                                'us': 125, 'µs': 125, 'μs': 125, 'ns': 0.125 };
+  var lock_trig_level_units = { '': 1, 'count': 1, 'counts': 1, 'v': 8192, 'mv': 8.192 };
+
+  function parseUnitValue(str, unit_table) {
+    var s = (str === undefined || str === null) ? '' : String(str).trim();
+    var m = s.match(/^([+-]?(?:\d+(?:[.,]\d*)?|[.,]\d+)(?:e[+-]?\d+)?)\s*([^\s\d.,+-]*)$/i);
+    if(!m) return NaN;
+    var unit = m[2].toLowerCase();
+    if(!Object.prototype.hasOwnProperty.call(unit_table, unit)) return NaN;
+    var v = parseFloat(m[1].replace(',', '.'));
+    return isFinite(v) ? v * unit_table[unit] : NaN;
+  }
+
+  function parseTrigTime(str) {
+    var v = parseUnitValue(str, lock_trig_time_units);
+    if(!isFinite(v) || v < 0) return NaN;
+    if(v > 0 && v < 0.5) return 1;               // a time below one tick (e.g. "3 ns") is 1 tick, not 0 (OFF)
+    return Math.min(4294967295, Math.round(v));
+  }
+
+  function parseTrigLevel(str) {
+    var v = parseUnitValue(str, lock_trig_level_units);
+    if(!isFinite(v)) return NaN;
+    return Math.max(-8192, Math.min(8191, Math.round(v)));
+  }
+
+  // Number inputs (input_number) whose text is converted by a parser (units): see numberInputValue()
+  var input_unit_parsers = { lock_lock_trig_time_val: parseTrigTime, lock_lock_trig_val: parseTrigLevel };
+
+  // Last values shown by lock_ctrl_update() (they were implicit globals, created by its first call)
+  var trig_time, trig_val, aux_trig_type;
+
+  // v2.3.16: value of a number input (input_number) to send, NaN if empty or not valid (then it is not sent and the
+  // last value is restored). parseLocalFloat('') is 0: an emptied field (or an invalid text in an <input
+  // type="number">, whose .val() is '') used to send 0.
+  function numberInputValue(id, str) {
+    if(input_unit_parsers[id]) return input_unit_parsers[id](str);
+    if(str === undefined || str === null || String(str).trim() === '') return NaN;
+    return parseLocalFloat(String(str));
+  }
+
   function lock_ctrl_update() {
-    lock_lock_trig_time_val_arr = $("#lock_lock_trig_time_val" ).val().trim().split(' ').filter( function(n,i){ return n!=="" } );
-    lock_lock_trig_val_arr      = $("#lock_lock_trig_val" ).val().trim().split(' ').filter( function(n,i){ return n!=="" } );
+    // v2.3.16: the text of the fields is converted first (units), then compared with the last values: the number
+    // of "20 s" used to be compared with trig_time (in ticks) before the conversion. The fields are rewritten in
+    // register units only when the edit ends (numberInputBlur()), not while typing ("20 m" on the way to "20 ms").
+    var t_new = parseTrigTime( $("#lock_lock_trig_time_val").val() );
+    var v_new = parseTrigLevel( $("#lock_lock_trig_val").val() );
     lock_ctrl_aux_trig_type     = parseInt($("#lock_ctrl_aux_trig_type" ).val());
 
-    if( !$.isNumeric(lock_lock_trig_time_val_arr[0]) || !$.isNumeric(lock_lock_trig_val_arr[0])  ) return -1 ;
-
     if (params) if (params.local)
-    if( parseLocalFloat(lock_lock_trig_time_val_arr[0]) == trig_time  &&
-        parseLocalFloat(lock_lock_trig_val_arr[0])      == trig_val   &&
+    if( t_new === trig_time  &&
+        v_new === trig_val   &&
         lock_ctrl_aux_trig_type                         == aux_trig_type
         ) return -1 ;
 
-    trig_time    = Math.abs( parseLocalFloat( lock_lock_trig_time_val_arr[0] ) );
-    trig_val     =           parseLocalFloat( lock_lock_trig_val_arr[0]        );
+    trig_time    = t_new;
+    trig_val     = v_new;
     aux_trig_type=                            lock_ctrl_aux_trig_type           ;
 
-    if( lock_lock_trig_time_val_arr.length === 2) {
-      if ( lock_lock_trig_time_val_arr[1].toLowerCase()=="s" || lock_lock_trig_time_val_arr[1].toLowerCase()=="seg" )
-        trig_time = Math.round( trig_time / 8e-9 );
-      if ( lock_lock_trig_time_val_arr[1].toLowerCase()=="ms" )
-        trig_time = Math.round( trig_time / 8e-6 );
-      if ( lock_lock_trig_time_val_arr[1].toLowerCase()=="us"  || lock_lock_trig_time_val_arr[1].toLowerCase()=="μs"   )
-        trig_time = Math.round( trig_time / 8e-3 );
-      trig_time = Math.min( 4294967295 , trig_time  ) ;  // v2.3.15: 32-bit unsigned (lock_ctrl.v), was 500000000 (4 s)
-      trig_time = Math.max(         0 , trig_time  ) ;
-      $("#lock_lock_trig_time_val").val(""+trig_time);
-    }
-
-    if( lock_lock_trig_val_arr.length === 2) {
-      if ( lock_lock_trig_val_arr[1].toLowerCase()=="v" )
-        trig_val = Math.round( trig_val * 8192 );
-      if ( lock_lock_trig_val_arr[1].toLowerCase()=="mv" )
-        trig_val = Math.round( trig_val * 8192 /1000 );
-      trig_val = Math.min(  8191 , trig_val  ) ;
-      trig_val = Math.max( -8192 , trig_val  ) ;
-      $("#lock_lock_trig_val").val(""+trig_val);
-    }
-
-    timeval = trig_time*8e-9;
-    if ( timeval === 0 ){
-      txt=" OFF ";
+    if ( isNaN(trig_time) ){
+      txt = "<small class=\"text-danger\">? number of 8 ns ticks or a time with units: s, ms, us, ns</small>";
     }else{
-      oom = Math.floor(Math.log10(timeval)/3);
-      val = timeval/Math.pow(10,3*oom);
-      txt = "<b>T&nbsp;=&nbsp;" + val.toFixed(3) + "&nbsp;" + units[oom.toString()] + "s</b>";
+      timeval = trig_time*8e-9;
+      if ( timeval === 0 ){
+        txt=" OFF ";
+      }else{
+        oom = Math.floor(Math.log10(timeval)/3);
+        val = timeval/Math.pow(10,3*oom);
+        txt = "<b>T&nbsp;=&nbsp;" + val.toFixed(3) + "&nbsp;" + units[oom.toString()] + "s</b>";
+      }
     }
 
     $('#lock_lock_trig_time_val_text').html( txt   );
 
-    $('#lock_lock_trig_val_text').html( "<small><b>V<sub>trg</sub>&nbsp;=&nbsp;" + (trig_val/8192*1000).toFixed(0) + "&nbsp;mV</b></small>" ) ;
+    if ( isNaN(trig_val) )
+      $('#lock_lock_trig_val_text').html( "<small class=\"text-danger\">? counts (1 V = 8192) or a voltage with units: V, mV</small>" ) ;
+    else
+      $('#lock_lock_trig_val_text').html( "<small><b>V<sub>trg</sub>&nbsp;=&nbsp;" + (trig_val/8192*1000).toFixed(0) + "&nbsp;mV</b></small>" ) ;
 
 
     switch(lock_ctrl_aux_trig_type) {
@@ -3787,14 +3827,18 @@
     editTimerCancel(iname);
     text_param_editor = '';
     $(that).parent().removeClass('input-group');
-    var val = parseLocalFloat($(that).val());
+    // v2.3.16: empty or not valid -> not sent, the last value is restored (it used to send 0). Fields with
+    // units ("20 s", "0.1 V") are rewritten in register units (ticks, counts).
+    var val = numberInputValue(iname, $(that).val());
     if(! isNaN(val)) {
+      if(input_unit_parsers[iname]) $(that).val('' + val);
       params.local[iname] = val;
       sendParams();
     }
-    else {
+    else if(params.local && params.local[iname] !== undefined) {
       $(that).val(params.local[iname]);
     }
+    if(input_unit_parsers[iname]) lock_ctrl_update();   // .val() does not fire 'input': refresh T / Vtrg
     editRefocusCheck(event);
     user_editing = false;
   }
@@ -3803,7 +3847,7 @@
   function numberInputInput(that) {
     var iname = that.id;
     user_editing = true;
-    var val = parseLocalFloat($(that).val());
+    var val = numberInputValue(iname, $(that).val());   // v2.3.16: NaN (never sent) if empty / not valid
     editTimerCancel(iname);
     edit_timers[iname] = setTimeout(function() {
       delete edit_timers[iname];
@@ -3811,7 +3855,7 @@
       // Setting params.local / user_editing = true here would resend it and freeze the indicators.
       if(document.activeElement !== that) return;
       if(text_param_editor == '') {
-        var v = parseLocalFloat($(that).val());
+        var v = numberInputValue(iname, $(that).val());
         if(v == val && ! isNaN(v)) {
           params.local[iname] = v;
           sendParams();
@@ -3873,6 +3917,11 @@
           orig_params[kk] = params.local[kk];
       }
     }
+
+    // v2.3.16: lock_lock_trig_time_val is a float32 parameter of the C controller: 0xFFFFFFFF (4294967295) comes back as
+    // 4294967296 (float32 has no integer between 4294967040 and 2**32), out of the range of the field. The register
+    // is 0xFFFFFFFF (src/lock.c lock_float_to_u32() saturates): show and keep that value.
+    if(Number(orig_params.lock_lock_trig_time_val) > 4294967295) orig_params.lock_lock_trig_time_val = 4294967295;
 
     // Ignore xmin/xmax values received from server. That values must be used only on AUTO button click
     // and on ForceX flag, but that is done before the sendParams() function is called.
@@ -5568,7 +5617,7 @@
     <div class="container">
       <a id="btn_exit" class="pull-left" href="/index.html"><span class="glyphicon glyphicon-chevron-left" title="Exit" alt="Exit"></span></a>
       <img class="logo pull-left" src="../assets/images/logo_white.png">
-      <h2 class="page-title">Harmonic lock-in+PID (v2.3.15)</h2>
+      <h2 class="page-title">Harmonic lock-in+PID (v2.3.16)</h2>
     </div>
   </div>
   <div class="container">
@@ -7522,7 +7571,7 @@
                         <div class="form-group">
                           <label for="lock_lock_trig_time_val" class="col-xs-4 control-label">Time trigger:</label>
                           <div class="col-xs-4 col-sm-8">
-                            <input type="number" autocomplete="off" class="form-control" value="0" id="lock_lock_trig_time_val" step="1" min="0" max="4294967295">
+                            <input type="text" autocomplete="off" spellcheck="false" class="form-control" value="0" id="lock_lock_trig_time_val" step="1" min="0" max="4294967295" title="Delay after the scan floor: 8 ns ticks (0 = OFF, up to 4294967295 = 34.36 s) or a time with units: s, ms, us, ns (e.g. 16.58 ms)">
                             <span style="display: none;" class="input-group-btn" id="lock_lock_trig_time_val_apply">
                               <button type="button" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-ok-circle"></span></button>
                             </span>
@@ -7539,7 +7588,7 @@
                         <div class="form-group">
                           <label for="lock_lock_trig_val" class="col-xs-4 control-label">Level trigger:</label>
                           <div class="col-xs-4 col-sm-8">
-                            <input type="number" autocomplete="off" class="form-control" value="0" id="lock_lock_trig_val" step="1" min="-8192" max="8191">
+                            <input type="text" autocomplete="off" spellcheck="false" class="form-control" value="0" id="lock_lock_trig_val" step="1" min="-8192" max="8191" title="Level: counts (-8192..8191, 1 V = 8192) or a voltage with units: V, mV (e.g. 0.1 V)">
                             <span style="display: none;" class="input-group-btn" id="lock_lock_trig_val_apply">
                               <button type="button" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-ok-circle"></span></button>
                             </span>

@@ -376,5 +376,19 @@ check('5.1 config load with the rule: FPGA IDLE, everything off, UI shows it', S
 p0 = E.posts(); E.poll(50);
 check('5.2 no POSTs after it', E.posts() == p0, E);
 
+// ---- 6. v2.3.16: lock_lock_trig_time_val is float32 in the C controller (0xFFFFFFFF -> 4294967296) --------------
+S = new Server(false, Object.assign({}, init, { lock_lock_trig_time_val: Math.fround(4294967295) }));
+const getP = S.getParams.bind(S);
+S.getParams = () => { const p = getP(); p.lock_lock_trig_time_val = Math.fround(p.lock_lock_trig_time_val); return p; };
+E = makeEnv(S); E.poll(3);
+check('6.1 server echo 4294967296 (float32): params.original/local = 4294967295, 0 POST',
+      E.get('params.original').lock_lock_trig_time_val === 4294967295 &&
+      E.get('params.local').lock_lock_trig_time_val === 4294967295 && E.posts() == 0, E);
+E.change('lock_lock_trig_time_val', 2072500); E.poll(3);
+p0 = E.posts();
+E.change('lock_lock_trig_time_val', 4294967295); E.poll(20);
+check('6.2 "40 s" (4294967295): 1 POST, then 0 POST in 20 polls, local = 4294967295',
+      E.posts() == p0 + 1 && E.get('params.local').lock_lock_trig_time_val === 4294967295, E);
+
 console.log('=== ' + n + ' checks, ' + fails + ' failed ===');
 process.exit(fails ? 1 : 0);

@@ -70,6 +70,69 @@ Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE pro
 simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
 < 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
+## v2.3.16 - Remote scope without the C controller, Time/Level trigger fields with units
+
+### Added
+- `control_finn.py`: `rp.scope_stop()`, `rp.scope_auto()`, `rp.scope_mode()` (also in `rp.osc`): stop / restart
+  the scope of the C controller (web page) with `POST /data` `trig_mode` (2 = Single: its worker goes idle and
+  does not arm the scope; 0 = Auto, 1 = Normal). Only `POST /data` is used (`GET /data` with another 2.0 App
+  loaded crashes the nginx worker) and only when `/data` answers with this App.
+- `test/trig_input_units_sim.js`: simulation of the Time / Level trigger fields (38 checks; `--old` shows the
+  behaviour of v2.3.15).
+
+### Changed
+- `osc.measure()` / `rp.acquire()` stop the scope of the C controller first (`stop_web_scope`, default
+  `rp.osc.auto_stop_web_scope = True`): after `bazaar?start` it acquires in Auto even with no page open and
+  re-armed the scope with the `Dec` / `TrgDelay` written by Python, mixing its acquisitions with the ones of
+  `/osc`. When it was running, `scope_stop()` waits until the controller has reset the scope (conf bits 0, 2,
+  4 = 0 and `CurWpt` still); otherwise it costs one `POST /data`. `measure(wait=True)` warns if the page
+  restarted its scope during the acquisition. `example_usage.py`: `scope_mode()` / `scope_auto()` cells.
+
+### Fixed
+- **"Time trigger" and "Level trigger" fields with units** (the units did not work since the first version
+  of the page): they were `<input type="number">`, so "20 s" could not be typed (it stayed 20 ticks) and a
+  pasted "19 s" was read as "" and sent as 0 (time trigger OFF). They are text fields now: Time accepts
+  ticks or `s`, `ms`, `us` (`µs`), `ns`, `ticks` (e.g. `16.58 ms` = 2072500, `20 s` = 2500000000; up to
+  2^32 - 1 = 34.36 s, larger values are clamped, a nonzero time below one tick is 1 tick); Level accepts counts or `V`, `mV` (-8192..8191, clamped).
+  Decimal point or comma, space optional. The value is converted before it is compared with the last one
+  (`lock_ctrl_update()` returned before converting when the number matched `trig_time`), the field is
+  rewritten in ticks / counts only when the edit ends (it was rewritten while typing, so "20 ms" became 20
+  at the "m"), and an empty or invalid text shows a hint and restores the last value instead of sending 0.
+- Number fields of the page: an emptied field (e.g. with Backspace) is no longer sent as 0
+  (`parseLocalFloat("")` = 0); the last value is restored.
+- `control_finn.py`: **`POST /data` without answer in ~30 % of the requests** (found testing on the board).
+  The `/data` handler of the Ecosystem (nginx module) only reads the body that arrives with the headers;
+  `requests` / `http.client` send headers and body in two `send()` calls, so when they went out in separate
+  TCP packets there was no answer (3 s timeout, warning "could not stop the scope…", CLOSE-WAIT connections
+  left in the board) and, if it happened in the first `scope_stop()`, the acquisition went on mixed with the
+  ones of the controller. `POST /data` is now sent in one `send()` (own socket, `Connection: close`, socket
+  always closed), with `DATA_TIMEOUT` = 0.8 s per attempt and `DATA_RETRIES` = 2 extra attempts.
+  `/lock`, `/osc`, `/calib` are GET requests (no body) and are not affected.
+  Known issue of the Ecosystem (not fixed): every `POST /data` (also from `curl` or the web page) leaves one
+  connection in CLOSE-WAIT in the nginx worker of the board (it answers `Connection: close` but never closes
+  it; `GET /data` does not leak). The worker has 1024 file descriptors: after ~1000 POST the web server of the
+  board stops answering until nginx is restarted. So `control_finn.py` keeps `POST /data` to the minimum:
+  `scope_stop()` confirms Single once and remembers it; the next `measure()` / `acquire()` check with `GET /osc`
+  reads only (`conf`, `TrgSrc`, `Dec`, `TrgDelay`, `CurWpt`, `TrgWpt` still across 50 ms and unchanged since
+  the end of the last own acquisition) that the controller did not take the scope back, and POST again only
+  when they changed (`scope_stop(force=True)` always asks). The check after `measure(wait=True)` uses the same
+  reads; the `POST /data` `trig_mode` check is optional (`check_web_mode=True`). POST per call: `scope_mode()`
+  1, `scope_auto()` 1, `scope_stop()` 0 while the cached Single holds, otherwise 1 (already Single) or 2;
+  `acquire()` as `scope_stop()` (+1 with `check_web_mode`); `rp.osc.post_count` counts them. `GET /data` is not
+  used (it crashes the nginx worker with another 2.0 App loaded). On the board: 20 `acquire()` after the first
+  one made 0 POST; the page back in Auto between acquisitions was detected (2 POST, data not mixed).
+- `control_finn.py`: when `scope_stop()` can not confirm Single (no answer after the retries, another App
+  loaded, `trig_mode` not accepted, scope still running) `osc.measure()` / `rp.acquire()` raise the new
+  `WebScopeNotStopped` (a `RuntimeError`) with the reason, without touching the scope, instead of a warning
+  followed by a possibly mixed acquisition. `stop_web_scope=False` acquires anyway. `scope_stop()` returns
+  False with a warning (reason in `rp.osc.scope_stop_error`). The docstring of `check_not_overwritten()`
+  states that it does not detect a worker re-arming with the same `Dec` / `TrgDelay`.
+- Page: after "40 s" (4294967295) the Time trigger field showed 4294967296, out of its range: the parameter
+  is a float32 in the C controller (`params[].value`) and 0xFFFFFFFF comes back as 2^32 (float32 has no
+  integer between 4294967040 and 2^32; the register is 0xFFFFFFFF, `lock_float_to_u32()` saturates). It can
+  not be bounded in the float on the server side, so `loadParams()` clamps the received value to 4294967295.
+  `test/lock_ctrl_ui_sim.js`: cases 6.1-6.2 (28 checks).
+
 ## v2.3.15 - HTTP remote control for Ecosystem 2.0, 32-bit lock time trigger
 
 ### Added

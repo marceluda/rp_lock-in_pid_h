@@ -21,6 +21,38 @@ v2.3.15 (Ecosystem 2.0, FPGA of v2.3.15):
 
 The arguments of one HTTP request reach c/lock and c/osc in a non guaranteed order (Lua table):
 writes whose order matters are done with one request each.
+
+v2.3.16:
+  - The C controller of the App keeps acquiring with the scope after bazaar?start even with no web page
+    open (trig_mode Auto): it re-armed the scope with the Dec/TrgDelay written by Python and mixed its
+    acquisitions with the ones of /osc. Osc.measure() / RedPitayaApp.acquire() now stop it first
+    (trig_mode = 2, "Single", through POST /data), as if the page were stopped with a Single acquisition.
+    Disable it with stop_web_scope=False (argument) or rp.osc.auto_stop_web_scope = False.
+    rp.scope_stop() / rp.scope_auto() / rp.scope_mode() do it by hand (scope_auto() gives the scope back
+    to the web page / controller in Auto).
+  - POST /data is sent with headers and body in one TCP send (own socket, Connection: close, short
+    timeout and retries): the /data handler of the Ecosystem (nginx module) does not answer when the body
+    arrives in a separate packet, as requests / http.client send it (~30 % of the requests hung and left
+    CLOSE-WAIT connections in the RedPitaya). If the scope of the controller can not be confirmed stopped,
+    measure() / acquire() raise WebScopeNotStopped instead of acquiring (stop_web_scope=False skips it).
+  - Known issue of the Ecosystem 2.0 (nginx module of Red Pitaya): every POST /data leaves one connection in
+    CLOSE-WAIT in the nginx worker of the board (it answers "Connection: close" but never closes it; also
+    from curl or the web page; GET requests do not). The worker has 1024 file descriptors: after ~1000 POST
+    the web server of the board stops answering until nginx is restarted. So POST /data is kept to the
+    minimum: scope_stop() confirms Single once and remembers it; the next measure() / acquire() check with
+    GET /osc reads only (conf, TrgSrc, Dec, TrgDelay, CurWpt, TrgWpt: unchanged since the end of the last
+    acquisition and not moving) that the controller did not take the scope back, and only POST again when
+    they changed. GET /data is never used (with another 2.0 App loaded it crashes the nginx worker).
+    POST /data per call (one connection each, + 1 per retry when there is no answer):
+        scope_mode()                        1
+        scope_stop()                        0 if the confirmed Single still holds (GET /osc check),
+                                            1 if it was already Single, 2 if it was running;
+                                            force=True: always 1 or 2
+        scope_auto()                        1
+        measure() / acquire()               as scope_stop() (normally 0 after the first one);
+                                            + 1 with check_web_mode=True (wait=True)
+                                            0 with stop_web_scope=False
+    rp.osc.post_count counts them (attempts).
 """
 
 
@@ -38,7 +70,11 @@ from datetime import datetime
 
 
 import os
+import socket
+import json
+import http.client
 import warnings
+from urllib.parse import urlsplit
 
 
 
@@ -47,6 +83,16 @@ HTTP_TIMEOUT = 10
 
 # Clock of the FPGA: 125 MHz
 TICK = 8e-9
+
+# POST /data to the C controller of the App (scope_stop(), scope_mode(), scope_auto()): timeout of each
+# attempt [s] (connection + answer; the controller answers in a few ms) and number of extra attempts
+DATA_TIMEOUT = 0.8
+DATA_RETRIES = 2
+
+# trig_mode of the C controller (src/main.c): 0 Auto, 1 Normal, 2 Single (stopped: the worker of the
+# controller goes to its idle state and does not arm the scope; a Single acquisition is only made when
+# the web page asks for it with single_btn)
+TRIG_MODES = {0: 'auto', 1: 'normal', 2: 'single'}
 
 
 #%% Class for lock module
@@ -86,6 +132,53 @@ _label_alias = {'6 us': '65 us'}
 class AcquisitionTimeout(TimeoutError, ValueError):
     """Timeout waiting for an acquisition or a lock (also a ValueError, as in the old versions)."""
     pass
+
+
+class WebScopeNotStopped(RuntimeError):
+    """measure() / acquire(): the scope of the C controller (web page) could not be confirmed stopped
+    (trig_mode = 2), so the acquisition was not started (it could be mixed with the ones of the controller)."""
+    pass
+
+
+def _post_json_one_send(url, obj, timeout=DATA_TIMEOUT):
+    """
+    POST of a JSON body with the request line, headers and body in ONE send() (one TCP segment for small
+    bodies) and Connection: close. The /data handler of the Ecosystem (nginx module of Red Pitaya) only
+    reads the body that arrives with the headers: requests / http.client send them in two send() calls and
+    then it never answers. `timeout` is the deadline of the whole request [s]. The socket is always
+    closed. Returns (HTTP status, body bytes); raises OSError / socket.timeout / http.client.HTTPException.
+    """
+    u = urlsplit(url)
+    host, port = u.hostname, u.port or 80
+    path = (u.path or '/') + (('?' + u.query) if u.query else '')
+    body = json.dumps(obj, separators=(',', ':')).encode('utf-8')
+    head = (f'POST {path} HTTP/1.1\r\n'
+            f'Host: {u.netloc}\r\n'
+            'Content-Type: application/json\r\n'
+            'Accept: application/json\r\n'
+            f'Content-Length: {len(body)}\r\n'
+            'Connection: close\r\n\r\n').encode('ascii')
+    t_end = time() + timeout
+    sock = socket.create_connection((host, port), timeout=timeout)
+    resp = None
+    try:
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        sock.sendall(head + body)
+        sock.settimeout(max(0.05, t_end - time()))
+        resp = http.client.HTTPResponse(sock)
+        resp.begin()
+        sock.settimeout(max(0.05, t_end - time()))
+        data = resp.read()
+        if time() > t_end:
+            raise socket.timeout(f'POST {url}: answer slower than {timeout} s')
+        return resp.status, data
+    finally:
+        if resp is not None:
+            resp.close()
+        try:
+            sock.close()
+        except OSError:
+            pass
 
 
 
@@ -130,7 +223,7 @@ class _Registers():
     Common part of Lock and Osc: direct access to the FPGA registers through c/<cmd> over HTTP.
     """
 
-    _protected = ['url', '_cmd', '_registers', '_reg_labels', '_parent']
+    _protected = ['url', '_cmd', '_registers', '_reg_labels', '_parent', 'auto_stop_web_scope']
 
     def __init__(self, url, cmd, reg=None, labels=None):
         self.url  = url
@@ -289,6 +382,8 @@ class Osc(_Registers):
     # TrgSrc (0x04) bits
     TRG_SRC_MASK   = 0x0f   # trigger source (0 = none / already triggered)
     TRG_LOCKED     = 0x20   # 2.0 only: trigger locked until 1 is written to TrgUnlock (0x94)
+    # registers that change when the C controller (worker) uses the scope (signature, read with one GET /osc)
+    SIG_REGS       = ['conf', 'TrgSrc', 'Dec', 'TrgDelay', 'CurWpt', 'TrgWpt']
 
     trigger_values = ['','manual','A_rising','A_falling','B_rising','B_falling','ext_rising','ext_falling']
 
@@ -296,6 +391,16 @@ class Osc(_Registers):
         super().__init__(url, 'osc', reg=reg)
         self._parent = parent
         self._warned_no_unlock = False
+        # v2.3.16: measure() stops the scope of the C controller (web page) first, see scope_stop()
+        self.auto_stop_web_scope = True
+        self.scope_stop_error = ""     # reason of the last failed scope_stop()
+        # v2.3.16: cache of the confirmed Single of the C controller (each POST /data leaves a CLOSE-WAIT in
+        # the nginx of the Ecosystem): see _web_still_stopped()
+        self._web_stopped = False      # scope_stop() confirmed trig_mode = 2
+        self._web_ref = None           # SIG_REGS when it was confirmed / at the end of the last own acquisition
+        self.web_check_reason = ""     # why the cached Single was dropped the last time
+        self.quiet_gap = 0.05          # [s] between the two GET /osc reads of the check
+        self.post_count = 0            # POST /data attempts made by this object
 
     @property
     def has_unlock(self):
@@ -349,6 +454,8 @@ class Osc(_Registers):
             sleep(poll)
         if verbose:
             print('')
+        if self._web_stopped:
+            self._web_ref = self._scope_sig()               # reference for the next _web_still_stopped()
         return True
 
     def dump(self):
@@ -431,7 +538,8 @@ class Osc(_Registers):
         return tt , chA , chB
 
 
-    def measure(self,trig_channel, dec=1, trig_pos=0,  threshold=0 , hysteresis=63, average=None , wait=False, timeout=10):
+    def measure(self,trig_channel, dec=1, trig_pos=0,  threshold=0 , hysteresis=63, average=None , wait=False, timeout=10,
+                stop_web_scope=None, check_web_mode=False):
         """
         Prepares de Oscilloscope for triggered measurement
             - trig_channel is the number or name of the trigger channel
@@ -447,11 +555,20 @@ class Osc(_Registers):
             - average: True/False sets the average inside the decimation period (AvgEn).
                        None (default) leaves it as it is.
             - wait: if True, waits until the acquisition is finished (timeout in seconds)
+            - stop_web_scope: stop the scope of the C controller / web page first (scope_stop()), which
+              otherwise keeps re-arming the same scope. None (default): self.auto_stop_web_scope (True).
+              The first call confirms it with POST /data; the next ones only check it with GET /osc reads
+              (no POST while nothing else touched the scope). WebScopeNotStopped if it can not be confirmed.
+            - check_web_mode: with wait=True, also asks the controller its trig_mode after the acquisition
+              (1 more POST /data: a CLOSE-WAIT in the board). Default False: the check after the acquisition
+              is done with GET /osc reads only (the scope must stay still).
 
         Sequence (as the C controller): reset, configuration, arm, wait for the pre-trigger samples,
         trigger unlock (2.0 scope), trigger source. Read the result with curv() or dump().
 
-        WARNING: stop the scope of the web page first (make a Single acquisition): both use the scope.
+        The C controller of the App acquires with the same scope (in Auto even without a web page open):
+        by default it is stopped first (trig_mode = 2, as a Single acquisition of the page). Give it back
+        with scope_auto().
         """
 
         if type(trig_channel) == str:
@@ -482,6 +599,13 @@ class Osc(_Registers):
             if trig_pos<0 or trig_pos>16383:
                 raise ValueError('trig_pos shoult be between 0 and 16383')
 
+        if stop_web_scope is None:
+            stop_web_scope = self.auto_stop_web_scope
+        if stop_web_scope and not self.scope_stop(quiet=True):
+            raise WebScopeNotStopped(
+                self.scope_stop_error + '. The acquisition was not started: try again, stop the scope in the '
+                'web page (Single), or use stop_web_scope=False to acquire anyway.')
+
         params = {}
         if TrgSrc in (2,3):
             params['ChAth']  = _to_int(threshold)
@@ -495,6 +619,7 @@ class Osc(_Registers):
         if average is not None:
             params['AvgEn'] = int(bool(average))
 
+        self._web_ref = None                                # own writes follow: new reference in wait()
         self.set('conf', self.CONF_RST)                     # reset of the write state machine
         self.set(params)                                    # configuration (order does not matter)
         self.set('conf', self.CONF_ARM)                     # arm
@@ -507,6 +632,13 @@ class Osc(_Registers):
         if wait:
             self.wait(timeout=timeout)
             self.check_not_overwritten()
+            if stop_web_scope and not self._web_still_stopped():
+                warnings.warn('The scope changed after the acquisition (' + self.web_check_reason + '): the web '
+                              'page / C controller may have restarted it and the data may be mixed with its '
+                              'acquisitions. The next measure() confirms Single again (POST /data).')
+            if stop_web_scope and check_web_mode and self.scope_mode(quiet=True) not in (None, 2):
+                warnings.warn('The scope of the web page was started (Auto/Normal) during the acquisition: '
+                              'the data may be mixed with its acquisitions.')
 
         return True
 
@@ -514,16 +646,194 @@ class Osc(_Registers):
         """
         Warns if Dec / TrgDelay are not the ones written by the last measure(): the scope of the web page
         (C controller) is acquiring at the same time and the data may be its own acquisition.
+
+        Limitation: it only compares Dec and TrgDelay. If the worker of the controller re-arms the scope with
+        the same Dec / TrgDelay as measure() (e.g. stop_web_scope=False with the page / controller in Auto at
+        the same decimation), the contamination is NOT detected (it returns True). Only the default
+        stop_web_scope=True (scope_stop(), trig_mode = 2) prevents it.
         """
         last = getattr(self, '_last_measure', None)
         if last is None:
             return True
         now = self.get(['Dec','TrgDelay'])
         if now.get('Dec') != last['Dec'] or now.get('TrgDelay') != last['TrgDelay']:
-            warnings.warn('The scope registers changed after measure(): the web page is acquiring '
-                          '(stop it with a Single acquisition).')
+            warnings.warn('The scope registers changed after measure(): the web page / C controller is '
+                          'acquiring (stop it with scope_stop() or a Single acquisition in the page).')
             return False
         return True
+
+    # ---- scope of the C controller (web page): POST /data ------------------------------------------
+    # The C controller (controllerhf.so) has its own acquisition loop (worker) on the same scope. After
+    # bazaar?start it runs in Auto even if no web page is open, and re-arms the scope continuously.
+    # trig_mode = 2 (Single) puts the worker in its idle state (src/main.c rp_set_params(), src/worker.c):
+    # it resets and configures the scope once with its own settings and then does not touch it.
+    # Only POST /data is used: GET /data with another 2.0 App loaded crashes the nginx worker (index.html
+    # probeApp()), and a POST with no params is the probe of the page.
+
+    def _data_url(self):
+        """(URL of /data, id of this App) from the URL of the App (http://host/<app_id>)"""
+        u = urlsplit(self.url)
+        return f'{u.scheme}://{u.netloc}/data', u.path.strip('/').split('/')[-1]
+
+    def _data_post(self, params, retries=None):
+        """
+        POST /data with these params (headers and body in one send: _post_json_one_send()), up to 1 + retries
+        attempts of DATA_TIMEOUT s (the writes of scope_stop() / scope_auto() can be repeated).
+        Returns (trig_mode or None, id of the loaded App or None, error text: '' if it answered)
+        """
+        url, _ = self._data_url()
+        retries = DATA_RETRIES if retries is None else retries
+        errors = []
+        for attempt in range(1 + max(0, retries)):
+            self.post_count += 1
+            try:
+                status, body = _post_json_one_send(url, {'datasets': {'params': params}}, timeout=DATA_TIMEOUT)
+                d = json.loads(body.decode('utf-8', 'replace')) if 200 <= status < 300 else None
+            except (OSError, http.client.HTTPException, ValueError) as e:
+                errors.append(f'{type(e).__name__}: {e}' if str(e) else type(e).__name__)
+                continue
+            if isinstance(d, dict):
+                break
+            errors.append(f'HTTP {status} from {url}')
+        else:
+            return None, None, f'{1 + max(0, retries)} attempts: ' + '; '.join(errors)
+        app_id = (d.get('app') or {}).get('id', '') if isinstance(d.get('app'), dict) else ''
+        try:
+            mode = int(round(float(d['datasets']['params']['trig_mode'])))
+        except (KeyError, TypeError, ValueError):
+            mode = None
+        return mode, app_id, ''
+
+    def scope_mode(self, quiet=False):
+        """
+        trig_mode of the scope of the C controller (web page): 0 Auto, 1 Normal, 2 Single (stopped),
+        or None if this App is not the loaded one / no answer (with a warning unless quiet).
+        """
+        mode, app_id, err = self._data_post({})
+        _, my_id = self._data_url()
+        if err or app_id != my_id or mode is None:
+            if not quiet:
+                warnings.warn(f'scope_mode(): no answer of the controller of {my_id} '
+                              f'({err or ("loaded App: " + repr(app_id))})')
+            return None
+        if mode != 2:
+            self._web_forget('scope_mode() = ' + repr(mode))
+        return mode
+
+    def _scope_sig(self):
+        """Registers that the C controller changes when it uses the scope (one GET /osc)"""
+        regs = self.get(self.SIG_REGS)
+        return tuple(regs.get(k) for k in self.SIG_REGS)
+
+    def _web_forget(self, reason):
+        self._web_stopped, self._web_ref, self.web_check_reason = False, None, reason
+
+    def _web_still_stopped(self):
+        """
+        True if the Single confirmed by scope_stop() still holds, checked only with GET /osc (no POST /data):
+        two reads of SIG_REGS `quiet_gap` s apart must be equal (the scope is not acquiring: the worker in
+        Auto/Normal re-arms it continuously and moves CurWpt), equal to the reference taken when Single was
+        confirmed / at the end of the last own acquisition (wait()), and, without a reference, Dec/TrgDelay
+        must be the ones of the last measure(). Otherwise the cache is dropped (reason in web_check_reason).
+        Limits: a worker acquiring with a very large decimation may not move CurWpt in quiet_gap; without a
+        reference (measure(wait=False) and no wait()) a worker re-arming with the same Dec/TrgDelay that has
+        finished is not seen. A Single of the web page changes TrgWpt/CurWpt: it is seen (then 1 POST).
+        """
+        if not self._web_stopped:
+            return False
+        s1 = self._scope_sig()
+        sleep(self.quiet_gap)
+        s2 = self._scope_sig()
+        last = getattr(self, '_last_measure', None)
+        if s1 != s2:
+            reason = 'the scope is acquiring'
+        elif self._web_ref is not None and s1 != self._web_ref:
+            reason = 'the scope registers changed since the last check'
+        elif self._web_ref is None and last is not None and (s1[2], s1[3]) != (last['Dec'], last['TrgDelay']):
+            reason = 'Dec / TrgDelay are not the ones of the last measure()'
+        else:
+            self._web_ref = s2
+            return True
+        self._web_forget(reason)
+        return False
+
+    def scope_stop(self, settle=0.25, timeout=3, quiet=False, force=False):
+        """
+        Stops the scope of the C controller / web page (trig_mode = 2, as a Single acquisition of the page),
+        so that it does not re-arm the scope during the acquisitions of measure(). Called by measure().
+        If it was running, waits until the controller has applied it (it resets and configures the scope
+        once): `settle` seconds, then until the scope is reset (conf bits 0, 2 and 4 = 0) and CurWpt
+        stops changing (at most `timeout` seconds). Only when it was running: otherwise one POST, no wait.
+        Returns True if the scope of the controller is stopped, False if Single could not be confirmed
+        (another App loaded, no answer of POST /data after the retries, trig_mode not accepted, scope still
+        running): then it stops there (no wait), warns unless quiet, and the reason is kept in
+        self.scope_stop_error. measure() / acquire() then raise WebScopeNotStopped and do not acquire.
+        POST /data: each one leaves a CLOSE-WAIT connection in the nginx of the board. Once Single is
+        confirmed it is remembered: the next calls only check it with GET /osc (_web_still_stopped()) and
+        make no POST while the scope was not touched by anyone else. force=True: always ask (1-2 POST).
+        """
+        self.scope_stop_error = ''
+        if not force and self._web_still_stopped():
+            return True                                     # confirmed before, scope untouched: no POST
+        self._web_stopped, self._web_ref = False, None
+        _, my_id = self._data_url()
+        mode, app_id, err = self._data_post({})
+        if not err and app_id == my_id and mode == 2:
+            self._web_stopped = True                        # already stopped: nothing written
+            return True
+        if err or app_id != my_id or mode is None:
+            return self._scope_stop_failed(
+                f'scope_stop(): could not read the scope mode of the controller of {my_id} '
+                f'({err or ("loaded App: " + repr(app_id) + ", trig_mode " + repr(mode))}); '
+                'it may acquire at the same time', quiet)
+        mode, app_id, err = self._data_post({'trig_mode': 2})
+        if err or app_id != my_id or mode != 2:
+            return self._scope_stop_failed(
+                f'scope_stop(): trig_mode = 2 (Single) not confirmed by the controller of {my_id} '
+                f'({err or ("loaded App: " + repr(app_id) + ", trig_mode " + repr(mode))}); '
+                'it may acquire at the same time', quiet)
+        # The worker applies it in its loop (a 1 ms poll; ~0.2 s in a long acquisition; the pre-trigger
+        # wait; the decimation of the last acquisition): then it resets the scope, whose write pointer stops.
+        sleep(settle)
+        t0, last, same = time(), None, 0
+        while True:
+            regs = self.get(['CurWpt', 'conf'])
+            idle = not (regs['conf'] & (self.CONF_ARM | self.CONF_TRIG_ST | self.CONF_ACQ_DONE))   # as after a reset
+            same = same + 1 if (regs['CurWpt'] == last and idle) else 0
+            last = regs['CurWpt']
+            if same >= 2:
+                break
+            if time() - t0 > timeout:
+                return self._scope_stop_failed(
+                    f'scope_stop(): the scope is still running {timeout} s after trig_mode = 2', quiet)
+            sleep(0.03)
+        self._web_stopped = True
+        self._web_ref = self._scope_sig()
+        return True
+
+    def _scope_stop_failed(self, msg, quiet):
+        self.scope_stop_error = msg
+        if not quiet:
+            warnings.warn(msg)
+        return False
+
+    def scope_auto(self, mode=0):
+        """
+        Gives the scope back to the C controller / web page: trig_mode = 0 (Auto) or 1 (Normal; or 'auto',
+        'normal'). Its next acquisitions overwrite the buffers. Returns the trig_mode read back.
+        """
+        if isinstance(mode, str):
+            mode = {v: k for k, v in TRIG_MODES.items()}[mode.lower()]
+        mode = _to_int(mode)
+        if mode not in (0, 1):
+            raise ValueError("mode should be 0 ('auto') or 1 ('normal'); use scope_stop() to stop it")
+        self._web_forget('scope_auto()')
+        new, app_id, err = self._data_post({'trig_mode': mode})
+        _, my_id = self._data_url()
+        if err or app_id != my_id or new != mode:
+            raise ValueError(f'scope_auto(): not accepted by the controller of {my_id} '
+                             f'({err or ("loaded App: " + repr(app_id) + ", trig_mode " + repr(new))})')
+        return new
 
 
 # osc = Osc('http://rp-f00a3b.local/lock_in+pid_harmonic')
@@ -597,6 +907,7 @@ class RedPitayaApp():
 
                 {rp}.osc.measure()                       : Acquire oscilloscope channels
                 {rp}.acquire()                           : measure + wait + curv in one call
+                {rp}.scope_stop() / scope_auto()         : Stop / restart the scope of the web page (C controller)
                 {rp}.save_last_meas()                    : Save last acquired data
                 {rp}.wait_osc_finish()                   : wait until acquisition is finished
                 {rp}.plot_meas()                         : Fast plot of last acquisition
@@ -719,15 +1030,36 @@ class RedPitayaApp():
     # ---- Oscilloscope ------------------------------------------------------------------------------
 
     def acquire(self, trig_channel='manual', dec=1, trig_pos=0.5, threshold=0, hysteresis=63,
-                average=None, timeout=10, raw=False):
+                average=None, timeout=10, raw=False, stop_web_scope=None, check_web_mode=False):
         """
         Acquires both scope channels and returns tt, ch1, ch2 (curv()).
         Arguments as osc.measure(); raw=False returns Volts. The data stays in the last dump
-        (save_last_meas(), plot_meas()).
+        (save_last_meas(), plot_meas()). The scope of the web page / C controller is stopped first
+        (stop_web_scope, default rp.osc.auto_stop_web_scope = True): see scope_stop(). Normally no POST /data
+        after the first call; check_web_mode=True adds one after the acquisition (see osc.measure()).
         """
         self.osc.measure(trig_channel, dec=dec, trig_pos=trig_pos, threshold=threshold,
-                         hysteresis=hysteresis, average=average, wait=True, timeout=timeout)
+                         hysteresis=hysteresis, average=average, wait=True, timeout=timeout,
+                         stop_web_scope=stop_web_scope, check_web_mode=check_web_mode)
         return self.osc.curv(raw=raw)
+
+    def scope_stop(self, settle=0.25, timeout=3, force=False):
+        """
+        Stops the scope of the web page / C controller (trig_mode = 2, Single): it keeps acquiring in Auto
+        after bazaar?start even with no page open, and would mix its acquisitions with the ones of /osc.
+        acquire() / osc.measure() call it (disable with stop_web_scope=False or
+        rp.osc.auto_stop_web_scope = False). See osc.scope_stop(): once confirmed, the next calls make no
+        POST /data (each one leaves a CLOSE-WAIT in the board) unless the scope was touched; force=True asks.
+        """
+        return self.osc.scope_stop(settle=settle, timeout=timeout, force=force)
+
+    def scope_auto(self, mode='auto'):
+        """Gives the scope back to the web page / C controller in Auto ('normal' or 1: Normal)."""
+        return self.osc.scope_auto(mode)
+
+    def scope_mode(self):
+        """trig_mode of the scope of the web page / C controller: 0 Auto, 1 Normal, 2 Single (stopped), None"""
+        return self.osc.scope_mode()
 
 
     # ---- Lock-in -----------------------------------------------------------------------------------
