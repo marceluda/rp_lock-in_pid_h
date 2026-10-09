@@ -20,6 +20,13 @@ Examples:
   ./lock_from_registers.py --trig both --time 10ms --level 0.5V --sw 0 --fall
   ./lock_from_registers.py --now --set pidA,pidB                               # lock right now
   ./lock_from_registers.py --release                                           # back to the manual enables
+  ./lock_from_registers.py --trig time --time 16.58ms --set pidA,pidB --force  # release and arm again
+
+Same request (v2.3.14): if the lock is already LOCKED with the same lock_control value and the same
+trigger registers (--time / --level / --sw), nothing is written (a request is [1:0] = 00 and then the
+0->1 edge, and that 00 would open the loop for a few ms): the script says so and exits with code 0.
+If it is ARMED with the same request, nothing is written and it just waits for the lock. Use --force to
+release and arm (or lock) again anyway. A different request releases the current lock and arms the new one.
 
 lock_trig_sw (signal for the level trigger): 0 error, 1 X, 2 Y, 3 F1, 4 F2, 5 F3, 9 signal_i, 10 ramp_A,
 11 aux_A, 12 in1, 13 in2, 14 in1-in2, 15 pidA_out (FPGA muxer of lock.v).
@@ -99,7 +106,7 @@ def describe_status(st):
 
 
 def main():
-    ap = argparse.ArgumentParser(description='Lock from FPGA registers only (lock_in+pid_harmonic v2.3.13)',
+    ap = argparse.ArgumentParser(description='Lock from FPGA registers only (lock_in+pid_harmonic v2.3.13 or later)',
                                  formatter_class=argparse.RawDescriptionHelpFormatter, epilog=__doc__)
     ap.add_argument('--status', action='store_true', help='only print lock_control and lock_status')
     ap.add_argument('--release', action='store_true', help='clear the lock requests (bits [1:0]): back to the manual enables')
@@ -116,6 +123,9 @@ def main():
     ap.add_argument('--set', dest='final', type=parse_enables, default=None,
                     help='enables when locked, e.g. "pidA,pidB" (default: keep the current ones)')
     ap.add_argument('--timeout', type=float, default=10.0, help='seconds to wait for the lock (0: do not wait)')
+    ap.add_argument('--force', action='store_true',
+                    help='release and request again even if the lock is already LOCKED/ARMED with the same request '
+                         '(default: nothing is written then)')
     a = ap.parse_args()
 
     lc = li['lock_control'].val()
@@ -130,14 +140,6 @@ def main():
         print(describe_status(read_status()))
         return 0
 
-    # trigger registers
-    if a.time is not None:
-        li['lock_trig_time'].val(a.time)
-    if a.level is not None:
-        li['lock_trig_val'].val(a.level)
-    if a.sw is not None:
-        li['lock_trig_sw'].val(a.sw)
-
     manual = a.scan if a.scan is not None else {'ramp': (lc >> 4) & 1, 'pidA': (lc >> 3) & 1, 'pidB': (lc >> 2) & 1}
     final = a.final if a.final is not None else {'ramp': (lc >> 7) & 1, 'pidA': (lc >> 6) & 1, 'pidB': (lc >> 5) & 1}
     trig_type = TRIG_TYPES[a.trig] if a.trig is not None else (lc >> 8) & 3
@@ -146,14 +148,37 @@ def main():
         print('trigger type is off: use --trig time|level|both, or --now', file=sys.stderr)
         return 2
 
-    # 1) configuration with no request: releases a previous lock (state OFF, manual enables)
     base = lock_control_value(0, 0, manual, final, trig_type, rise)
-    li['lock_control'].val(base)
-    # 2) request: a 0->1 edge of lock_now or launch_lock. The FPGA does the rest by itself.
-    li['lock_control'].val(base | (1 if a.now else 2))
-    print(describe_control(li['lock_control'].val()))
-    print('lock_trig_time={:d} lock_trig_val={:d} lock_trig_sw={:d}'.format(
-        li['lock_trig_time'].val(), li['lock_trig_val'].val(), li['lock_trig_sw'].val()))
+    request = base | (1 if a.now else 2)
+
+    # v2.3.14: same request already active -> nothing is written (the release [1:0] = 00 would open the loop)
+    st = read_status()
+    same_regs = ((a.time is None or (li['lock_trig_time'].val() & 0xffffffff) == (a.time & 0xffffffff)) and
+                 (a.level is None or (li['lock_trig_val'].val() & 0x3fff) == (a.level & 0x3fff)) and
+                 (a.sw is None or (li['lock_trig_sw'].val() & 0xf) == (a.sw & 0xf)))
+    same = ((lc & 0x7ff) == request) and same_regs
+    if same and not a.force and (st['locked'] or st['armed']):
+        print(describe_control(lc))
+        print(describe_status(st))
+        if st['locked']:
+            print('already LOCKED with the same request: nothing written (use --force to release and lock again)')
+            return 0
+        print('already ARMED with the same request: nothing written, waiting for the lock (--force: arm again)')
+    else:
+        # trigger registers
+        if a.time is not None:
+            li['lock_trig_time'].val(a.time)
+        if a.level is not None:
+            li['lock_trig_val'].val(a.level)
+        if a.sw is not None:
+            li['lock_trig_sw'].val(a.sw)
+        # 1) configuration with no request: releases a previous lock (state OFF, manual enables)
+        li['lock_control'].val(base)
+        # 2) request: a 0->1 edge of lock_now or launch_lock. The FPGA does the rest by itself.
+        li['lock_control'].val(request)
+        print(describe_control(li['lock_control'].val()))
+        print('lock_trig_time={:d} lock_trig_val={:d} lock_trig_sw={:d}'.format(
+            li['lock_trig_time'].val(), li['lock_trig_val'].val(), li['lock_trig_sw'].val()))
 
     # 3) wait for the lock, reading only the status register
     t0 = time.time()

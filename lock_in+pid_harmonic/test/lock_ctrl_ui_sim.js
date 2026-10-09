@@ -193,6 +193,14 @@ function makeEnv(server) {
   code += ['unsentChanges', 'loadParams', 'updateTimeUnits', 'isParamChanged', 'splitParams', 'postParamsChunks', 'sendParams',
            'postEnd', 'sendableValue', 'isSendable', 'hasRealChange', 'lockStatus', 'lockSetBtn', 'lock_status_display']
           .map(fnSrc).join('\n');
+  // v2.3.14: lock requests go through the [LOCK CAPTURE] block (lockRequest()/lockRelease()); Capture Lock is
+  // tested by test/lock_capture_ui_sim.js, here it is off (plain lock chain, as v2.3.13)
+  const cb = js.indexOf('// [LOCK CAPTURE BEGIN]'), ce = js.indexOf('// [LOCK CAPTURE END]');
+  if(cb >= 0) {
+    code += '\nvar set_trigger_val = false, plot_time_units = null, update_timer = null, datasets = [];\n' +
+            ['timeUnitFactor', 'trigFromGraphTargets', 'rampPeriodCycles', 'clickToTrigTime', 'clickToTrigLevel'].map(fnSrc).join('\n') +
+            '\n' + js.slice(cb, ce) + '\nui_capture_lock = 0;\n';
+  }
   if(OLD) code += '\nvar clickBtn = ' + handlerSrc("$(input_buttons).on('click'") + ';\n';
   else {
     code += '\nvar clickEnable = ' + handlerSrc("$('#lock_ctrl_aux_ramp_enable_ctrl,#lock_ctrl_aux_pidA_enable_ctrl,#lock_ctrl_aux_pidB_enable_ctrl').on('click'") + ';\n';

@@ -6,22 +6,26 @@ This started being a striped version of [lock-in+PID](https://github.com/marcelu
 [![Example of usage](http://img.youtube.com/vi/330eYE75MYQ/0.jpg)](http://www.youtube.com/watch?v=330eYE75MYQ "Fast demosatration of usage")
 
 
-## Version 2.3.13 (Ecosystem 2.0)
+## Version 2.3.14 (Ecosystem 2.0)
 
-Current version: **2.3.13**
+Current version: **2.3.14**
 
 This version is **based on the 0.3.x series (v0.3.11), but with the FPGA design built in Vivado 2020.1**,
 using the project structure of [RedPitaya-FPGA](https://github.com/RedPitaya/RedPitaya-FPGA).
 It is intended for the Red Pitaya **Ecosystem 2.0** (e.g. `RedPitaya_OS_2.04`).
 
 - Web interface and C controller: those of v0.3.11 plus the Ecosystem 2.0 changes of v2.3.10 and the
-  fixes of v2.3.12 and v2.3.13 (see CHANGELOG)
+  fixes of v2.3.12 to v2.3.14 (see CHANGELOG)
   (still built with Vivado 2015.2 SDK + Linaro toolchain).
 - FPGA: ported to Vivado 2020.1 (see [Building](#building)).
 - v2.3.13: the lock control runs entirely in the FPGA. `lock_control` (0x18) is command + configuration
   and is never rewritten; the read-only `lock_status` (0x1C, replaces `lock_feedback`) gives armed /
   locked / effective enables / lock count. A lock can be closed from Python writing only registers
   (`py/lock_from_registers.py`). See [lock_in+pid_harmonic/doc/lock_control.md](lock_in+pid_harmonic/doc/lock_control.md).
+- v2.3.14: **Capture Lock** (each lock request from the page captures the closing of the loop in the scope,
+  triggered by the lock event, and freezes it until Auto / Single) and **Fire on click** (a click with
+  *Choose from graph* sets the value and fires Trigger Lock). See
+  [lock_in+pid_harmonic/doc/lock_capture.md](lock_in+pid_harmonic/doc/lock_capture.md).
 
 
 ## Features

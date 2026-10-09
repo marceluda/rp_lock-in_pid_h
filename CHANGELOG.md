@@ -176,3 +176,43 @@ v2.3.13
   blocks for lock_control and stream_ip (it regenerates the docks of this version)
 - ADDED test/lock_ctrl_tb.v + test/lock_ctrl_sim.sh (xsim testbench of lock_ctrl) and
   test/lock_ctrl_ui_sim.js (node simulation UI <-> controller <-> FPGA)
+
+v2.3.14
+- ADDED "Capture Lock" checkbox (on by default): every lock request from the web page (Trigger Lock,
+  Lock Now, Fire on click) captures the closing of the loop like a Single acquisition. The scope goes to
+  Single + External + Ext Trig = "Lock control trig" (pulse of lock_ctrl.v when the lock closes, already
+  in the FPGA) with a window around the lock (Time trigger: the user window shifted by the lock time;
+  otherwise the lock at 30 %), and the request goes in the same POST as the Single. The trace stays
+  frozen ("Lock captured - press Auto or Single to refresh") until trigger mode Auto/Normal, source or
+  Ext Trig change, Single, the AUTO button or unchecking it: then the scope settings of the user are
+  restored. The "Autoscale" button only rescales the Y axis in the page and keeps the capture.
+  Before, the lock was captured only when the Normal scope happened to be armed at the scan floor of the
+  lock sweep (~60 % in the model). See lock_in+pid_harmonic/doc/lock_capture.md
+- ADDED "Fire on click" checkbox (on by default): a click with "Choose from graph" sets the time / level
+  and fires Trigger Lock (an active lock is released and armed again with the new value)
+- CHANGED C controller: a POST that arms a Single and requests a lock (0->1 of lock_now / launch_lock)
+  writes lock_control only after the worker has armed the scope (rp_osc_worker_wait_armed())
+- FIXED C controller: every POST reset the scope (xmin/xmax, sent in every POST, were compared with the
+  worker window in seconds), so in Single mode any change (a PID gain, a lock request) disarmed and
+  cleared a Single waiting for its trigger. A POST without scope changes no longer touches the scope
+- CHANGED "Choose from graph": the warning is recomputed when the scope trigger / Ext Trig / lock trigger
+  type change; Esc or a 2nd click on the button ("Cancel") cancels the pending click; on a lock capture
+  the time is taken from the floor (offset added back) or, if unknown, only the level is set
+- CHANGED py/lock_from_registers.py: if the lock is already LOCKED (or ARMED) with the same request,
+  nothing is written (the [1:0] = 00 before the request opened the loop for some ms); --force re-arms
+- FIXED Makefile: no py/__pycache__ nor *.pyc in target/ and in the packages (running py/*.py on the
+  board creates py/__pycache__/ there; that is fine, it is never packaged)
+- FIXED C controller: AUTO after a Capture Lock left Ext Trig = "Lock control trig" (128) in the server
+  and in the FPGA. The AUTO branch of rp_set_params() returned before lock_update() (the lock / PID /
+  generator changes of the AUTO POST were dropped), and at the end of the auto-set
+  rp_update_main_params() copied the whole, older, worker copy of the parameters back. Now the auto-set
+  starts from the current parameters (rp_osc_worker_start_auto_set()), the rest of the POST is applied,
+  and only the parameters the auto-set computes (time range/units, window, trigger mode/source/level/
+  delay, Y range, auto_flag) are copied back. An auto-set aborted by another state copies nothing and
+  clears auto_flag (before: a new auto-set from the worker thread itself and a 10 s wait)
+- FIXED C controller: a zoom-out of more than 33x right after a change of time units was ignored (taken
+  as a POST still in the old units); now that only applies to POSTs within 1.5 s of the forceX
+- ADDED test/auto_set_c_sim/ (the real C controller compiled for the PC with the FPGA registers in
+  memory): AUTO after a capture, forceX, POST during an auto-set
+- ADDED test/lock_capture_ui_sim.js (node simulation in continuous time: UI, C controller, scope worker,
+  lock_ctrl.v)

@@ -96,7 +96,8 @@ the PIDs start without any write from the PS. Trigger conditions are those of v2
 - level+time: level crossing once the counter is ≥ `lock_trig_time`.
 
 The pulse `lock_ctrl_trig` (oscilloscope trigger source "lock control") is emitted when the state
-enters LOCKED, as before.
+enters LOCKED, as before. From v2.3.14 the web UI uses it to capture the lock ("Capture Lock", see
+`doc/lock_capture.md`).
 
 ### 2.3 `lock_status` (0x1C, read-only, 16 bits) — replaces `lock_feedback`
 

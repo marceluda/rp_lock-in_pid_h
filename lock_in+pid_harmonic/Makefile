@@ -92,6 +92,9 @@ target/$(APP): red_pitaya.bit $(FPGA_BIN) $(CONTROLLERHF) c_tools index.html
 	cp -r ../resources target/
 	cp ../CHANGELOG.md ../README.md target/
 	mkdir -p target/$(APP)/py
+	# No Python caches in target/ nor in the packages (py/__pycache__, resources/**/__pycache__, *.pyc)
+	find target -name __pycache__ -type d -prune -exec rm -rf {} +
+	find target \( -name '*.pyc' -o -name '*.pyo' \) -type f -delete
 	sed -i target/$(APP)/info/info.json -e 's/REVISION/$(REVISION)/'
 	sed -i target/$(APP)/info/info.json -e 's/BUILD_NUMBER/$(BUILD_NUMBER)/'
 	sed -i target/$(APP)/index.html -e "s/\(\\s*\)var\\s*app_version\\s*=\\s*'VERSION'\\s*;\\s*/\\1var app_version = '$(VER)-$(BUILD_NUMBER)-$(REVISION)';/"
