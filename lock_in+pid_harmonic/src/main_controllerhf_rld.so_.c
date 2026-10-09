@@ -317,8 +317,8 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { "lock_trig_sw"                  ,      0, 1, 0,            0,          255 }, /** Select the external trigger signal **/
     { "lock_out1_sw"                  ,      0, 1, 0,            0,           15 }, /** switch for muxer out1 **/
     { "lock_out2_sw"                  ,      0, 1, 0,            0,           15 }, /** switch for muxer out2 **/
-    { "lock_lock_control"             ,   1148, 1, 0,            0,         2047 }, /** lock_control help **/
-    { "lock_lock_feedback"            ,   1148, 0, 1,            0,         2047 }, /** lock_control feedback **/
+    { "lock_lock_control"             ,   1148, 1, 1,            0,         2047 }, /** lock_control (read only mirror, written from lock_ctrl_aux_*) **/
+    { "lock_lock_status"              ,     28, 0, 1,            0,        65535 }, /** lock control status: [lock_count(8),0,0,0,ramp_enable,pidA_enable,pidB_enable,locked,armed] **/
     { "lock_lock_trig_val"            ,      0, 1, 0,        -8192,         8191 }, /** if lock_control ?? , this vals sets the voltage threshold that turns on the lock **/
     { "lock_lock_trig_time_val"       ,      0, 1, 0,            0,   0xffffffff }, /** if lock_control ?? , this vals sets the time threshold that turns on the lock **/
     { "lock_lock_trig_sw"             ,      0, 1, 0,            0,           15 }, /** selects signal for trigger **/
@@ -1169,6 +1169,9 @@ int rp_get_params(rp_app_params_t **p)
         return -1;
 
     pthread_mutex_lock(&rp_main_params_mutex);
+    /* v2.3.13: lock control status (read only) on every request, also when the scope gets no
+     * triggers (lock_update_main() runs only with a complete acquisition) */
+    lock_update_status(&rp_main_params[0]);
     for(i = 0; i < PARAMS_NUM; i++) {
         int p_strlen = strlen(rp_main_params[i].name);
         p_copy[i].name = (char *)malloc(p_strlen+1);

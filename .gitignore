@@ -64,3 +64,11 @@ fsm_encoding.os
 ehthumbs.db
 Thumbs.db
 __pycache__/
+
+# Python / xsim simulation products #
+#####################################
+*.pyc
+xsim.dir/
+*.pb
+*.wdb
+webtalk*

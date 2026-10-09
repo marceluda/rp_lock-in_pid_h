@@ -14,7 +14,7 @@ Documentation for Lock-in and PID application for RedPitaya enviroment
 |out1_sw             |4    | no   | no   |            0|           15|
 |out2_sw             |5    | no   | no   |            0|           15|
 |lock_control        |6    | no   | no   |            0|         2047|
-|lock_feedback       |7    | no   | yes  |            0|         2047|
+|lock_status         |7    | no   | yes  |            0|        65535|
 |lock_trig_val       |8    | yes  | no   |        -8192|         8191|
 |lock_trig_time      |9    | no   | no   |            0|   4294967295|
 |lock_trig_sw        |10   | no   | no   |            0|           15|

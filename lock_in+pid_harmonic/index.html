@@ -16,7 +16,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Harmonic lock-in+PID (v2.3.12)</title>
+  <title>Harmonic lock-in+PID (v2.3.13)</title>
   <link href="../assets/bootstrap-3.0.0/css/bootstrap.css" rel="stylesheet" type="text/css">
   <link href="../assets/style.css?6" rel="stylesheet" type="text/css">
   <script src="../assets/bootstrap-3.0.0/js/jquery.js"></script>
@@ -58,8 +58,9 @@
                                          // headers and body in one write only if both fit in ~1400 B (headers ~500-800 B)
   var post_chunk_timeout = 2000;         // Milliseconds, per POST chunk. A healthy POST answers in ~10 ms; a hung one never
   var post_chunk_retries = 2;            // Retries of a chunk that timed out (values are absolute, so it is safe)
-  var always_send_params = ['single_btn', 'xmin', 'xmax', 'lock_lock_control'];  // Sent in every POST, even if
-                                         // unchanged: loadParams() overrides them locally, so server may differ
+  var always_send_params = ['single_btn', 'xmin', 'xmax'];  // Sent in every POST, even if unchanged:
+                                         // loadParams() overrides them locally, so server may differ.
+                                         // v2.3.13: lock_lock_control is no longer here (read-only mirror, see lockStatus())
   var last_send_params = ['single_btn', 'auto_flag'];  // Go in the last POST when params are split
   var meas_panel_dec = 5;                // Decimation for numerical measure panel to make it human readable
   var meas_panel_dec_mobdev = 1;         // Decimation for numerical measure panel for mobile devices
@@ -176,7 +177,7 @@
   var display_keep_keys = ('meas_min_ch1,meas_max_ch1,meas_amp_ch1,meas_avg_ch1,meas_freq_ch1,meas_per_ch1,'+
                            'meas_min_ch2,meas_max_ch2,meas_amp_ch2,meas_avg_ch2,meas_freq_ch2,meas_per_ch2,'+
                            'lock_X,lock_Y,lock_F1,lock_F2,lock_F3,lock_error_mean,lock_error_std,'+
-                           'lock_lock_feedback,lock_stream_status').split(',');
+                           'lock_lock_status,lock_lock_control,lock_stream_status').split(',');
   // Unsent user changes. A change made while a POST is in flight only sets send_que; the POST (or GET) response
   // then calls loadParams(), which used to overwrite params.local with the server values and the queued
   // sendParams() found nothing to send (the 2nd of two quick changes was lost). unsent_base holds the values
@@ -217,7 +218,7 @@
   config_params_txts = 'xmin,xmax,trig_mode,trig_source,trig_edge,trig_delay,trig_level,time_range,time_units,en_avg_at_dec,min_y,'+
                        'max_y,prb_att_ch1,gain_ch1,prb_att_ch2,gain_ch2,gui_xmin,gui_xmax,'+
                        'lock_oscA_sw,lock_oscB_sw,lock_osc1_filt_off,lock_osc2_filt_off,lock_osc_raw_mode,lock_osc_lockin_mode,lock_trig_sw,'+
-                       'lock_out1_sw,lock_out2_sw,lock_lock_control,lock_lock_trig_val,lock_lock_trig_time_val,lock_lock_trig_sw,lock_rl_error_threshold,'+
+                       'lock_out1_sw,lock_out2_sw,lock_lock_trig_val,lock_lock_trig_time_val,lock_lock_trig_sw,lock_rl_error_threshold,'+
                        'lock_rl_signal_sw,lock_rl_signal_threshold,lock_rl_error_enable,lock_rl_signal_enable,lock_rl_reset,lock_sf_jumpA,'+
                        'lock_sf_jumpB,lock_sf_start,lock_sf_AfrzO,lock_sf_AfrzI,lock_sf_BfrzO,lock_sf_BfrzI,lock_signal_sw,lock_sg_amp0,'+
                        'lock_sg_amp1,lock_sg_amp2,lock_sg_amp3,lock_lpf_F0_tau,lock_lpf_F0_order,lock_lpf_F1_tau,lock_lpf_F1_order,lock_lpf_F2_tau,'+
@@ -1432,11 +1433,43 @@
 
 
     // Buttons
-    var input_buttons = '#lock_osc_raw_mode,#lock_osc_lockin_mode,#lock_sf_start,#lock_stream_cmd,#lock_ctrl_aux_lock_now,#lock_ctrl_aux_launch_lock_trig,'+
-                        '#lock_ctrl_aux_pidB_enable_ctrl,#lock_ctrl_aux_pidA_enable_ctrl,#lock_ctrl_aux_ramp_enable_ctrl,#lock_mod_harmonic_on';
+    var input_buttons = '#lock_osc_raw_mode,#lock_osc_lockin_mode,#lock_sf_start,#lock_stream_cmd,#lock_mod_harmonic_on';
     $(input_buttons).on('click', function() {
       $(this).toggleClass('btn-default btn-primary');
       params.local[this.id] = ($(this).is('.btn-primary') ? 1 : 0);
+      sendParams();
+    });
+
+    // v2.3.13: lock control buttons (doc/lock_control.md). One POST per click, never a POST in answer to the status.
+    // Scan / PID A / PID B show the EFFECTIVE enable (lock_lock_status). Not locked: toggle the manual enable.
+    // Locked: release the lock keeping the effective enables, with the clicked one changed.
+    $('#lock_ctrl_aux_ramp_enable_ctrl,#lock_ctrl_aux_pidA_enable_ctrl,#lock_ctrl_aux_pidB_enable_ctrl').on('click', function() {
+      if(!params.local) return;
+      var st = lockStatus(params.original);
+      var on = ($(this).hasClass('btn-primary') ? 0 : 1);
+      if(st && st.locked) {
+        for(var ek in lock_enable_keys) params.local[ lock_enable_keys[ek] ] = st[ek];
+        params.local.lock_ctrl_aux_lock_now         = 0;
+        params.local.lock_ctrl_aux_launch_lock_trig = 0;
+        lockSetBtn('lock_ctrl_aux_lock_now', 0);
+        lockSetBtn('lock_ctrl_aux_launch_lock_trig', 0);
+      }
+      params.local[this.id] = on;
+      lockSetBtn(this.id, on);
+      sendParams();
+    });
+    // Trigger Lock / Lock Now: request bits of lock_control (levels). Off -> request; on -> release (both to 0)
+    $('#lock_ctrl_aux_launch_lock_trig,#lock_ctrl_aux_lock_now').on('click', function() {
+      if(!params.local) return;
+      if(Number(params.local[this.id])) {
+        params.local.lock_ctrl_aux_lock_now         = 0;
+        params.local.lock_ctrl_aux_launch_lock_trig = 0;
+      }
+      else {
+        params.local[this.id] = 1;
+      }
+      lockSetBtn('lock_ctrl_aux_lock_now',         Number(params.local.lock_ctrl_aux_lock_now));
+      lockSetBtn('lock_ctrl_aux_launch_lock_trig', Number(params.local.lock_ctrl_aux_launch_lock_trig));
       sendParams();
     });
 
@@ -2151,6 +2184,41 @@
 
   }
 
+
+  // v2.3.13: lock control status, read-only register lock_status (0x1C) = param lock_lock_status (doc/lock_control.md).
+  // Bits: 0 armed, 1 locked, 2 PID B, 3 PID A, 4 ramp (effective enables), 15:8 number of locks (mod 256).
+  // The FPGA runs the whole lock sequence by itself: the UI only shows this, it never writes it back.
+  var lock_enable_keys = { ramp: 'lock_ctrl_aux_ramp_enable_ctrl', pidA: 'lock_ctrl_aux_pidA_enable_ctrl',
+                           pidB: 'lock_ctrl_aux_pidB_enable_ctrl' };
+  function lockStatus(p) {
+    var s = (p ? Number(p.lock_lock_status) : NaN);
+    if(!isFinite(s) || s < 0) return null;
+    s = Math.round(s);
+    return { armed: s & 1, locked: (s >> 1) & 1, pidB: (s >> 2) & 1, pidA: (s >> 3) & 1, ramp: (s >> 4) & 1,
+             count: (s >> 8) & 255 };
+  }
+
+  function lockSetBtn(id, on) {
+    $('#' + id).toggleClass('btn-primary', !!on).toggleClass('btn-default', !on).data('checked', !!on);
+  }
+
+  // Shows the lock state (params.original = last server answer). Changes neither params.local nor the server.
+  function lock_status_display() {
+    if(!params.original) return;
+    var st = lockStatus(params.original);
+    for(var ek in lock_enable_keys)
+      lockSetBtn(lock_enable_keys[ek], st ? st[ek] : Number(params.original[ lock_enable_keys[ek] ]));
+    lockSetBtn('lock_ctrl_aux_launch_lock_trig', Number(params.original.lock_ctrl_aux_launch_lock_trig));
+    lockSetBtn('lock_ctrl_aux_lock_now',         Number(params.original.lock_ctrl_aux_lock_now));
+    var lbl = $('#lock_status_label');
+    var txt = 'OFF', cls = 'label-default';
+    if(!st)             { txt = '?';      cls = 'label-default'; }
+    else if(st.locked)  { txt = 'LOCKED'; cls = 'label-success'; }
+    else if(st.armed)   { txt = 'ARMED';  cls = 'label-warning'; }
+    if(lbl.text() !== txt) lbl.text(txt);
+    lbl.removeClass('label-default label-success label-warning').addClass(cls);
+    $('#lock_status_count').text(st ? st.count : '-');
+  }
 
   function lock_ctrl_update() {
     lock_lock_trig_time_val_arr = $("#lock_lock_trig_time_val" ).val().trim().split(' ').filter( function(n,i){ return n!=="" } );
@@ -3464,8 +3532,8 @@
         //orig_params.lock_ctrl_aux_lock_trig_rise     = params.local.lock_ctrl_aux_lock_trig_rise     ;
         trigger_just_set=false;
       }
-      if(orig_params.lock_lock_feedback !== undefined && orig_params.lock_lock_control!=orig_params.lock_lock_feedback)
-        orig_params.lock_lock_control=orig_params.lock_lock_feedback;
+      // v2.3.13: lock_lock_control is no longer replaced by the FPGA feedback (the old lock_lock_feedback): the lock
+      // state is read from lock_lock_status and only shown (lock_status_display()), never written back
     }
 
     var unsent = (keep_unsent === true ? unsentChanges(orig_params) : {});
@@ -3709,6 +3777,8 @@
     }
 
     // [LOLO DOCK LOADPARAMS END]
+
+    lock_status_display();  // v2.3.13: lock buttons from the effective state (after the generated dock)
 
     //$('#lock_stream_ip'          ).val( Int32toIP(params.original.lock_stream_ip)         );
 
@@ -5130,7 +5200,7 @@
     <div class="container">
       <a id="btn_exit" class="pull-left" href="/index.html"><span class="glyphicon glyphicon-chevron-left" title="Exit" alt="Exit"></span></a>
       <img class="logo pull-left" src="../assets/images/logo_white.png">
-      <h2 class="page-title">Harmonic lock-in+PID (v2.3.12)</h2>
+      <h2 class="page-title">Harmonic lock-in+PID (v2.3.13)</h2>
     </div>
   </div>
   <div class="container">
@@ -6966,6 +7036,13 @@
                             <button id="lock_ctrl_aux_lock_now" class="btn btn-primary btn-lg" data-checked="true" disabled>Lock<br>Now</button>
                           </div>
                         </form>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-xs-12 text-center" title="Lock state, read from the FPGA (lock_status). OFF: manual enables; ARMED: waiting for the lock trigger; LOCKED: enables of the config section. Click Trigger Lock / Lock Now again to release the lock.">
+                        <span id="lock_status_label" class="label label-default">OFF</span>
+                        <small>&nbsp;locks:&nbsp;<span id="lock_status_count">-</span></small>
                       </div>
                     </div>
 

@@ -87,7 +87,7 @@ module lock(
     reg         [32-1:0] lock_trig_time;
     reg  signed [14-1:0] lock_trig_val,rl_signal_threshold,sf_jumpA,sf_jumpB;
     wire        [ 5-1:0] rl_state;
-    wire        [11-1:0] lock_feedback;
+    wire        [16-1:0] lock_status;
 
     // mix --------------------------
     reg  signed [14-1:0] aux_A,aux_B;
@@ -192,8 +192,6 @@ module lock(
 
     wire                 lock_trig_rise ;
     wire                 trig_val,trig_time,set_ramp_enable,set_pidA_enable,set_pidB_enable,ramp_enable_ctrl,pidA_enable_ctrl,pidB_enable_ctrl,launch_lock_trig,lock_now;
-
-    wire                 trigger_took_effect;
 
     // ERASE lolo // wire                 ramp_trig ;
 
@@ -660,20 +658,13 @@ module lock(
         .ramp_enable          ( ramp_enable_ctrl   ),
         .pidA_enable          ( pidA_enable_ctrl   ),
         .pidB_enable          ( pidB_enable_ctrl   ),
-        .lock_ctrl_trig       ( lock_ctrl_trig     )
+        .lock_ctrl_trig       ( lock_ctrl_trig     ),
+        .lock_status          ( lock_status        )   // read only status (0x1C), replaces lock_feedback
     );
 
+    // v2.3.13: lock_control is command + configuration and is never rewritten from the FPGA state;
+    // the lock state machine lives in lock_ctrl and is published in lock_status (doc/lock_control.md)
     assign lock_trig_rise      =  lock_control[10];
-    assign trigger_took_effect = &{ ~(ramp_enable_ctrl^lock_control[7]) , ~(pidA_enable_ctrl^lock_control[6]) , ~(pidB_enable_ctrl^lock_control[5]) } ;
-
-    wire  [2-1:0]  next_lock_cmd;
-    assign next_lock_cmd       = trigger_took_effect ? 2'b0 : lock_control[1:0] ;
-    assign lock_feedback =   { lock_control[10:5]  ,
-                               ramp_enable_ctrl ,
-                               pidA_enable_ctrl ,
-                               pidB_enable_ctrl ,
-                               next_lock_cmd
-                               };
 
     assign   trig_time        =   lock_control[8];
 
@@ -1053,7 +1044,7 @@ module lock(
             if (sys_addr[19:0]==20'h00010)  out1_sw               <=  sys_wdata[ 4-1: 0] ; // switch for muxer out1
             if (sys_addr[19:0]==20'h00014)  out2_sw               <=  sys_wdata[ 4-1: 0] ; // switch for muxer out2
             if (sys_addr[19:0]==20'h00018)  lock_control          <=  sys_wdata[11-1: 0] ; // lock_control help
-          //if (sys_addr[19:0]==20'h0001C)  lock_feedback         <=  sys_wdata[11-1: 0] ; // lock_control feedback
+          //if (sys_addr[19:0]==20'h0001C)  lock_status           <=  sys_wdata[16-1: 0] ; // lock control status (read only): [lock_count(8),0,0,0,ramp_enable,pidA_enable,pidB_enable,locked,armed]
             if (sys_addr[19:0]==20'h00020)  lock_trig_val         <=  sys_wdata[14-1: 0] ; // if lock_control ?? , this vals sets the voltage threshold that turns on the lock
             if (sys_addr[19:0]==20'h00024)  lock_trig_time        <=  sys_wdata[32-1: 0] ; // if lock_control ?? , this vals sets the time threshold that turns on the lock
             if (sys_addr[19:0]==20'h00028)  lock_trig_sw          <=  sys_wdata[ 4-1: 0] ; // selects signal for trigger
@@ -1167,7 +1158,7 @@ module lock(
             20'h00010 : begin sys_ack <= sys_en;  sys_rdata <= {  28'b0                   ,          out1_sw  }; end // switch for muxer out1
             20'h00014 : begin sys_ack <= sys_en;  sys_rdata <= {  28'b0                   ,          out2_sw  }; end // switch for muxer out2
             20'h00018 : begin sys_ack <= sys_en;  sys_rdata <= {  21'b0                   ,     lock_control  }; end // lock_control help
-            20'h0001C : begin sys_ack <= sys_en;  sys_rdata <= {  21'b0                   ,    lock_feedback  }; end // lock_control feedback
+            20'h0001C : begin sys_ack <= sys_en;  sys_rdata <= {  16'b0                   ,      lock_status  }; end // lock control status (read only): [lock_count(8),0,0,0,ramp_enable,pidA_enable,pidB_enable,locked,armed]
             20'h00020 : begin sys_ack <= sys_en;  sys_rdata <= {  {18{lock_trig_val[13]}} ,    lock_trig_val  }; end // if lock_control ?? , this vals sets the voltage threshold that turns on the lock
             20'h00024 : begin sys_ack <= sys_en;  sys_rdata <=                                lock_trig_time   ; end // if lock_control ?? , this vals sets the time threshold that turns on the lock
             20'h00028 : begin sys_ack <= sys_en;  sys_rdata <= {  28'b0                   ,     lock_trig_sw  }; end // selects signal for trigger

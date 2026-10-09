@@ -32,6 +32,14 @@
 int   save_read_ctrl = -1 ;
 float lock_error_var = 0 ;
 
+/* v2.3.13: last value of lock_control written by lock_update() (0xffffffff: none yet).
+ * lock_control is command + configuration and the FPGA never modifies it (doc/lock_control.md):
+ *  - lock_update() writes it only when the value composed from LOCK_CTRL_AUX_* changes, so an
+ *    unrelated parameter change does not rewrite a value written from outside the controller;
+ *  - lock_update_status() copies it to LOCK_CTRL_AUX_* only when it differs from this value,
+ *    i.e. when it was written from outside (Python, c/lock, monitor). */
+static uint32_t lock_control_written = 0xffffffff ;
+
 /**
  * GENERAL DESCRIPTION:
  *
@@ -98,18 +106,25 @@ int lock_update(rp_app_params_t *params)
     g_lock_reg->trig_sw                   = (int)params[LOCK_TRIG_SW                  ].value;
     g_lock_reg->out1_sw                   = (int)params[LOCK_OUT1_SW                  ].value;
     g_lock_reg->out2_sw                   = (int)params[LOCK_OUT2_SW                  ].value;
-    g_lock_reg->lock_control              = (int) (
-                                           ((int)params[LOCK_CTRL_AUX_LOCK_NOW        ].value)   *     1  + 
-                                           ((int)params[LOCK_CTRL_AUX_LAUNCH_LOCK_TRIG].value)   *     2  + 
-                                           ((int)params[LOCK_CTRL_AUX_PIDB_ENABLE_CTRL].value)   *     4  + 
-                                           ((int)params[LOCK_CTRL_AUX_PIDA_ENABLE_CTRL].value)   *     8  + 
-                                           ((int)params[LOCK_CTRL_AUX_RAMP_ENABLE_CTRL].value)   *    16  + 
-                                           ((int)params[LOCK_CTRL_AUX_SET_PIDB_ENABLE ].value)   *    32  + 
-                                           ((int)params[LOCK_CTRL_AUX_SET_PIDA_ENABLE ].value)   *    64  + 
-                                           ((int)params[LOCK_CTRL_AUX_SET_RAMP_ENABLE ].value)   *   128  + 
-                                           ((int)params[LOCK_CTRL_AUX_TRIG_TYPE       ].value)   *   256  + 
-                                           ((int)params[LOCK_CTRL_AUX_LOCK_TRIG_RISE  ].value)   *  1024  ) ;
-  //g_lock_reg->lock_feedback             = (int)params[LOCK_LOCK_FEEDBACK            ].value;
+    { /* v2.3.13: lock_control is command + configuration (doc/lock_control.md). Written only when
+       * the value composed from lock_ctrl_aux_* changes (keep this block if the dock is regenerated) */
+        uint32_t lc = (uint32_t) (
+            ((int)params[LOCK_CTRL_AUX_LOCK_NOW        ].value) *    1 +
+            ((int)params[LOCK_CTRL_AUX_LAUNCH_LOCK_TRIG].value) *    2 +
+            ((int)params[LOCK_CTRL_AUX_PIDB_ENABLE_CTRL].value) *    4 +
+            ((int)params[LOCK_CTRL_AUX_PIDA_ENABLE_CTRL].value) *    8 +
+            ((int)params[LOCK_CTRL_AUX_RAMP_ENABLE_CTRL].value) *   16 +
+            ((int)params[LOCK_CTRL_AUX_SET_PIDB_ENABLE ].value) *   32 +
+            ((int)params[LOCK_CTRL_AUX_SET_PIDA_ENABLE ].value) *   64 +
+            ((int)params[LOCK_CTRL_AUX_SET_RAMP_ENABLE ].value) *  128 +
+            ((int)params[LOCK_CTRL_AUX_TRIG_TYPE       ].value) *  256 +
+            ((int)params[LOCK_CTRL_AUX_LOCK_TRIG_RISE  ].value) * 1024 );
+        if (lc != lock_control_written) {
+            g_lock_reg->lock_control = lc;
+            lock_control_written     = lc;
+        }
+    }
+  //g_lock_reg->lock_status               = (int)params[LOCK_LOCK_STATUS              ].value;
     g_lock_reg->lock_trig_val             = (int)params[LOCK_LOCK_TRIG_VAL            ].value;
     g_lock_reg->lock_trig_time            = (int)params[LOCK_LOCK_TRIG_TIME_VAL       ].value;
     g_lock_reg->lock_trig_sw              = (int)params[LOCK_LOCK_TRIG_SW             ].value;
@@ -256,7 +271,7 @@ int lock_update_main(rp_app_params_t *params)
     params[ 88].value = (float)g_lock_reg->out1_sw               ; // lock_out1_sw
     params[ 89].value = (float)g_lock_reg->out2_sw               ; // lock_out2_sw
     params[ 90].value = (float)g_lock_reg->lock_control          ; // lock_lock_control
-    params[ 91].value = (float)g_lock_reg->lock_feedback         ; // lock_lock_feedback
+    params[ 91].value = (float)g_lock_reg->lock_status           ; // lock_lock_status
     params[ 92].value = (float)g_lock_reg->lock_trig_val         ; // lock_lock_trig_val
     params[ 93].value = (float)g_lock_reg->lock_trig_time        ; // lock_lock_trig_time_val
     params[ 94].value = (float)g_lock_reg->lock_trig_sw          ; // lock_lock_trig_sw
@@ -365,17 +380,53 @@ int lock_update_main(rp_app_params_t *params)
     params[194].value = (float)g_lock_reg->stream_port           ; // lock_stream_port
     params[195].value = (float)g_lock_reg->stream_rate           ; // lock_stream_rate
     params[196].value = (float)g_lock_reg->stream_cmd            ; // lock_stream_cmd
-    params[197].value = (float) (( g_lock_reg->lock_feedback >> 0 ) & 0x01 ) ; // lock_ctrl_aux_lock_now
-    params[198].value = (float) (( g_lock_reg->lock_feedback >> 1 ) & 0x01 ) ; // lock_ctrl_aux_launch_lock_trig
-    params[199].value = (float) (( g_lock_reg->lock_feedback >> 2 ) & 0x01 ) ; // lock_ctrl_aux_pidB_enable_ctrl
-    params[200].value = (float) (( g_lock_reg->lock_feedback >> 3 ) & 0x01 ) ; // lock_ctrl_aux_pidA_enable_ctrl
-    params[201].value = (float) (( g_lock_reg->lock_feedback >> 4 ) & 0x01 ) ; // lock_ctrl_aux_ramp_enable_ctrl
-    params[202].value = (float) (( g_lock_reg->lock_feedback >> 5 ) & 0x01 ) ; // lock_ctrl_aux_set_pidB_enable
-    params[203].value = (float) (( g_lock_reg->lock_feedback >> 6 ) & 0x01 ) ; // lock_ctrl_aux_set_pidA_enable
-    params[204].value = (float) (( g_lock_reg->lock_feedback >> 7 ) & 0x01 ) ; // lock_ctrl_aux_set_ramp_enable
-    params[205].value = (float) (( g_lock_reg->lock_feedback >> 8 ) & 0x03 ) ; // lock_ctrl_aux_trig_type
-    params[206].value = (float) (( g_lock_reg->lock_feedback >>10 ) & 0x01 ) ; // lock_ctrl_aux_lock_trig_rise
     // [PARAMSUPDATE DOCK END]
+
+    lock_update_status(params);
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------------------*/
+/**
+ * @brief v2.3.13: Update the lock control status params from the FPGA
+ *
+ * Copies the read only lock_status register (0x1C) to LOCK_LOCK_STATUS and lock_control to
+ * LOCK_LOCK_CONTROL. If lock_control was written from outside the controller (it differs from
+ * the last value written by lock_update()) its bits are copied to the LOCK_CTRL_AUX_* params,
+ * so the web UI shows the commands/configuration written by Python. Nothing is ever written
+ * to the FPGA here. Cheap (two register reads): called by rp_get_params() on every request
+ * (also when the scope gets no triggers) and at the end of lock_update_main().
+ *
+ * @param[in] params  Pointer to overall configuration parameters
+ * @retval -1 FPGA not mapped
+ * @retval  0 succesful update
+ */
+int lock_update_status(rp_app_params_t *params)
+{
+    uint32_t lc;
+
+    if(g_lock_reg == NULL)
+        return -1;
+
+    lc = g_lock_reg->lock_control & 0x7ff;
+    params[LOCK_LOCK_STATUS ].value = (float) (g_lock_reg->lock_status & 0xffff);
+    params[LOCK_LOCK_CONTROL].value = (float) lc;
+
+    if(lc != lock_control_written) {
+        params[LOCK_CTRL_AUX_LOCK_NOW        ].value = (float) ((lc >>  0) & 0x01);
+        params[LOCK_CTRL_AUX_LAUNCH_LOCK_TRIG].value = (float) ((lc >>  1) & 0x01);
+        params[LOCK_CTRL_AUX_PIDB_ENABLE_CTRL].value = (float) ((lc >>  2) & 0x01);
+        params[LOCK_CTRL_AUX_PIDA_ENABLE_CTRL].value = (float) ((lc >>  3) & 0x01);
+        params[LOCK_CTRL_AUX_RAMP_ENABLE_CTRL].value = (float) ((lc >>  4) & 0x01);
+        params[LOCK_CTRL_AUX_SET_PIDB_ENABLE ].value = (float) ((lc >>  5) & 0x01);
+        params[LOCK_CTRL_AUX_SET_PIDA_ENABLE ].value = (float) ((lc >>  6) & 0x01);
+        params[LOCK_CTRL_AUX_SET_RAMP_ENABLE ].value = (float) ((lc >>  7) & 0x01);
+        params[LOCK_CTRL_AUX_TRIG_TYPE       ].value = (float) ((lc >>  8) & 0x03);
+        params[LOCK_CTRL_AUX_LOCK_TRIG_RISE  ].value = (float) ((lc >> 10) & 0x01);
+        lock_control_written = lc;
+    }
 
     return 0;
 }

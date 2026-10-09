@@ -90,13 +90,13 @@ typedef struct lock_reg_t {
       */
     uint32_t lock_control;
     
-    /** @brief Offset 20'h0001C - lock_feedback
-      *  lock_control feedback
+    /** @brief Offset 20'h0001C - lock_status
+      *  lock control status (read only): [lock_count(8),0,0,0,ramp_enable,pidA_enable,pidB_enable,locked,armed]
       *
-      *  bits [31:11] - Reserved
-      *  bits [10: 0] - Data
+      *  bits [31:16] - Reserved
+      *  bits [15: 0] - Data
       */
-    uint32_t lock_feedback;
+    uint32_t lock_status;
     
     /** @brief Offset 20'h00020 - lock_trig_val
       *  if lock_control ?? , this vals sets the voltage threshold that turns on the lock

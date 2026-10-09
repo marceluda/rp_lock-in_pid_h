@@ -146,7 +146,7 @@ typedef struct rp_osc_meas_res_s {
 #define LOCK_OUT1_SW                    88
 #define LOCK_OUT2_SW                    89
 #define LOCK_LOCK_CONTROL               90
-#define LOCK_LOCK_FEEDBACK              91
+#define LOCK_LOCK_STATUS                91
 #define LOCK_LOCK_TRIG_VAL              92
 #define LOCK_LOCK_TRIG_TIME_VAL         93
 #define LOCK_LOCK_TRIG_SW               94

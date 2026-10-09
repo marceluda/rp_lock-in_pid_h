@@ -254,7 +254,7 @@ li.add( fpga_reg(name='trig_sw'            , index=  3, rw=True , nbits= 8,signe
 li.add( fpga_reg(name='out1_sw'            , index=  4, rw=True , nbits= 4,signed=False) )
 li.add( fpga_reg(name='out2_sw'            , index=  5, rw=True , nbits= 4,signed=False) )
 li.add( fpga_reg(name='lock_control'       , index=  6, rw=True , nbits=11,signed=False) )
-li.add( fpga_reg(name='lock_feedback'      , index=  7, rw=False, nbits=11,signed=False) )
+li.add( fpga_reg(name='lock_status'        , index=  7, rw=False, nbits=16,signed=False) )
 li.add( fpga_reg(name='lock_trig_val'      , index=  8, rw=True , nbits=14,signed=True ) )
 li.add( fpga_reg(name='lock_trig_time'     , index=  9, rw=True , nbits=32,signed=False) )
 li.add( fpga_reg(name='lock_trig_sw'       , index= 10, rw=True , nbits= 4,signed=False) )

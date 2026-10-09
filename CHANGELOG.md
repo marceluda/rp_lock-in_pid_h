@@ -149,3 +149,30 @@ v2.3.12
   click; Level+time: both). The level is clamped to -8192..8191
 - ADDED lock_in+pid_harmonic/test/trig_from_graph_sim.js (node): simulation of the click -> time
   conversion (scope time vector of the C controller + flot axis) with several zooms and offsets
+
+v2.3.13
+- FIXED the lock start depended on the web UI: the FPGA published lock_feedback (0x1C) and the lock was
+  only "committed" when the C controller / web UI copied it back to lock_control. Now the lock control
+  runs entirely in the FPGA (lock_ctrl.v state machine OFF / ARMED / LOCKED): lock_control (0x18) is
+  command + configuration and is never modified by the FPGA nor rewritten from its state
+  (doc/lock_control.md). Same bit positions: [0] lock_now and [1] launch_lock are lock requests (their
+  0->1 edge locks / arms, [1:0] = 00 releases), [4:2] manual enables, [7:5] enables when locked,
+  [9:8] trigger type, [10] level direction. A change of the manual enables while locked releases it
+- CHANGED 0x1C is now lock_status (read only): [0] armed, [1] locked, [4:2] effective ramp/PID A/PID B
+  enables (same positions as in lock_feedback), [15:8] number of locks (mod 256). No other register moved
+- CHANGED C controller: parameter lock_lock_feedback -> lock_lock_status (read only); lock_lock_control
+  is a read-only mirror; lock_control is written only when the lock_ctrl_aux_* params change (an
+  unrelated change no longer rewrites it); the status (and a lock_control written from outside, e.g.
+  Python) is refreshed on every request, also when the scope gets no triggers
+- FIXED web UI: Scan / PID A / PID B show the effective enables read from lock_status, with a
+  OFF / ARMED / LOCKED label and lock count; lock_lock_control is no longer copied from the feedback
+  nor sent in every POST: no POST while locked. Trigger Lock / Lock Now stay pressed while requested
+  and a second click releases the lock; clicking an enable while locked releases it keeping the other
+  effective enables. "Don't turn on PIDs and Ramp" works as before (it also releases the lock)
+- ADDED py/lock_from_registers.py: arm / lock now / release / status writing only FPGA registers
+- FIXED resources/remote_control control_hugo.py launch_lock() / lock_now() (self.rp did not exist):
+  they now make a 0->1 edge; added release_lock() and lock_status()
+- CHANGED resources/config_tool.py: paths of the v0.94 FPGA project, lock_status, special write
+  blocks for lock_control and stream_ip (it regenerates the docks of this version)
+- ADDED test/lock_ctrl_tb.v + test/lock_ctrl_sim.sh (xsim testbench of lock_ctrl) and
+  test/lock_ctrl_ui_sim.js (node simulation UI <-> controller <-> FPGA)

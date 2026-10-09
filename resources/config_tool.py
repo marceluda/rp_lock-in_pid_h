@@ -107,6 +107,7 @@ class fpga_register():
         self.group       = group
         self.write_def   = True
         self.c_update    = None
+        self.c_block     = None   # if set: lines written as is in the FPGAUPDATE dock instead of 'g_lock_reg->name = c_update;'
         self.main_reg    = None
         self.reg_read    = False
 
@@ -170,7 +171,8 @@ f.add( name="out2_sw"            , group=grp , val=    0, rw=True ,  nbits= 4, m
 # Lock control
 grp='lock_control'
 f.add( name="lock_control"       , group=grp , val= 1148, rw=True ,  nbits=11, min_val=          0, max_val=       2047, fpga_update=True , signed=False, desc="lock_control help" )
-f.add( name="lock_feedback"      , group=grp , val= 1148, rw=False,  nbits=11, min_val=          0, max_val=       2047, fpga_update=True , signed=False, desc="lock_control feedback" )
+# v2.3.13: lock_feedback (0x1C) replaced by the read only lock_status (doc/lock_control.md)
+f.add( name="lock_status"        , group=grp , val=   28, rw=False,  nbits=16, min_val=          0, max_val=      65535, fpga_update=True , signed=False, desc="lock control status (read only): [lock_count(8),0,0,0,ramp_enable,pidA_enable,pidB_enable,locked,armed]" )
 f.add( name="lock_trig_val"      , group=grp , val=    0, rw=True ,  nbits=14, min_val=      -8192, max_val=       8191, fpga_update=True , signed=True , desc="if lock_control ?? , this vals sets the voltage threshold that turns on the lock" )
 f.add( name="lock_trig_time"     , group=grp , val=    0, rw=True ,  nbits=32, min_val=          0, max_val= 4294967295, fpga_update=True , signed=False, desc="if lock_control ?? , this vals sets the time threshold that turns on the lock" )
 f.add( name="lock_trig_sw"       , group=grp , val=    0, rw=True ,  nbits= 4, min_val=          0, max_val=         15, fpga_update=True , signed=False, desc="selects signal for trigger" )
@@ -549,7 +551,7 @@ def update_verilog(filename,dock,txt):
     if do_clean:
         os.remove(  filename.replace('.v','_'+tnow+'.v')  )
 
-fpga_mod_fn=APP+'/fpga/rtl/lock.v'
+fpga_mod_fn=APP+'/fpga/prj/v0.94/rtl/lock.v'
 
 if __name__ == '__main__' and do_verilog:
     print('do_verilog')
@@ -711,8 +713,9 @@ m.add( name="lock_out2_sw"       , fpga_reg="out2_sw"       , val=0    , rw=True
 # m.add( name="lock_slow_out4_sw"  , fpga_reg="slow_out4_sw"  , val=0    , rw=True , nbits=4 , min_val=0         , max_val=15        , fpga_update=True , signed=False, group="outputs"        , desc="switch for muxer slow_out4")
 
 # group: lock_control
-m.add( name="lock_lock_control"  , fpga_reg="lock_control"  , val=1148 , rw=True , nbits=11, min_val=0         , max_val=2047      , fpga_update=True , signed=False, group="lock_control"   , desc="lock_control help")
-m.add( name="lock_lock_feedback" , fpga_reg="lock_feedback" , val=1148 , rw=False, nbits=11, min_val=0         , max_val=2047      , fpga_update=False, signed=False, group="lock_control"   , desc="lock_control feedback")
+# v2.3.13: lock_lock_control is a read only mirror of the register, which is composed from lock_ctrl_aux_*
+m.add( name="lock_lock_control"  , fpga_reg="lock_control"  , val=1148 , rw=False, nbits=11, min_val=0         , max_val=2047      , fpga_update=True , signed=False, group="lock_control"   , desc="lock_control (read only mirror, written from lock_ctrl_aux_*)")
+m.add( name="lock_lock_status"   , fpga_reg="lock_status"   , val=28   , rw=False, nbits=16, min_val=0         , max_val=65535     , fpga_update=False, signed=False, group="lock_control"   , desc="lock control status: [lock_count(8),0,0,0,ramp_enable,pidA_enable,pidB_enable,locked,armed]")
 m.add( name="lock_lock_trig_val" , fpga_reg="lock_trig_val" , val=0    , rw=True , nbits=14, min_val=-8192     , max_val=8191      , fpga_update=True , signed=True , group="lock_control"   , desc="if lock_control ?? , this vals sets the voltage threshold that turns on the lock")
 m.add( name="lock_lock_trig_time_val", fpga_reg="lock_trig_time", val=0    , rw=True , nbits=32, min_val=0         , max_val=4294967295, fpga_update=True , signed=False, group="lock_control"   , desc="if lock_control ?? , this vals sets the time threshold that turns on the lock")
 r.main_reg='lock_'+r.name
@@ -900,27 +903,19 @@ m.add( name="lock_stream_cmd"    , fpga_reg="stream_cmd"    , val=0    , rw=True
 
 
 
-m.add(name="lock_ctrl_aux_lock_now"         , val=0 , max_val=1 , fpga_update=False, fpga_reg='lock_feedback')
-m.add(name="lock_ctrl_aux_launch_lock_trig" , val=0 , max_val=1 , fpga_update=False, fpga_reg='lock_feedback')
-m.add(name="lock_ctrl_aux_pidB_enable_ctrl" , val=1 , max_val=1 , fpga_update=False, fpga_reg='lock_feedback')
-m.add(name="lock_ctrl_aux_pidA_enable_ctrl" , val=1 , max_val=1 , fpga_update=False, fpga_reg='lock_feedback')
-m.add(name="lock_ctrl_aux_ramp_enable_ctrl" , val=1 , max_val=1 , fpga_update=False, fpga_reg='lock_feedback')
-m.add(name="lock_ctrl_aux_set_pidB_enable"  , val=1 , max_val=1 , fpga_update=False, fpga_reg='lock_feedback')
-m.add(name="lock_ctrl_aux_set_pidA_enable"  , val=1 , max_val=1 , fpga_update=False, fpga_reg='lock_feedback')
-m.add(name="lock_ctrl_aux_set_ramp_enable"  , val=0 , max_val=1 , fpga_update=False, fpga_reg='lock_feedback')
-m.add(name="lock_ctrl_aux_trig_type"        , val=0 , max_val=3 , fpga_update=False, fpga_reg='lock_feedback')
-m.add(name="lock_ctrl_aux_lock_trig_rise"   , val=0 , max_val=1 , fpga_update=False, fpga_reg='lock_feedback')
-
-m['lock_ctrl_aux_lock_now'        ].c_update='(float) (( g_lock_reg->lock_feedback >> 0 ) & 0x01 )'
-m['lock_ctrl_aux_launch_lock_trig'].c_update='(float) (( g_lock_reg->lock_feedback >> 1 ) & 0x01 )'
-m['lock_ctrl_aux_pidB_enable_ctrl'].c_update='(float) (( g_lock_reg->lock_feedback >> 2 ) & 0x01 )'
-m['lock_ctrl_aux_pidA_enable_ctrl'].c_update='(float) (( g_lock_reg->lock_feedback >> 3 ) & 0x01 )'
-m['lock_ctrl_aux_ramp_enable_ctrl'].c_update='(float) (( g_lock_reg->lock_feedback >> 4 ) & 0x01 )'
-m['lock_ctrl_aux_set_pidB_enable' ].c_update='(float) (( g_lock_reg->lock_feedback >> 5 ) & 0x01 )'
-m['lock_ctrl_aux_set_pidA_enable' ].c_update='(float) (( g_lock_reg->lock_feedback >> 6 ) & 0x01 )'
-m['lock_ctrl_aux_set_ramp_enable' ].c_update='(float) (( g_lock_reg->lock_feedback >> 7 ) & 0x01 )'
-m['lock_ctrl_aux_trig_type'       ].c_update='(float) (( g_lock_reg->lock_feedback >> 8 ) & 0x03 )'
-m['lock_ctrl_aux_lock_trig_rise'  ].c_update='(float) (( g_lock_reg->lock_feedback >>10 ) & 0x01 )'
+# v2.3.13: bits of lock_control (command + configuration, never rewritten from the FPGA state).
+# Not refreshed in the PARAMSUPDATE dock: lock_update_status() (src/lock.c) copies them from the
+# register only when lock_control was written from outside the controller (Python, c/lock, monitor).
+m.add(name="lock_ctrl_aux_lock_now"         , val=0 , max_val=1 , fpga_update=False, fpga_reg=None)
+m.add(name="lock_ctrl_aux_launch_lock_trig" , val=0 , max_val=1 , fpga_update=False, fpga_reg=None)
+m.add(name="lock_ctrl_aux_pidB_enable_ctrl" , val=1 , max_val=1 , fpga_update=False, fpga_reg=None)
+m.add(name="lock_ctrl_aux_pidA_enable_ctrl" , val=1 , max_val=1 , fpga_update=False, fpga_reg=None)
+m.add(name="lock_ctrl_aux_ramp_enable_ctrl" , val=1 , max_val=1 , fpga_update=False, fpga_reg=None)
+m.add(name="lock_ctrl_aux_set_pidB_enable"  , val=1 , max_val=1 , fpga_update=False, fpga_reg=None)
+m.add(name="lock_ctrl_aux_set_pidA_enable"  , val=1 , max_val=1 , fpga_update=False, fpga_reg=None)
+m.add(name="lock_ctrl_aux_set_ramp_enable"  , val=0 , max_val=1 , fpga_update=False, fpga_reg=None)
+m.add(name="lock_ctrl_aux_trig_type"        , val=0 , max_val=3 , fpga_update=False, fpga_reg=None)
+m.add(name="lock_ctrl_aux_lock_trig_rise"   , val=0 , max_val=1 , fpga_update=False, fpga_reg=None)
 
 
 m.add(name="lock_mod_harmonic_on" , val=1 , max_val=1 , fpga_update=False, fpga_reg=None)
@@ -956,6 +951,31 @@ for i,ii in enumerate([ 'lock_ctrl_aux_lock_now',
                         'lock_ctrl_aux_trig_type']):
     f['lock_control'].c_update+=' '*43+'((int)params[{:30s}].value)   *  {:>4d}  + \n'.format(m[ii].cdef,2**i)
 f['lock_control'].c_update+=' '*43+'((int)params[{:30s}].value)   *  {:>4d}  ) '.format(m['lock_ctrl_aux_lock_trig_rise'].cdef,2**10)
+# v2.3.13: written only when the value composed from lock_ctrl_aux_* changes (lock_control_written, src/lock.c),
+# so an unrelated change does not rewrite a value written to the register from outside the controller
+f['lock_control'].c_block = ('{ /* v2.3.13: lock_control is command + configuration (doc/lock_control.md). Written only when\n'
+                             '   * the value composed from lock_ctrl_aux_* changes (keep this block if the dock is regenerated) */\n'
+                             '    uint32_t lc = (uint32_t) (\n'+
+                             ' +\n'.join( ' '*8+'((int)params[{:30s}].value) * {:>4d}'.format(m[ii].cdef,2**(i if i<9 else 10))
+                                         for i,ii in enumerate([ 'lock_ctrl_aux_lock_now', 'lock_ctrl_aux_launch_lock_trig',
+                                                                 'lock_ctrl_aux_pidB_enable_ctrl', 'lock_ctrl_aux_pidA_enable_ctrl',
+                                                                 'lock_ctrl_aux_ramp_enable_ctrl', 'lock_ctrl_aux_set_pidB_enable',
+                                                                 'lock_ctrl_aux_set_pidA_enable', 'lock_ctrl_aux_set_ramp_enable',
+                                                                 'lock_ctrl_aux_trig_type', 'lock_ctrl_aux_lock_trig_rise' ]) )+' );\n'
+                             '    if (lc != lock_control_written) {\n'
+                             '        g_lock_reg->lock_control = lc;\n'
+                             '        lock_control_written     = lc;\n'
+                             '    }\n'
+                             '}')
+f['stream_ip'].c_block = ('{ /* v2.3.10: stream_ip is a full uint32 written exactly by c/lock; params are\n'
+                          '   * float (24-bit mantissa) and (int) of a value >= 2^31 saturates. Write it\n'
+                          '   * only if the param is not the float echo of the register (keep this block\n'
+                          '   * if the FPGAUPDATE dock is regenerated with config_tool.py). */\n'
+                          '    float ip_v = params[LOCK_STREAM_IP].value;\n'
+                          '    if (ip_v != (float)g_lock_reg->stream_ip)\n'
+                          '        g_lock_reg->stream_ip = (ip_v <= 0.0f) ? 0u :\n'
+                          '                                (ip_v >= 4294967296.0f) ? 0xffffffffu : (uint32_t)ip_v;\n'
+                          '}')
 
 
 
@@ -981,7 +1001,10 @@ def main_update_params(indent=1):
 def main_update_fpga(indent=1):
     txt=txt_buff(n=indent)
     for r in f:
-        if r.rw:
+        if r.rw and r.c_block:
+            for line in r.c_block.split('\n'):
+                txt.add(line)
+        elif r.rw:
             txt.add('g_lock_reg->{:25s} = {:25s};'.format(r.name,r.c_update) )
         else:
             txt.add_comment('g_lock_reg->{:25s} = {:25s};'.format(r.name,r.c_update) )
@@ -1773,7 +1796,7 @@ def get_muxer(filename,name):
         return ret
 
 # if False:
-#     filename=APP+'/fpga/rtl/lock.v'
+#     filename=APP+'/fpga/prj/v0.94/rtl/lock.v'
 #     print(get_muxer(filename,"slow_out1_sw"))
 #     print(get_muxer(filename,"lpf_F1"))
 #     print(get_muxer(filename,"sg_amp1"))
@@ -1789,7 +1812,7 @@ def get_muxer(filename,name):
 
 
 
-filename=APP+'/fpga/rtl/lock.v'
+filename=APP+'/fpga/prj/v0.94/rtl/lock.v'
 if not os.path.isdir(folder):
     raise ValueError('"folder" variable should be the source code folder path.')
 os.chdir(folder)

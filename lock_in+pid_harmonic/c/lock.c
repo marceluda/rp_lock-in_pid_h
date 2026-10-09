@@ -53,7 +53,7 @@ static registers_t registers[PARAMS_NUM] = {
     { "out1_sw"                ,   4, 0, 0,          0,         15 },
     { "out2_sw"                ,   5, 0, 0,          0,         15 },
     { "lock_control"           ,   6, 0, 0,          0,       2047 },
-    { "lock_feedback"          ,   7, 0, 1,          0,       2047 },
+    { "lock_status"            ,   7, 0, 1,          0,      65535 },
     { "lock_trig_val"          ,   8, 1, 0,      -8192,       8191 },
     { "lock_trig_time"         ,   9, 0, 0,          0, 4294967295 },
     { "lock_trig_sw"           ,  10, 0, 0,          0,         15 },
