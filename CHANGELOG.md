@@ -39,180 +39,144 @@ v0.3.10
 - FIXED month value in pretty_now() and GUI xmin/xmax read by index in main.c
 - FIXED Makefile packaging of fpga.sh / fpga.bit.bin and fpga.sh executable mode
 
-v2.3.10
-- same as v0.3.10 but with the FPGA design built with Vivado 2020.1 (RedPitaya-FPGA project
-  structure): lock_in+pid_harmonic/fpga is now the RedPitaya-FPGA v0.94 project (model Z10,
-  STEMlab 125-14) with the lock module; the Vivado 2015.2 design is kept in
-  lock_in+pid_harmonic/fpga_old_2015.2 (to be removed)
-- CHANGED fpga/Makefile: `make` builds red_pitaya.bit and fpga.bit.bin (bootgen), `make project`
-  opens the Vivado project, `make clean`; Vivado 2020.1 is loaded inside the Makefile, isolated
-  from the Vivado 2015.2 + Linaro environment used for the C controller
-- CHANGED the oscilloscope is the RedPitaya 2.0 one (rp_scope_com): the C controller unlocks the
-  trigger (register 0x94) before every acquisition and detects the end of the acquisition with
-  conf bit 4 (it still works with the 0.9x scope)
-- CHANGED the decimation of the 2.0 scope is widened to 20 bits in our copy of the FPGA
-  (rp_scope_cfg / rp_scope_com / rp_decim: 40-bit accumulator, divider inputs pre-scaled by 16
-  for decimations >= 64k), so the longest time range is again ~68 s (decimation 512k, as v0.3.4)
-- FIXED scope samples: the 2.0 scope buffer returns the samples sign-extended to 16 bits; the C
-  controller (conversion to volts, measurements, auto-set), c/osc, c/stream_tcp_osc_cmd and
-  py/hugo.py keep the 14 ADC bits (still works with the 0.9x FPGA); streaming sends 14 bits as before
-- FIXED c/lock parses unsigned registers with strtoul (stream_ip with the last octet >= 128 was
-  rejected) and prints them unsigned; the UI sends stream_ip as unsigned and the controller
-  does not overwrite stream_ip with its float echo; c/streaming IP buffer of 16 bytes
-- FIXED /lock and /osc endpoints: `?name` without `=` reads the register (was a Lua error, 500);
-  only register names and integers are passed to the shell
-- FIXED a Single click made while another POST was in flight (e.g. right after switching the
-  trigger mode to Single) was lost
-- FIXED streaming stopped after a few seconds (c/stream_tcp_osc_cmd segfault): the send buffer
-  could be overrun by up to send_min_len-1 samples; it is now flushed before a read that does not
-  fit, has 2x margin, partial sends are completed and FPGA registers are read as volatile.
-  c/streaming no longer polls stream_cmd at 100 % CPU (10 ms sleep)
-- FIXED streaming sent repeated data (rate above the nominal one): the scope read data crossed
-  to the PS clock without synchronization while it kept following the write pointer, which was
-  sometimes read some samples behind and taken as a full turn of the buffer. FPGA: rp_scope_cfg
-  holds the read data outside a read. c/stream_tcp_osc_cmd: the write pointer is read three
-  times and used as a monotonic value, data is read up to WP-8, overruns, external resets/arms of
-  the scope and a stopped write pointer (scope re-armed after 200 ms) are detected and logged
-  to /tmp/lock_in+pid_harmonic_streaming.log; it sleeps when there is little data
-- FIXED the first Start of the streaming sent no data: the controller no longer resets, arms or
-  configures the scope while stream_cmd is set (pending changes are applied when it stops) and
-  c/stream_tcp_osc_cmd re-arms the scope if the write pointer does not move
-- FIXED E3 while streaming: c/streaming is started detached by c/stream_start.sh (it was an
-  io.popen() never closed, the nginx worker blocked in pclose()); a new Prepare replaces the
-  previous streaming processes; c/streaming ends when c/stream_tcp_osc_cmd ends
-- FIXED leaving the App with the streaming active: rp_app_exit sets stream_cmd = 0 and stops
-  c/streaming and c/stream_tcp_osc_cmd (SIGTERM, then SIGKILL) before returning, and fpga.sh
-  kills them before loading the FPGA, so they never read the PL while it is reprogrammed
-- FIXED Restart after a streaming left the scope frozen: the saved state restored stream_cmd = 1
-  and the float echo of stream_ip (10.0.32.184 became 0.0.32.184). Transient commands
-  (stream_cmd, lock now, launch lock trigger) are no longer saved and are forced to 0 by Restart
-  and Config load; the streaming IP is saved as an exact integer and written with /lock?stream_ip=
-- FIXED the last ~9000-16000 samples of each streaming were corrupted at Stop: c/stream_tcp_osc_cmd
-  reads stream_cmd before and after each read of the buffer, drops a block read after it went to 0
-  and ends by itself; the controller waits for it to end (50-500 ms) before reconfiguring the scope
-- FIXED check_streaming alternated 0 and -1 while streaming (red status label): it now returns
-  0/1 from the output of pidof (os.execute's status was lost to nginx's SIGCHLD handler)
-- CHANGED streaming overruns are classified with the scope "samples written" counter: a reader
-  more than half a buffer late is no longer taken as a bad write pointer read (wp_back, a whole
-  buffer lost without notice) but read or, if more than a buffer late, the oldest samples are
-  skipped (counted as overrun, "lost" samples logged); samples overwritten while being read are
-  dropped. NOTE at decimation 64 (1.95 MS/s) the bus read of the PS is not enough (~1.63 MS/s
-  measured): ~17 % of the samples are lost, now counted; decimation >= 128 is sustainable
-- CHANGED the c/ tools are cross compiled by the App Makefile (`make c_tools`, part of `make all`
-  and of the packages) with the flags of the original binaries (-g -std=gnu11
-  -fstack-protector-strong), so they always match their sources
-- FIXED time scale after Restart from the menu: the scale is saved in seconds and restored in the
-  time units the server uses after the restart; the controller keeps the GUI xmin/xmax when a
-  POST does not include them (ported from scope++ v1.1.1)
-- NOTE the slow analog outputs AO0-AO3 are not driven by the lock module and exp_n_io[7]
-  (digital_modulation) is always 0, as in the Vivado 2015.2 design (not changed)
-- kept from the Vivado 2015.2 design: lock module at 0x40600000, scope at 0x40100000 with lock
-  signals as inputs and lock trigger, filter bypass and streaming decimation controlled by the lock
-  (osc_ctrl), slow analog outputs (PWM) driven by the lock, digital modulation / ramp direction
-  outputs on exp_n_io[7:6], ASG (0x40200000) and PID (0x40300000) regions answered without error
+---
 
-v2.3.11
-- same web interface fixes as v0.3.11 (FPGA unchanged, same bitstream as v2.3.10)
-  - FIXED second of two quick consecutive changes being lost while a POST was in flight
-    (unsent changes are kept when a POST/GET answer is loaded; Config load during a POST is sent too)
-  - FIXED indicators (R, X, Y, phase, scope) frozen after editing a field (edit timer / edit mode);
-    Escape cancels the edit; leaving a select or checkbox ends the edit mode
-  - FIXED Enter with an out-of-range value sending two POSTs (Enter is prevented, forms use novalidate)
-  - FIXED mouse wheel: no longer sends single_btn (scope stopped), and SHIFT + wheel uses the right sign
-  - FIXED duplicated POST when using the mouse wheel on a focused field
-  - ADDED cautious mode (from rp_lock-in_pid_h2 v0.4.1): if /get_client_id is slow or fails, /data is
-    not requested until the board answers fast again
-  - FIXED cautious mode entered without reason during active use: a single slow/failed /get_client_id
-    is retried at once (cautious only if the retry is slow/fails too), a slow answer overlapping our own
-    POST /data is not measured, and the checks to leave it are 1 s apart (was 3 s)
-  - FIXED endless POST loop (~15 POST/s, it crashed the nginx worker) after Config -> load of a config
-    without some keys (e.g. of another App): missing keys keep their current value, a select without
-    selection never gives NaN, NaN is never a pending change, and sendParams() has an anti-loop guard
-    (no POST without changes < 200 ms after the previous one, at most 10 POST/s)
-  - kept from v2.3.10: the queued Single click (single_que, also combined with a queued Config load),
-    the restore of the time scale and of the exact streaming IP, transient commands never saved
+# devel2.0 branch (Ecosystem 2.0, FPGA built with Vivado 2020.1)
 
-v2.3.12
-- FIXED "Choose from graph" of the Lock control trigger: the clicked time is taken from the absolute
-  x coordinate of the plot with any zoom, offset and time units (us/ms/s), with t = 0 on screen or
-  not, and converted with the time units of the plotted data (not the GUI units, which a zoom that
-  changes the units updates before the data in the new units arrive). It is taken modulo the real
-  ramp period: the sawtooth ramp period is (high-low+1)*(step+1) cycles (it used the triangle one,
-  2*(high-low)*(step+1), so a click outside the first period gave a time the counter never reaches)
-- REMOVED the "Auto-zoom" checkbox of "Choose from graph" (it moved the zoom so that t = 0 was on
-  screen and forced the scope trigger to Normal / External / Scan floor). Instead, a hint under the
-  button warns when the scope trigger is not Normal or Single / External / Ext Trig = Scan floor
-  (t = 0 of the graph is the scan floor only with that trigger). It never had a parameter: saved
-  configs are not affected
-- FIXED "Choose from graph" writing both triggers: it sets only the value of the selected trigger
-  type (Time trigger: only lock_trig_time; Level trigger: only lock_trig_val, from the y of the
-  click; Level+time: both). The level is clamped to -8192..8191
-- ADDED lock_in+pid_harmonic/test/trig_from_graph_sim.js (node): simulation of the click -> time
-  conversion (scope time vector of the C controller + flot axis) with several zooms and offsets
+Versions 2.3.x are the same App as the 0.3.x series, rebuilt for the Red Pitaya Ecosystem 2.0 with the FPGA
+design ported to Vivado 2020.1 (RedPitaya-FPGA project structure, v0.94, model Z10 / STEMlab 125-14).
+Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE procedure, locking to a peak
+simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
+< 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
-v2.3.13
-- FIXED the lock start depended on the web UI: the FPGA published lock_feedback (0x1C) and the lock was
-  only "committed" when the C controller / web UI copied it back to lock_control. Now the lock control
-  runs entirely in the FPGA (lock_ctrl.v state machine OFF / ARMED / LOCKED): lock_control (0x18) is
-  command + configuration and is never modified by the FPGA nor rewritten from its state
-  (doc/lock_control.md). Same bit positions: [0] lock_now and [1] launch_lock are lock requests (their
-  0->1 edge locks / arms, [1:0] = 00 releases), [4:2] manual enables, [7:5] enables when locked,
-  [9:8] trigger type, [10] level direction. A change of the manual enables while locked releases it
-- CHANGED 0x1C is now lock_status (read only): [0] armed, [1] locked, [4:2] effective ramp/PID A/PID B
-  enables (same positions as in lock_feedback), [15:8] number of locks (mod 256). No other register moved
-- CHANGED C controller: parameter lock_lock_feedback -> lock_lock_status (read only); lock_lock_control
-  is a read-only mirror; lock_control is written only when the lock_ctrl_aux_* params change (an
-  unrelated change no longer rewrites it); the status (and a lock_control written from outside, e.g.
-  Python) is refreshed on every request, also when the scope gets no triggers
-- FIXED web UI: Scan / PID A / PID B show the effective enables read from lock_status, with a
-  OFF / ARMED / LOCKED label and lock count; lock_lock_control is no longer copied from the feedback
-  nor sent in every POST: no POST while locked. Trigger Lock / Lock Now stay pressed while requested
-  and a second click releases the lock; clicking an enable while locked releases it keeping the other
-  effective enables. "Don't turn on PIDs and Ramp" works as before (it also releases the lock)
-- ADDED py/lock_from_registers.py: arm / lock now / release / status writing only FPGA registers
-- FIXED resources/remote_control control_hugo.py launch_lock() / lock_now() (self.rp did not exist):
-  they now make a 0->1 edge; added release_lock() and lock_status()
-- CHANGED resources/config_tool.py: paths of the v0.94 FPGA project, lock_status, special write
-  blocks for lock_control and stream_ip (it regenerates the docks of this version)
-- ADDED test/lock_ctrl_tb.v + test/lock_ctrl_sim.sh (xsim testbench of lock_ctrl) and
-  test/lock_ctrl_ui_sim.js (node simulation UI <-> controller <-> FPGA)
+## v2.3.14 - Capture Lock and Fire on click
 
-v2.3.14
-- ADDED "Capture Lock" checkbox (on by default): every lock request from the web page (Trigger Lock,
-  Lock Now, Fire on click) captures the closing of the loop like a Single acquisition. The scope goes to
-  Single + External + Ext Trig = "Lock control trig" (pulse of lock_ctrl.v when the lock closes, already
-  in the FPGA) with a window around the lock (Time trigger: the user window shifted by the lock time;
-  otherwise the lock at 30 %), and the request goes in the same POST as the Single. The trace stays
-  frozen ("Lock captured - press Auto or Single to refresh") until trigger mode Auto/Normal, source or
-  Ext Trig change, Single, the AUTO button or unchecking it: then the scope settings of the user are
-  restored. The "Autoscale" button only rescales the Y axis in the page and keeps the capture.
-  Before, the lock was captured only when the Normal scope happened to be armed at the scan floor of the
-  lock sweep (~60 % in the model). See lock_in+pid_harmonic/doc/lock_capture.md
-- ADDED "Fire on click" checkbox (on by default): a click with "Choose from graph" sets the time / level
-  and fires Trigger Lock (an active lock is released and armed again with the new value)
-- CHANGED C controller: a POST that arms a Single and requests a lock (0->1 of lock_now / launch_lock)
-  writes lock_control only after the worker has armed the scope (rp_osc_worker_wait_armed())
-- FIXED C controller: every POST reset the scope (xmin/xmax, sent in every POST, were compared with the
-  worker window in seconds), so in Single mode any change (a PID gain, a lock request) disarmed and
-  cleared a Single waiting for its trigger. A POST without scope changes no longer touches the scope
-- CHANGED "Choose from graph": the warning is recomputed when the scope trigger / Ext Trig / lock trigger
-  type change; Esc or a 2nd click on the button ("Cancel") cancels the pending click; on a lock capture
-  the time is taken from the floor (offset added back) or, if unknown, only the level is set
-- CHANGED py/lock_from_registers.py: if the lock is already LOCKED (or ARMED) with the same request,
-  nothing is written (the [1:0] = 00 before the request opened the loop for some ms); --force re-arms
-- FIXED Makefile: no py/__pycache__ nor *.pyc in target/ and in the packages (running py/*.py on the
-  board creates py/__pycache__/ there; that is fine, it is never packaged)
-- FIXED C controller: AUTO after a Capture Lock left Ext Trig = "Lock control trig" (128) in the server
-  and in the FPGA. The AUTO branch of rp_set_params() returned before lock_update() (the lock / PID /
-  generator changes of the AUTO POST were dropped), and at the end of the auto-set
-  rp_update_main_params() copied the whole, older, worker copy of the parameters back. Now the auto-set
-  starts from the current parameters (rp_osc_worker_start_auto_set()), the rest of the POST is applied,
-  and only the parameters the auto-set computes (time range/units, window, trigger mode/source/level/
-  delay, Y range, auto_flag) are copied back. An auto-set aborted by another state copies nothing and
-  clears auto_flag (before: a new auto-set from the worker thread itself and a 10 s wait)
-- FIXED C controller: a zoom-out of more than 33x right after a change of time units was ignored (taken
-  as a POST still in the old units); now that only applies to POSTs within 1.5 s of the forceX
-- ADDED test/auto_set_c_sim/ (the real C controller compiled for the PC with the FPGA registers in
-  memory): AUTO after a capture, forceX, POST during an auto-set
-- ADDED test/lock_capture_ui_sim.js (node simulation in continuous time: UI, C controller, scope worker,
-  lock_ctrl.v)
+### Added
+- **"Capture Lock"** checkbox (on by default). Every lock request from the page (Trigger Lock, Lock Now,
+  Fire on click) captures the closing of the loop like a Single acquisition: the scope goes to Single +
+  External + Ext Trig = "Lock control trig" (the FPGA pulse emitted when the lock closes) and the lock
+  request is written only once the scope is armed. Captured 16/16 times on the board (before, only when
+  the Normal scope happened to be armed at the right sweep, ~60 %).
+  The trace stays frozen ("Lock captured - press Auto or Single to refresh") until AUTO, trigger mode
+  Auto/Normal, Single, a source / Ext Trig change or unchecking the box; then the user scope settings are
+  restored. The "Autoscale" button (Y axis only) keeps the capture.
+  Design notes: `lock_in+pid_harmonic/doc/lock_capture.md`.
+- **"Fire on click"** checkbox (on by default): a click with "Choose from graph" sets the time / level and
+  fires Trigger Lock at once (an active lock is released and armed again with the new value).
+- Simulations: `test/lock_capture_ui_sim.js` (UI + controller + scope + lock) and `test/auto_set_c_sim/`
+  (the real C controller compiled for the PC).
+
+### Changed
+- "Choose from graph": the warning about the scope trigger is recomputed whenever the scope or lock trigger
+  settings change; Esc or a second click ("Cancel") cancels a pending click.
+- `py/lock_from_registers.py`: does nothing if the lock is already LOCKED / ARMED with the same request
+  (it used to open the loop for some ms); `--force` re-arms.
+
+### Fixed
+- Every POST reset the scope, so any change (a PID gain, a lock request) disarmed a Single waiting for its
+  trigger. A POST without scope changes no longer touches the scope.
+- AUTO after a lock capture left Ext Trig on "Lock control trig", and the lock / PID / generator values
+  sent with AUTO were dropped. The auto-set now starts from the current parameters and only copies back
+  the scope values it computes; an aborted auto-set no longer restarts itself (10 s wait).
+- A zoom-out of more than 33x right after a change of time units was ignored.
+- Packages no longer include `py/__pycache__` / `*.pyc`.
+
+## v2.3.13 - The lock no longer depends on the web UI
+
+### Changed
+- **The lock sequence runs entirely in the FPGA** (`lock_ctrl.v`, state machine OFF / ARMED / LOCKED).
+  `lock_control` (0x18) is now command + configuration and is never modified by the FPGA nor rewritten
+  from its state. Same bit layout: `[0]` lock now and `[1]` launch lock are requests (0->1 edge locks /
+  arms, `[1:0] = 00` releases), `[4:2]` manual enables, `[7:5]` enables when locked, `[9:8]` trigger type,
+  `[10]` level direction. Changing a manual enable while locked releases the lock.
+  Design notes: `lock_in+pid_harmonic/doc/lock_control.md`.
+- **Register 0x1C is now `lock_status` (read only)**, replacing `lock_feedback`: `[0]` armed, `[1]` locked,
+  `[4:2]` effective ramp / PID A / PID B enables, `[15:8]` lock counter. No other register moved.
+- C controller: `lock_lock_status` replaces `lock_lock_feedback`; `lock_control` is written only when the
+  user changes it, and the status (also of a lock started from outside, e.g. Python) is read on every
+  request.
+- Web UI: Scan / PID A / PID B show the effective enables, plus an OFF / ARMED / LOCKED label with the lock
+  count. Trigger Lock / Lock Now stay pressed while requested; a second click releases the lock.
+- `resources/config_tool.py` updated for the v0.94 FPGA tree.
+
+### Added
+- `py/lock_from_registers.py`: arm, lock now, release and read the status writing only FPGA registers
+  (no web UI needed).
+- xsim testbench of `lock_ctrl` and a node simulation of UI <-> controller <-> FPGA in `test/`.
+
+### Fixed
+- The lock was only "committed" after the web UI copied `lock_feedback` back to `lock_control`; with the
+  scope not triggering, the UI showed a wrong state. No POST is sent while locked.
+- `resources/remote_control/.../control_hugo.py`: `launch_lock()` / `lock_now()` always failed; added
+  `release_lock()` and `lock_status()`.
+
+## v2.3.12 - "Choose from graph" fixed
+
+### Fixed
+- **The time picked with "Choose from graph" was wrong in some views.** It is now correct with any zoom,
+  offset and time units, with t = 0 on screen or not: it uses the time units of the plotted data (a zoom
+  that changes units updated them before the new data arrived) and the real ramp period (the sawtooth
+  ramp used the triangle period, so a click outside the first period gave a time never reached).
+- A click set both the time and the level trigger; it now sets only the value of the selected trigger type
+  (Time, Level, or both for Level+time).
+
+### Removed
+- The "Auto-zoom" option (a workaround that moved the zoom to show t = 0). Instead, a warning appears when
+  the scope trigger is not Normal/Single + External + Scan floor (the only setup where t = 0 is the scan floor).
+
+### Added
+- `test/trig_from_graph_sim.js`: simulation of the click -> time conversion.
+
+## v2.3.11 - Web interface fixes (same as v0.3.11)
+
+### Fixed
+- The second of two quick changes was lost while a POST was in flight; Config load during a POST is sent too.
+- Indicators (R, X, Y, phase, scope) froze after editing a field; Escape cancels an edit.
+- Enter with an out-of-range value sent two POSTs.
+- The mouse wheel stopped the scope (it sent Single) and SHIFT + wheel used the wrong sign; a focused field
+  sent each wheel step twice.
+- **Endless POST loop** (~15 POST/s, it crashed the nginx web server) after loading a config with missing
+  keys (e.g. from another App): missing keys keep their value, NaN is never sent, and an anti-loop guard
+  limits POSTs.
+
+### Added
+- "Cautious mode" on Ecosystem 2.0: if the board answers slowly or another client may be taking it, data is
+  not requested until it answers fast again (needs two slow answers in a row; slow answers during our own
+  POST are ignored).
+
+## v2.3.10 - FPGA rebuilt with Vivado 2020.1
+
+### Changed
+- `lock_in+pid_harmonic/fpga` is now the RedPitaya-FPGA v0.94 project with the lock module. `make` builds
+  `red_pitaya.bit` and `fpga.bit.bin`, `make project` opens the Vivado project, `make clean` cleans; Vivado
+  2020.1 is loaded inside the Makefile, isolated from the Vivado 2015.2 + Linaro setup of the C controller.
+  The 2015.2 design is kept untracked in `fpga_old_2015.2/` (remains in history at v0.3.10).
+- The scope is the Red Pitaya 2.0 one: the controller unlocks its trigger (0x94) before each acquisition and
+  detects the end of acquisition with conf bit 4 (still works with the 0.9x scope).
+- Scope decimation widened to 20 bits in our copy of the FPGA, so the longest time range is again ~68 s
+  (decimation 512k, as in v0.3.4).
+- The `c/` tools are built by the App Makefile (`make c_tools`) with the flags of the original binaries.
+- Kept from the 2015.2 design: lock at 0x40600000, scope at 0x40100000 with the lock signals and lock trigger,
+  slow outputs (PWM) driven by the lock, modulation / ramp direction on `exp_n_io[7:6]`, ASG / PID regions
+  answer without error.
+
+### Fixed
+- Negative scope samples were shown as -1 V (the 2.0 scope returns 16-bit sign-extended samples).
+- **Streaming duplicated data:** the scope read data crossed clock domains unsynchronized (FPGA fix in
+  `rp_scope_cfg`); the streamer now uses a monotonic write pointer and counts overruns / lost samples.
+- Streaming stopped after a few seconds (buffer overflow in `c/stream_tcp_osc_cmd`), the first Start sent no
+  data, the end of each streaming was corrupted, and `c/streaming` used 100 % CPU while waiting.
+- Error E3 while streaming (the nginx worker blocked waiting for the streaming process); the status label
+  flickered.
+- Leaving the App with streaming active could read the FPGA while it was reprogrammed (board reboot by
+  watchdog): streaming processes are now stopped on App exit and before loading the FPGA.
+- Restart after a streaming left the scope frozen and the streaming IP changed (saved as float); transient
+  commands are never saved.
+- Streaming IPs with the last number >= 128 were rejected; `/lock?name` without `=` gave an error 500.
+- A Single click during another POST was lost; the time scale was not restored after Restart.
+
+### Notes
+- Decimation 64 (1.95 MS/s) streaming loses ~17 % of the samples (bus limit); decimation >= 128 is sustainable.
+- The slow analog outputs AO0-AO3 are not driven by the lock module and `exp_n_io[7]` is always 0, as in the
+  2015.2 design.
+- FPGA timing does not close (WNS about -10 ns), as in the 2015.2 design.
