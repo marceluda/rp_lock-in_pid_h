@@ -1,5 +1,6 @@
 `timescale 1ns / 1ps
-// Testbench of fpga/prj/v0.94/rtl/lock/lock_ctrl.v (v2.3.13 lock control state machine).
+// Testbench of fpga/prj/v0.94/rtl/lock/lock_ctrl.v (v2.3.13 lock control state machine; v2.3.15: 32-bit
+// time trigger, cases 14-15).
 // Run with test/lock_ctrl_sim.sh (Vivado 2020.1 xsim). Prints "TB RESULT: PASS" or "TB RESULT: FAIL".
 //
 // The "PS" side only writes lock_control (as Python or the C controller would) and reads lock_status:
@@ -271,6 +272,46 @@ module lock_ctrl_tb;
         wait_clk(2);
         check(eff == 3'b000, "everything off (\"Don't turn on PIDs and Ramp\")");
 
+        // 14. time threshold >= 2**31 (v2.3.15: 32-bit counter and comparator) --------------------
+        //     The counter is set directly (dut.cnt) to avoid simulating 2**31 clocks. With the 31-bit
+        //     comparator of v2.3.13/14 the threshold 2**31+200 aliased to 200.
+        $display("14. time trigger at 2**31 + 200 (no aliasing to 200)");
+        RAMP_P = 2000000000;                     // no more ramp floors: the counter is not reset
+        time_threshold = 32'h8000_00C8;          // 2**31 + 200
+        wr(ctrl(0,0, 1,0,0, 0,1,1, 2'd1, 0));
+        wait_clk(2);
+        dut.cnt = 32'd0;
+        c0 = lock_count;
+        wr(ctrl(0,1, 1,0,0, 0,1,1, 2'd1, 0));
+        wait_clk(2000);
+        check(armed && !locked && lock_count == c0, "ARMED, no lock when cnt passes 200 (alias of 2**31+200)");
+        dut.cnt = 32'h8000_0000 + 32'd100;       // 100 clocks before the threshold
+        n0 = cycle;
+        wait(locked); wait_clk(2);
+        check(lock_cycle - n0 >= 99 && lock_cycle - n0 <= 104,
+              "LOCKED when cnt reaches 2**31 + 200 (~100 clocks after setting it to 2**31 + 100)");
+        check(lock_count == c0 + 1, "lock_count + 1");
+        wr(ctrl(0,0, 1,0,0, 0,1,1, 2'd1, 0));
+        wait_clk(2);
+
+        // 15. level + time with a time threshold >= 2**31 -------------------------------------------
+        //     sig_mode 0 with no ramp floors: the signal rises 1 count per clock and wraps every 16384
+        //     clocks, so there is a rising crossing of 100 every 16384 clocks.
+        $display("15. level+time, time 2**31 + 200: crossings ignored until cnt >= 2**31 + 200");
+        sig_mode = 0;
+        level_threshold = 100;
+        dut.cnt = 32'd0;
+        c0 = lock_count;
+        wr(ctrl(0,1, 1,0,0, 0,1,1, 2'd3, 1));
+        wait_clk(40000);                          // at least 2 crossings
+        check(armed && !locked && lock_count == c0, "ARMED, crossings ignored while cnt < 2**31 + 200");
+        dut.cnt = 32'h8000_0000 + 32'd300;       // past the time threshold
+        wait(locked); wait_clk(2);
+        check(lock_sig_last < 100 && lock_sig_now >= 100 && lock_count == c0 + 1,
+              "LOCKED on the next rising crossing once cnt >= 2**31 + 200");
+        wr(ctrl(0,0, 1,0,0, 0,1,1, 2'd3, 1));
+        wait_clk(2);
+
         $display("=== %0d checks, %0d errors ===", checks, errors);
         if (errors == 0) $display("TB RESULT: PASS");
         else             $display("TB RESULT: FAIL");
@@ -278,7 +319,7 @@ module lock_ctrl_tb;
     end
 
     initial begin
-        #(8*200000);
+        #(8*400000);
         $display("TB RESULT: FAIL (timeout)");
         $finish;
     end

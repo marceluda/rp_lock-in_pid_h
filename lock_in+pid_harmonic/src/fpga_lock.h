@@ -504,7 +504,7 @@ typedef struct lock_reg_t {
     int32_t  oscB;
     
     /** @brief Offset 20'h000EC - X_28
-      *  Demodulated signal from sin_ref
+      *  Demodulated signal from cos_ref (in phase)
       *
       *  bits [31:28] - Reserved
       *  bits [27: 0] - Data
@@ -512,7 +512,7 @@ typedef struct lock_reg_t {
     int32_t  X_28;
     
     /** @brief Offset 20'h000F0 - Y_28
-      *  Demodulated signal from cos_ref
+      *  Demodulated signal from sin_ref (quadrature)
       *
       *  bits [31:28] - Reserved
       *  bits [27: 0] - Data
@@ -568,8 +568,8 @@ typedef struct lock_reg_t {
     /** @brief Offset 20'h0010C - pidA_sw
       *  switch selector for pidA input
       *
-      *  bits [31: 5] - Reserved
-      *  bits [ 4: 0] - Data
+      *  bits [31: 4] - Reserved
+      *  bits [ 3: 0] - Data
       */
     uint32_t pidA_sw;
     
@@ -672,8 +672,8 @@ typedef struct lock_reg_t {
     /** @brief Offset 20'h00140 - pidB_sw
       *  switch selector for pidB input
       *
-      *  bits [31: 5] - Reserved
-      *  bits [ 4: 0] - Data
+      *  bits [31: 4] - Reserved
+      *  bits [ 3: 0] - Data
       */
     uint32_t pidB_sw;
     

@@ -83,12 +83,14 @@ module lock_ctrl
 
 
     // counter for time trigger
-    reg  [31-1:0] cnt ;
+    // v2.3.15: 32 bits, compared with the whole 32-bit lock_trig_time (it was 31 bits: values >= 2**31
+    // aliased to value - 2**31, and the counter wrapped every 2**31 ticks = 17.2 s instead of 34.4 s)
+    reg  [32-1:0] cnt ;
     wire [32-1:0] cnt_next ;
 
     always @(posedge clk, posedge rst)
-        if (rst) cnt  <=   31'b0   ;
-        else     cnt  <=  cnt_next[31-1:0] ;
+        if (rst) cnt  <=   32'b0   ;
+        else     cnt  <=  cnt_next ;
 
     // counter is synchronized with gen_ramp signal
     assign cnt_next = ramp_trigger ? 32'b0 : cnt+1'b1 ;
@@ -115,7 +117,7 @@ module lock_ctrl
     wire  now_eg_th,last_lt_th;
 
     // Time trigger
-    assign time_trigger  = (cnt==time_threshold[31-1:0]) & seek_time_trig & (~seek_level_trig) ;
+    assign time_trigger  = (cnt==time_threshold) & seek_time_trig & (~seek_level_trig) ;
 
     /* Level trigger: if signal is equal or greater (less) than threshold
                       and was less (equal or greater) in the last value
@@ -127,7 +129,7 @@ module lock_ctrl
                               & seek_level_trig ;
 
     // time+level trigger: if time trigger condition was already met, then fire trigger when level condition is met
-    assign both_trigger     = level_trigger & (cnt>=time_threshold[31-1:0]) & seek_time_trig;
+    assign both_trigger     = level_trigger & (cnt>=time_threshold) & seek_time_trig;
 
     assign trigger          = time_trigger | (level_trigger&(~seek_time_trig)) | both_trigger;
 

@@ -28,6 +28,17 @@
     #define max(a,b) ((a) > (b) ? (a) : (b))
 #endif
 
+/* v2.3.15: float parameter -> unsigned 32-bit register (lock_trig_time). The parameters are float:
+ * (int) of a value >= 2**31 is undefined (on the ARM it saturated to 2**31 - 1), and 4294967295
+ * is 4294967296.0f as float. The conversion goes through int64_t (defined for the whole range)
+ * and saturates to 0 .. 0xffffffff. Values above 2**24 keep the float resolution. */
+static inline uint32_t lock_float_to_u32(float v)
+{
+    if (!(v > 0.0f))          return 0u ;            /* also NaN */
+    if (v >= 4294967295.0f)   return 0xffffffffu ;
+    return (uint32_t)(int64_t)v ;
+}
+
 
 int   save_read_ctrl = -1 ;
 float lock_error_var = 0 ;
@@ -126,7 +137,7 @@ int lock_update(rp_app_params_t *params)
     }
   //g_lock_reg->lock_status               = (int)params[LOCK_LOCK_STATUS              ].value;
     g_lock_reg->lock_trig_val             = (int)params[LOCK_LOCK_TRIG_VAL            ].value;
-    g_lock_reg->lock_trig_time            = (int)params[LOCK_LOCK_TRIG_TIME_VAL       ].value;
+    g_lock_reg->lock_trig_time            = lock_float_to_u32(params[LOCK_LOCK_TRIG_TIME_VAL].value);
     g_lock_reg->lock_trig_sw              = (int)params[LOCK_LOCK_TRIG_SW             ].value;
     g_lock_reg->rl_error_threshold        = (int)params[LOCK_RL_ERROR_THRESHOLD       ].value;
     g_lock_reg->rl_signal_sw              = (int)params[LOCK_RL_SIGNAL_SW             ].value;

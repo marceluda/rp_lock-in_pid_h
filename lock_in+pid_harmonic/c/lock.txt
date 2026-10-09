@@ -1,7 +1,7 @@
 name,index,signed,read_only,min,max
 oscA_sw,0,0,0,0,31
 oscB_sw,1,0,0,0,31
-osc_ctrl,2,0,0,0,4294967295
+osc_ctrl,2,0,0,0,3
 trig_sw,3,0,0,0,255
 out1_sw,4,0,0,0,15
 out2_sw,5,0,0,0,15
@@ -14,7 +14,7 @@ rl_error_threshold,11,0,0,0,8191
 rl_signal_sw,12,0,0,0,7
 rl_signal_threshold,13,1,0,-8192,8191
 rl_config,14,0,0,0,7
-rl_state,15,0,1,0,31
+rl_state,15,0,1,0,0
 sf_jumpA,16,1,0,-8192,8191
 sf_jumpB,17,1,0,-8192,8191
 sf_config,18,0,0,0,31
@@ -66,7 +66,7 @@ F3_28,63,1,1,-134217728,134217727
 cnt_clk,64,0,1,0,4294967295
 cnt_clk2,65,0,1,0,4294967295
 read_ctrl,66,0,0,0,7
-pidA_sw,67,0,0,0,31
+pidA_sw,67,0,0,0,15
 pidA_PSR,68,0,0,0,4
 pidA_ISR,69,0,0,0,9
 pidA_DSR,70,0,0,0,5
@@ -79,7 +79,7 @@ pidA_in,76,1,1,-8192,8191
 pidA_out,77,1,1,-8192,8191
 pidA_ctrl,78,0,0,0,7
 ctrl_A,79,1,1,-8192,8191
-pidB_sw,80,0,0,0,31
+pidB_sw,80,0,0,0,15
 pidB_PSR,81,0,0,0,4
 pidB_ISR,82,0,0,0,9
 pidB_DSR,83,0,0,0,5

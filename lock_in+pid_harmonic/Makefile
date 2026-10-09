@@ -130,19 +130,39 @@ clean: clean_app clean_fpga clean_target
 
 
 
-upload_bit:
-	ssh $(RPIP) $(RPOPTS) "PATH_REDPITAYA=/opt/redpitaya /boot/sbin/rw ; rm /opt/redpitaya/www/apps/$(APP)/red_pitaya.bit"
-	scp $(RPSCP) red_pitaya.bit  root@$(RPIP):/opt/redpitaya/www/apps/$(APP)/
+# Upload to a Red Pitaya (never run by the build). Set RPIP (and RPOPTS/RPSCP if needed) on the
+# command line or in ../_settings.env, e.g.  make upload RPIP=rp-XXXXXX.local
+# v2.3.15: the targets depend only on target/$(APP) (target_dbg/target_rld are no longer made), the
+# file system is made writable with the rw script of the OS (/opt/redpitaya/sbin/rw in Ecosystem 2.0,
+# /boot/sbin/rw in 0.9x; it needs PATH_REDPITAYA exported) and fpga.sh keeps its exec bit.
+# After an upload, stop and start the App (or open it from the menu) to load the new controllerhf.so.
+RPOPTS ?= -l root
+RP_DIR  = /opt/redpitaya/www/apps/$(APP)
+RP_RW   = export PATH_REDPITAYA=/opt/redpitaya ; if [ -x /opt/redpitaya/sbin/rw ] ; then /opt/redpitaya/sbin/rw ; else /boot/sbin/rw ; fi
 
-upload: target/$(APP)
-	ssh $(RPIP) $(RPOPTS) "PATH_REDPITAYA=/opt/redpitaya /boot/sbin/rw ; rm -rf /opt/redpitaya/www/apps/$(APP) ; mkdir -p /opt/redpitaya/www/apps/$(APP)"
-	cd target/$(APP) ; scp  $(RPSCP) -r controllerhf.so css js py c nginx.conf fpga.conf fpga.sh $(FPGA_BIN) index.html info red_pitaya.bit  root@$(RPIP):/opt/redpitaya/www/apps/$(APP)/
+.PHONY: upload upload_bit upload_html upload_py check_rpip
 
-upload_html: target/$(APP) target_dbg/$(APP)_DEBUG target_rld/$(APP)_RELOAD
-	ssh $(RPIP) $(RPOPTS) "PATH_REDPITAYA=/opt/redpitaya /boot/sbin/rw ; rm -rf /opt/redpitaya/www/apps/$(APP)/{index.html,js,css}"
-	cd target/$(APP); scp $(RPSCP) -r index.html css js root@$(RPIP):/opt/redpitaya/www/apps/$(APP)/
+check_rpip:
+	@test -n "$(RPIP)" || { echo "ERROR: set RPIP (e.g. make upload RPIP=rp-XXXXXX.local)"; exit 1; }
 
-upload_py: ./py/hugo.py
-	ssh $(RPIP) $(RPOPTS) "PATH_REDPITAYA=/opt/redpitaya /boot/sbin/rw ; rm -rf /opt/redpitaya/www/apps/$(APP)/py/{data_dump.py,set.py,ver_mem.py,*.py}"
-	scp $(RPSCP) ./py/*.py root@$(RPIP):/opt/redpitaya/www/apps/$(APP)/py/
-	ssh $(RPIP) $(RPOPTS) "PATH_REDPITAYA=/opt/redpitaya /boot/sbin/rw ; chmod +x /opt/redpitaya/www/apps/$(APP)/py/*.py"
+# FPGA image only (red_pitaya.bit and the Ecosystem 2.0 fpga.bit.bin)
+upload_bit: check_rpip red_pitaya.bit $(FPGA_BIN)
+	ssh $(RPIP) $(RPOPTS) "$(RP_RW) ; rm -f $(RP_DIR)/red_pitaya.bit $(RP_DIR)/$(FPGA_BIN)"
+	scp $(RPSCP) red_pitaya.bit $(FPGA_BIN) root@$(RPIP):$(RP_DIR)/
+
+# The whole App
+upload: check_rpip target/$(APP)
+	ssh $(RPIP) $(RPOPTS) "$(RP_RW) ; rm -rf $(RP_DIR) ; mkdir -p $(RP_DIR)"
+	cd target/$(APP) ; scp  $(RPSCP) -r controllerhf.so css js py c nginx.conf fpga.conf fpga.sh $(FPGA_BIN) index.html info red_pitaya.bit  root@$(RPIP):$(RP_DIR)/
+	ssh $(RPIP) $(RPOPTS) "chmod 755 $(RP_DIR)/fpga.sh"
+
+# Web interface only: index.html (with the version of the target), css and js
+upload_html: check_rpip target/$(APP)
+	ssh $(RPIP) $(RPOPTS) "$(RP_RW) ; rm -rf $(RP_DIR)/index.html $(RP_DIR)/js $(RP_DIR)/css"
+	cd target/$(APP); scp $(RPSCP) -r index.html css js root@$(RPIP):$(RP_DIR)/
+
+# Python scripts of py/
+upload_py: check_rpip ./py/hugo.py
+	ssh $(RPIP) $(RPOPTS) "$(RP_RW) ; mkdir -p $(RP_DIR)/py ; rm -f $(RP_DIR)/py/*.py"
+	scp $(RPSCP) ./py/*.py root@$(RPIP):$(RP_DIR)/py/
+	ssh $(RPIP) $(RPOPTS) "chmod +x $(RP_DIR)/py/*.py"

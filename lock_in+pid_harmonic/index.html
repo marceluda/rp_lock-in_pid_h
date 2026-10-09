@@ -16,7 +16,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Harmonic lock-in+PID (v2.3.14)</title>
+  <title>Harmonic lock-in+PID (v2.3.15)</title>
   <link href="../assets/bootstrap-3.0.0/css/bootstrap.css" rel="stylesheet" type="text/css">
   <link href="../assets/style.css?6" rel="stylesheet" type="text/css">
   <script src="../assets/bootstrap-3.0.0/js/jquery.js"></script>
@@ -2227,7 +2227,7 @@
         trig_time = Math.round( trig_time / 8e-6 );
       if ( lock_lock_trig_time_val_arr[1].toLowerCase()=="us"  || lock_lock_trig_time_val_arr[1].toLowerCase()=="μs"   )
         trig_time = Math.round( trig_time / 8e-3 );
-      trig_time = Math.min( 500000000 , trig_time  ) ;
+      trig_time = Math.min( 4294967295 , trig_time  ) ;  // v2.3.15: 32-bit unsigned (lock_ctrl.v), was 500000000 (4 s)
       trig_time = Math.max(         0 , trig_time  ) ;
       $("#lock_lock_trig_time_val").val(""+trig_time);
     }
@@ -5568,7 +5568,7 @@
     <div class="container">
       <a id="btn_exit" class="pull-left" href="/index.html"><span class="glyphicon glyphicon-chevron-left" title="Exit" alt="Exit"></span></a>
       <img class="logo pull-left" src="../assets/images/logo_white.png">
-      <h2 class="page-title">Harmonic lock-in+PID (v2.3.14)</h2>
+      <h2 class="page-title">Harmonic lock-in+PID (v2.3.15)</h2>
     </div>
   </div>
   <div class="container">
@@ -6776,7 +6776,7 @@
                                   <option  value="1">64 ns</option>
                                   <option  value="2">512 ns</option>
                                   <option  value="3">8 us</option>
-                                  <option  value="4">6 us</option>
+                                  <option  value="4">65 us</option>
                                   <option  value="5">524 us</option>
                                   <option  value="6">8 ms</option>
                                   <option  value="7">67 ms</option>
@@ -7042,7 +7042,7 @@
                                   <option  value="1">64 ns</option>
                                   <option  value="2">512 ns</option>
                                   <option  value="3">8 us</option>
-                                  <option  value="4">6 us</option>
+                                  <option  value="4">65 us</option>
                                   <option  value="5">524 us</option>
                                   <option  value="6">8 ms</option>
                                   <option  value="7">67 ms</option>

@@ -100,16 +100,14 @@ module lock(
 
     // pidA --------------------------
     reg         [ 3-1:0] pidA_PSR,pidA_DSR,pidA_ctrl;
-    reg         [ 4-1:0] pidA_ISR;
-    reg         [ 5-1:0] pidA_sw;
+    reg         [ 4-1:0] pidA_sw,pidA_ISR;
     reg         [14-1:0] pidA_SAT;
     reg  signed [14-1:0] pidA_sp,pidA_kp,pidA_ki,pidA_kd;
     wire signed [14-1:0] pidA_in,pidA_out,ctrl_A;
 
     // pidB --------------------------
     reg         [ 3-1:0] pidB_PSR,pidB_DSR,pidB_ctrl;
-    reg         [ 4-1:0] pidB_ISR;
-    reg         [ 5-1:0] pidB_sw;
+    reg         [ 4-1:0] pidB_sw,pidB_ISR;
     reg         [14-1:0] pidB_SAT;
     reg  signed [14-1:0] pidB_sp,pidB_kp,pidB_ki,pidB_kd;
     wire signed [14-1:0] pidB_in,pidB_out,ctrl_B;
@@ -733,6 +731,8 @@ module lock(
     assign cos_ref_mult = cos_ref_mult_tmp_28 <<< 4'd10 ;
 
     // multiplied signal " "_mult goes in LPF_?_A
+    // (lpf_X_* and lpf_Y_* are the same signal, both from lpf_F0. X = cos_ref chain (in phase),
+    //  Y = sin_ref chain (quadrature): see X_28 / Y_28 below)
     LP_filter3 #(.R(38)) i_LP_filter_sin_ref_A (.clk(clk), .rst(rst), .tau( lpf_X_A   ), .in( sin_ref_mult ), .out( sin_ref_lpf1 ) );
     LP_filter3 #(.R(38)) i_LP_filter_cos_ref_A (.clk(clk), .rst(rst), .tau( lpf_Y_A   ), .in( cos_ref_mult ), .out( cos_ref_lpf1 ) );
     LP_filter3 #(.R(28)) i_LP_filter_cos_1f_A  (.clk(clk), .rst(rst), .tau( lpf_F1_A  ), .in( cos_1f_mult  ), .out( cos_1f_lpf1  ) );
@@ -1009,7 +1009,7 @@ module lock(
         ramp_sawtooth          <=   1'd0     ; // ramp Sawtooth wave form
         ramp_B_factor          <=  14'd4096  ; // proportional factor ramp_A/ramp_B. // ramp_B=ramp_A*ramp_B_factor/4096
         read_ctrl              <=   3'd0     ; // [unused,start_clk,Freeze]
-        pidA_sw                <=   5'd0     ; // switch selector for pidA input
+        pidA_sw                <=   4'd0     ; // switch selector for pidA input
         pidA_PSR               <=   3'd3     ; // pidA PSR
         pidA_ISR               <=   4'd8     ; // pidA ISR
         pidA_DSR               <=   3'd0     ; // pidA DSR
@@ -1019,7 +1019,7 @@ module lock(
         pidA_ki                <=  14'd0     ; // pidA integral constant
         pidA_kd                <=  14'd0     ; // pidA derivative constant
         pidA_ctrl              <=   3'd0     ; // pidA control: [ pidA_ifreeze: integrator freeze , pidA_freeze: output freeze , pidA_irst:integrator reset]
-        pidB_sw                <=   5'd0     ; // switch selector for pidB input
+        pidB_sw                <=   4'd0     ; // switch selector for pidB input
         pidB_PSR               <=   3'd3     ; // pidB PSR
         pidB_ISR               <=   4'd8     ; // pidB ISR
         pidB_DSR               <=   3'd0     ; // pidB DSR
@@ -1096,15 +1096,15 @@ module lock(
           //if (sys_addr[19:0]==20'h000E0)  out2                  <=  sys_wdata[14-1: 0] ; // signal for RP RF DAC Out2
           //if (sys_addr[19:0]==20'h000E4)  oscA                  <=  sys_wdata[14-1: 0] ; // signal for Oscilloscope Channel A
           //if (sys_addr[19:0]==20'h000E8)  oscB                  <=  sys_wdata[14-1: 0] ; // signal for Oscilloscope Channel B
-          //if (sys_addr[19:0]==20'h000EC)  X_28                  <=  sys_wdata[28-1: 0] ; // Demodulated signal from sin_ref
-          //if (sys_addr[19:0]==20'h000F0)  Y_28                  <=  sys_wdata[28-1: 0] ; // Demodulated signal from cos_ref
+          //if (sys_addr[19:0]==20'h000EC)  X_28                  <=  sys_wdata[28-1: 0] ; // Demodulated signal from cos_ref (in phase)
+          //if (sys_addr[19:0]==20'h000F0)  Y_28                  <=  sys_wdata[28-1: 0] ; // Demodulated signal from sin_ref (quadrature)
           //if (sys_addr[19:0]==20'h000F4)  F1_28                 <=  sys_wdata[28-1: 0] ; // Demodulated signal from cos_1f
           //if (sys_addr[19:0]==20'h000F8)  F2_28                 <=  sys_wdata[28-1: 0] ; // Demodulated signal from cos_2f
           //if (sys_addr[19:0]==20'h000FC)  F3_28                 <=  sys_wdata[28-1: 0] ; // Demodulated signal from cos_3f
           //if (sys_addr[19:0]==20'h00100)  cnt_clk               <=  sys_wdata[32-1: 0] ; // Clock count
           //if (sys_addr[19:0]==20'h00104)  cnt_clk2              <=  sys_wdata[32-1: 0] ; // Clock count
             if (sys_addr[19:0]==20'h00108)  read_ctrl             <=  sys_wdata[ 3-1: 0] ; // [unused,start_clk,Freeze]
-            if (sys_addr[19:0]==20'h0010C)  pidA_sw               <=  sys_wdata[ 5-1: 0] ; // switch selector for pidA input
+            if (sys_addr[19:0]==20'h0010C)  pidA_sw               <=  sys_wdata[ 4-1: 0] ; // switch selector for pidA input
             if (sys_addr[19:0]==20'h00110)  pidA_PSR              <=  sys_wdata[ 3-1: 0] ; // pidA PSR
             if (sys_addr[19:0]==20'h00114)  pidA_ISR              <=  sys_wdata[ 4-1: 0] ; // pidA ISR
             if (sys_addr[19:0]==20'h00118)  pidA_DSR              <=  sys_wdata[ 3-1: 0] ; // pidA DSR
@@ -1117,7 +1117,7 @@ module lock(
           //if (sys_addr[19:0]==20'h00134)  pidA_out              <=  sys_wdata[14-1: 0] ; // pidA output
             if (sys_addr[19:0]==20'h00138)  pidA_ctrl             <=  sys_wdata[ 3-1: 0] ; // pidA control: [ pidA_ifreeze: integrator freeze , pidA_freeze: output freeze , pidA_irst:integrator reset]
           //if (sys_addr[19:0]==20'h0013C)  ctrl_A                <=  sys_wdata[14-1: 0] ; // control_A: pidA_out + ramp_A
-            if (sys_addr[19:0]==20'h00140)  pidB_sw               <=  sys_wdata[ 5-1: 0] ; // switch selector for pidB input
+            if (sys_addr[19:0]==20'h00140)  pidB_sw               <=  sys_wdata[ 4-1: 0] ; // switch selector for pidB input
             if (sys_addr[19:0]==20'h00144)  pidB_PSR              <=  sys_wdata[ 3-1: 0] ; // pidB PSR
             if (sys_addr[19:0]==20'h00148)  pidB_ISR              <=  sys_wdata[ 4-1: 0] ; // pidB ISR
             if (sys_addr[19:0]==20'h0014C)  pidB_DSR              <=  sys_wdata[ 3-1: 0] ; // pidB DSR
@@ -1210,15 +1210,15 @@ module lock(
             20'h000E0 : begin sys_ack <= sys_en;  sys_rdata <= {  {18{out2[13]}}          ,             out2  }; end // signal for RP RF DAC Out2
             20'h000E4 : begin sys_ack <= sys_en;  sys_rdata <= {  {18{oscA[13]}}          ,             oscA  }; end // signal for Oscilloscope Channel A
             20'h000E8 : begin sys_ack <= sys_en;  sys_rdata <= {  {18{oscB[13]}}          ,             oscB  }; end // signal for Oscilloscope Channel B
-            20'h000EC : begin sys_ack <= sys_en;  sys_rdata <= {  { 4{X_28_reg[27]}}      ,         X_28_reg  }; end // Demodulated signal from sin_ref
-            20'h000F0 : begin sys_ack <= sys_en;  sys_rdata <= {  { 4{Y_28_reg[27]}}      ,         Y_28_reg  }; end // Demodulated signal from cos_ref
+            20'h000EC : begin sys_ack <= sys_en;  sys_rdata <= {  { 4{X_28_reg[27]}}      ,         X_28_reg  }; end // Demodulated signal from cos_ref (in phase)
+            20'h000F0 : begin sys_ack <= sys_en;  sys_rdata <= {  { 4{Y_28_reg[27]}}      ,         Y_28_reg  }; end // Demodulated signal from sin_ref (quadrature)
             20'h000F4 : begin sys_ack <= sys_en;  sys_rdata <= {  { 4{F1_28_reg[27]}}     ,        F1_28_reg  }; end // Demodulated signal from cos_1f
             20'h000F8 : begin sys_ack <= sys_en;  sys_rdata <= {  { 4{F2_28_reg[27]}}     ,        F2_28_reg  }; end // Demodulated signal from cos_2f
             20'h000FC : begin sys_ack <= sys_en;  sys_rdata <= {  { 4{F3_28_reg[27]}}     ,        F3_28_reg  }; end // Demodulated signal from cos_3f
             20'h00100 : begin sys_ack <= sys_en;  sys_rdata <=                                       cnt_clk   ; end // Clock count
             20'h00104 : begin sys_ack <= sys_en;  sys_rdata <=                                      cnt_clk2   ; end // Clock count
             20'h00108 : begin sys_ack <= sys_en;  sys_rdata <= {  29'b0                   ,        read_ctrl  }; end // [unused,start_clk,Freeze]
-            20'h0010C : begin sys_ack <= sys_en;  sys_rdata <= {  27'b0                   ,          pidA_sw  }; end // switch selector for pidA input
+            20'h0010C : begin sys_ack <= sys_en;  sys_rdata <= {  28'b0                   ,          pidA_sw  }; end // switch selector for pidA input
             20'h00110 : begin sys_ack <= sys_en;  sys_rdata <= {  29'b0                   ,         pidA_PSR  }; end // pidA PSR
             20'h00114 : begin sys_ack <= sys_en;  sys_rdata <= {  28'b0                   ,         pidA_ISR  }; end // pidA ISR
             20'h00118 : begin sys_ack <= sys_en;  sys_rdata <= {  29'b0                   ,         pidA_DSR  }; end // pidA DSR
@@ -1231,7 +1231,7 @@ module lock(
             20'h00134 : begin sys_ack <= sys_en;  sys_rdata <= {  {18{pidA_out[13]}}      ,         pidA_out  }; end // pidA output
             20'h00138 : begin sys_ack <= sys_en;  sys_rdata <= {  29'b0                   ,        pidA_ctrl  }; end // pidA control: [ pidA_ifreeze: integrator freeze , pidA_freeze: output freeze , pidA_irst:integrator reset]
             20'h0013C : begin sys_ack <= sys_en;  sys_rdata <= {  {18{ctrl_A_reg[13]}}    ,       ctrl_A_reg  }; end // control_A: pidA_out + ramp_A
-            20'h00140 : begin sys_ack <= sys_en;  sys_rdata <= {  27'b0                   ,          pidB_sw  }; end // switch selector for pidB input
+            20'h00140 : begin sys_ack <= sys_en;  sys_rdata <= {  28'b0                   ,          pidB_sw  }; end // switch selector for pidB input
             20'h00144 : begin sys_ack <= sys_en;  sys_rdata <= {  29'b0                   ,         pidB_PSR  }; end // pidB PSR
             20'h00148 : begin sys_ack <= sys_en;  sys_rdata <= {  28'b0                   ,         pidB_ISR  }; end // pidB ISR
             20'h0014C : begin sys_ack <= sys_en;  sys_rdata <= {  29'b0                   ,         pidB_DSR  }; end // pidB DSR

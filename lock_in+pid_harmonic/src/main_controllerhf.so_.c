@@ -329,7 +329,7 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { "lock_rl_error_enable"          ,      0, 1, 0,            0,            1 }, /** Relock enable. [enable_error_th]  **/
     { "lock_rl_signal_enable"         ,      0, 1, 0,            0,            1 }, /** Relock enable. [enable_signal_th]  **/
     { "lock_rl_reset"                 ,      0, 1, 0,            0,            1 }, /** Relock enable. [relock_reset]  **/
-    { "lock_rl_state"                 ,      0, 0, 1,            0,           31 }, /** Relock state: [state:idle|searching|failed,signal_fail,error_fail,locked]  **/
+    { "lock_rl_state"                 ,      0, 0, 1,            0,            0 }, /** Relock state: [state:idle|searching|failed,signal_fail,error_fail,locked]  **/
     { "lock_sf_jumpA"                 ,      0, 1, 0,        -8192,         8191 }, /** Step function measure jump value for ctrl_A **/
     { "lock_sf_jumpB"                 ,      0, 1, 0,        -8192,         8191 }, /** Step function measure jump value for ctrl_B **/
     { "lock_sf_start"                 ,      0, 1, 0,            0,            1 }, /** Step function start  **/
@@ -381,15 +381,15 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { "lock_out2"                     ,      0, 0, 1,        -8192,         8191 }, /** signal for RP RF DAC Out2 **/
     { "lock_oscA"                     ,      0, 0, 1,        -8192,         8191 }, /** signal for Oscilloscope Channel A **/
     { "lock_oscB"                     ,      0, 0, 1,        -8192,         8191 }, /** signal for Oscilloscope Channel B **/
-    { "lock_X"                        ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from sin_ref **/
-    { "lock_Y"                        ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from cos_ref **/
+    { "lock_X"                        ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from cos_ref (in phase) **/
+    { "lock_Y"                        ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from sin_ref (quadrature) **/
     { "lock_F1"                       ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from cos_1f **/
     { "lock_F2"                       ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from cos_2f **/
     { "lock_F3"                       ,      0, 0, 1,   -134217728,    134217727 }, /** Demodulated signal from cos_3f **/
     { "lock_cnt_clk"                  ,      0, 0, 1,            0,   0xffffffff }, /** Clock count **/
     { "lock_cnt_clk2"                 ,      0, 0, 1,            0,   0xffffffff }, /** Clock count **/
     { "lock_read_ctrl"                ,      0, 1, 0,            0,            7 }, /** [unused,start_clk,Freeze] **/
-    { "lock_pidA_sw"                  ,      0, 1, 0,            0,           31 }, /** switch selector for pidA input **/
+    { "lock_pidA_sw"                  ,      0, 1, 0,            0,           15 }, /** switch selector for pidA input **/
     { "lock_pidA_PSR"                 ,      3, 1, 0,            0,            4 }, /** pidA PSR **/
     { "lock_pidA_ISR"                 ,      8, 1, 0,            0,            9 }, /** pidA ISR **/
     { "lock_pidA_DSR"                 ,      0, 1, 0,            0,            5 }, /** pidA DSR **/
@@ -404,7 +404,7 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { "lock_pidA_freeze"              ,      0, 1, 0,            0,            1 }, /** pidA_freeze **/
     { "lock_pidA_ifreeze"             ,      0, 1, 0,            0,            1 }, /** pidA_ifreeze **/
     { "lock_ctrl_A"                   ,      0, 0, 1,        -8192,         8191 }, /** control_A: pidA_out + ramp_A **/
-    { "lock_pidB_sw"                  ,      0, 1, 0,            0,           31 }, /** switch selector for pidB input **/
+    { "lock_pidB_sw"                  ,      0, 1, 0,            0,           15 }, /** switch selector for pidB input **/
     { "lock_pidB_PSR"                 ,      3, 1, 0,            0,            4 }, /** pidB PSR **/
     { "lock_pidB_ISR"                 ,      8, 1, 0,            0,            9 }, /** pidB ISR **/
     { "lock_pidB_DSR"                 ,      0, 1, 0,            0,            5 }, /** pidB DSR **/
