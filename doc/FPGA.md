@@ -50,8 +50,8 @@ Source: `lock_in+pid_harmonic/fpga/README.md` and `fpga/prj/v0.94/rtl/red_pitaya
 
 ## Lock module (0x40600000)
 
-Sources: the bus decoder of `fpga/prj/v0.94/rtl/lock.v` (block `[FPGA MEMORY DOCK]`, l. 962-1257: reset
-values l. 971-1037, writes l. 1039-1139, reads l. 1153-1254), declarations l. 57-128, and
+Sources: the bus decoder of `fpga/prj/v0.94/rtl/lock.v` (block `[FPGA MEMORY DOCK]`, l. 1004-1305: reset
+values l. 1013-1079, writes l. 1081-1181, reads l. 1202-1301; v2.3.17), declarations l. 57-128, and
 `lock_in+pid_harmonic/c/lock.txt`. Absolute address = `0x40600000 + offset`. Index = `offset / 4` (the
 index used by `c/lock`, `py/hugo.py` and `lock.txt`).
 
@@ -60,6 +60,20 @@ Column legend: **RW** read/write, **R** read only (writes ignored). **Bits** = w
 RTL says otherwise, see the notes). **Reset** = value after the FPGA is loaded (reset of `lock.v`).
 "Frozen by `read_ctrl[0]`" means that the value read is a copy that stops updating while
 `read_ctrl[0] = 1`, so that several registers can be read at the same instant.
+
+Bus reads (v2.3.17): `sys_rdata` only changes while a read is requested (`sys_ren`) and then holds its
+value. The PS side of the bus (`sys_bus_cdc`, clock `fclk[0]`) takes it some cycles after `sys_ack`,
+asynchronously to `adc_clk`; up to v2.3.16 `sys_rdata` was reloaded on every cycle, and ~2-3 % of the reads
+of a signal that changes on every cycle (`in1`, `oscA` showing `in1`) returned a mix of the bits of two
+values (e.g. `0x0118c9c1`). The read-only signals that are wires (`in1`, `in2`, `out1`, `out2`, `oscA`,
+`oscB`, `pidA_in`, `pidA_out`, `pidB_in`, `pidB_out`, `ramp_A`, `ramp_B`, `sin_ref`..`cos_3f`, `error_mean`,
+`error_std`, `lock_status`) are read from registered copies (`<name>_rd`, not frozen by `read_ctrl[0]`), so
+the read multiplexer only has registers at its inputs. The real-time logic does not use them. While a read is
+requested (`sys_ren`, 2 clocks with the address already stable) the `_rd` copies and the `_reg` copies of
+`read_ctrl[0]` hold their value (the value read is the one of the clock before the request), so every input of
+`sys_rdata` is stable for 2 clocks: `prj/v0.94/sdc/red_pitaya.xdc` has a 2-cycle multicycle constraint to
+`i_lock/sys_rdata_reg`. Same kind of fix as the one of the scope `sys_rdata` in v2.3.10. Test:
+`test/lock_bus_read_sim.sh`.
 
 ### Scope, trigger and outputs
 
@@ -158,7 +172,7 @@ Ramp period: `T = (ramp_hig_lim − ramp_low_lim) · (ramp_step + 1) · 8 ns · 
 | `0x0E8` | 58 | `oscB` | R | 14 | s | -8192..8191 | Signal sent to scope channel B. |
 | `0x100` | 64 | `cnt_clk` | R | 32 | u | — | Low 32 bits of a 50-bit tick counter (frozen by `read_ctrl[0]`; counts only while `read_ctrl[1] = 1`, otherwise 0). |
 | `0x104` | 65 | `cnt_clk2` | R | 32 | u | 0..2¹⁸−1 | High 18 bits of the same counter. |
-| `0x108` | 66 | `read_ctrl` | RW | 3 | u | 0..7 | `[0]` freeze the copies of `signal_i`, `error`, `X_28`..`F3_28`, `ctrl_A`, `ctrl_B`, `cnt_clk*`; `[1]` run the tick counter; `[2]` unused. Reset 0. |
+| `0x108` | 66 | `read_ctrl` | RW | 3 | u | 0..7 | `[0]` freeze the copies of `signal_i`, `error`, `X_28`..`F3_28`, `ctrl_A`, `ctrl_B`, `cnt_clk*` (v2.3.17: also held during each bus read); `[1]` run the tick counter; `[2]` unused. Reset 0. |
 | `0x174` | 93 | `aux_A` | RW | 14 | s | -8192..8191 | Constant usable as a signal in several selectors (and as a manual offset on an output). Reset 0. |
 | `0x178` | 94 | `aux_B` | RW | 14 | s | -8192..8191 | Same. Reset 0. |
 

@@ -72,3 +72,12 @@ set_false_path -from [get_pins sys_bus_interconnect/for_bus[*].inst_sys_bus_cdc/
 set_max_delay -datapath_only 8.000 -from [get_pins i_hk/i_freq_meter/ref_gate_reg/C] -to [get_pins {i_hk/i_freq_meter/mes_gate_csff*[0]/D}]
 set_false_path -from [get_pins {adc_dat*[*][*]/C}] -to [get_pins {dac_dat_*[*]/D}]
 set_false_path -from [get_pins {i_adc366x/adc_dat_o*[*]/C}] -to [get_pins {dac_dat_*[*]/D}]
+
+# lock_in+pid_harmonic v2.3.17: bus reads of the lock module (lock.v, FPGA MEMORY dock). sys_bus_cdc raises
+# sys_ren with the address already stable (bus_m.addr is loaded in the same clock) and keeps it for 2 adc_clk
+# cycles (until the registered sys_ack of lock.v); lock.v loads sys_rdata in both cycles only while sys_ren = 1
+# and holds its read copies (*_rd, *_reg) while sys_ren = 1; the other inputs of the read mux are registers
+# written only by the bus. The PS takes sys_rdata after the reg_done handshake (several fclk cycles after the
+# second load), so the value read is the one of the second cycle: its inputs have 2 cycles.
+set_multicycle_path -setup 2 -to [get_pins {i_lock/sys_rdata_reg[*]/D}]
+set_multicycle_path -hold 1 -to [get_pins {i_lock/sys_rdata_reg[*]/D}]

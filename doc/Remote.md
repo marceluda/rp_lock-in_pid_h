@@ -162,8 +162,17 @@ rp.lock.set({'aux_A': 0, 'aux_B': 0})
 rp.osc.get()                      # all the scope registers
 ```
 
+Name resolution (v2.3.17): the host name of the URL (e.g. `rp-XXXXXX.local`) is resolved **once**, when the
+object is created, and every request goes to that IP with the original name in the `Host:` header
+(`requests` resolves the name in each request, and on some PCs a `.local` lookup took up to 3.5 s). `rp.ip`
+is the address in use, `rp.resolve()` resolves it again (e.g. if the board got another IP from DHCP), and
+`RedPitayaApp(url, resolve=False)` keeps the old behaviour. IPv4 is preferred; if the name can not be
+resolved there is a warning and the name is used as before. An object loaded from a `.npy` file does not
+resolve until `rp.resolve()`.
+
 | Method | What it does |
 |---|---|
+| `rp.ip`, `rp.resolve()` | IP used for the requests (host name resolved once) / resolve it again |
 | `rp.lock.<reg>`, `.get()`, `.set()` | read / write lock registers (names from `c/lock.txt`) |
 | `rp.osc.<reg>`, `.get()`, `.set()` | the same for the scope registers |
 | `rp.osc.measure(trig, dec, trig_pos, threshold, hysteresis, average, wait)` | prepare and arm an acquisition (`trig`: `'manual'`, `'A_rising'`, `'A_falling'`, `'B_rising'`, `'B_falling'`, `'ext_rising'`, `'ext_falling'`) — see the [limitation](#limitations-of-osc-on-the-20-fpga) |

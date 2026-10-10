@@ -162,7 +162,11 @@ rp.lock.out1_sw  = 'ctrl_A'          # OUT1 = PID A + ramp A
 
 #%% Ramp (scan)  ##############################################################
 
-rp.set_ramp(step=100, low=-4000, high=4000, sawtooth=False, enable=True)
+# Same ramp as the lock_mode config (test_files/lock_in+pid_harmonic__lock_mode.json): +-5000 counts with
+# step=400 gives a triangle of ~64 ms (scan floor every ~64 ms), so the 16.58 ms time trigger of the Lock cell
+# below falls inside the rising half. ramp_step is a divider of the period: a smaller step is a FASTER ramp
+# (step=100, +-4000 gives ~12.9 ms, shorter than 16.58 ms: the time trigger would never fire).
+rp.set_ramp(step=400, low=-5000, high=5000, sawtooth=False, enable=True)
 rp.set_manual(ramp=True, pidA=False, pidB=False)   # "Scan enable": the ramp runs, PIDs off
 print(rp.get_ramp())
 print(rp.lock_status())
@@ -170,7 +174,8 @@ print(rp.lock_status())
 
 #%% Lock  #####################################################################
 
-# configuration: time trigger 16.58 ms after the scan floor, PID A on (ramp off) while locked
+# configuration: time trigger 16.58 ms after the scan floor, PID A on (ramp off) while locked. The time must be
+# shorter than half the period of the ramp (Ramp cell: ~64 ms); with dummy_simulator the peak is at ~16.3 ms.
 rp.lock_config(trig='time', time=16.58e-3, final=('pidA',))
 st = rp.lock_launch(timeout=10)      # Trigger Lock and wait for LOCKED
 print(st)                            # {'armed': False, 'locked': True, 'pidA': True, ...}

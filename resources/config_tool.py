@@ -111,7 +111,8 @@ class fpga_register():
         self.c_update    = None
         self.c_block     = None   # if set: lines written as is in the FPGAUPDATE dock instead of 'g_lock_reg->name = c_update;'
         self.main_reg    = None
-        self.reg_read    = False
+        self.reg_read    = False  # read from the copy <name>_reg (frozen by read_ctrl[0])
+        self.rd_copy     = False  # read from the copy <name>_rd   (v2.3.17, registered only for the bus)
 
     def __getitem__(self, key):
         return getattr(self,key)
@@ -337,6 +338,23 @@ for i in ['X_28', 'Y_28', 'F1_28', 'F2_28', 'F3_28',
           'error', 'ctrl_A', 'ctrl_B','signal_i']:
     f[i].reg_read=True
 
+# v2.3.17: read-only signals that are wires (combinational, or registered in another module)
+# are read by the bus from a registered copy <name>_rd (always block "bus read copies" of
+# lock.v), so the read mux of sys_rdata only has registers at its inputs
+for i in ['lock_status', 'error_mean', 'error_std', 'ramp_A', 'ramp_B',
+          'sin_ref', 'cos_ref', 'cos_1f', 'cos_2f', 'cos_3f',
+          'in1', 'in2', 'out1', 'out2', 'oscA', 'oscB',
+          'pidA_in', 'pidA_out', 'pidB_in', 'pidB_out']:
+    f[i].rd_copy=True
+
+def rd_name(r):
+    """Name of the signal read by the bus for register r"""
+    if r.reg_read:
+        return r.name+'_reg'
+    if r.rd_copy:
+        return r.name+'_rd'
+    return r.name
+
 
 
 
@@ -431,6 +449,10 @@ def fpga_reg_read(indent=1):
 
     txt.add('//---------------------------------------------------------------------------------')
     txt.add('// FPGA --> MEMORIA --> SO')
+    txt.add('// v2.3.17: sys_rdata only changes while a read is requested (sys_ren) and then holds its')
+    txt.add('// value. The PS side of the bus (sys_bus_cdc, clock fclk[0]) samples sys_rdata some')
+    txt.add('// cycles after sys_ack, asynchronously to clk (adc_clk): if sys_rdata is reloaded every')
+    txt.add('// cycle with a changing signal (in1, oscA...), the PS can get a mix of bits of two values.')
     txt.add('wire sys_en;')
     txt.add('assign sys_en = sys_wen | sys_ren;')
     txt.nl()
@@ -445,43 +467,49 @@ def fpga_reg_read(indent=1):
     txt.add("end else begin")
     txt.indent_plus()
     txt.add("sys_err <= 1'b0 ;")
+    txt.add("sys_ack <= sys_en;")
     txt.nl()
+    txt.add("if (sys_ren) begin")
+    txt.indent_plus()
     txt.add("casez (sys_addr[19:0])")
 
     txt.indent_plus()
 
     for r in f:
+        name = rd_name(r)
         if r.nbits==32:
-            txt.add("{:3s} : begin sys_ack <= sys_en;  sys_rdata <= {:>45}   ;".format(
-                    r.addr , (r.name+'_reg' if r.reg_read else r.name )
-                    ).ljust(95)
-                    +" end // {:}".format(inline(r.desc))
+            txt.add("{:3s} : sys_rdata <= {:>45}   ;".format(
+                    r.addr , name
+                    ).ljust(73)
+                    +" // {:}".format(inline(r.desc))
               )
         elif r.nbits==1:
             txt.add(
-                    "{:5s} : begin sys_ack <= sys_en;  sys_rdata <=".format(r.addr)+
+                    "{:5s} : sys_rdata <=".format(r.addr)+
                     " {  31'b0  ".ljust(28)+
-                    ",  {:>15s}  }};".format( (r.name+'_reg' if r.reg_read else r.name ) ) +
-                    " end // {:}".format(inline(r.desc))
+                    ",  {:>15s}  }};".format( name ) +
+                    " // {:}".format(inline(r.desc))
                     )
         else:
             if r.signed:
                 txt.add(
-                        "{:5s} : begin sys_ack <= sys_en;  sys_rdata <=".format(r.addr)+
-                        " {{  {{{:>2d}{{{:s}[{:d}]}}}} ".format(32-r.nbits, (r.name+'_reg' if r.reg_read else r.name ), r.nbits-1).ljust(28)+
-                        ",  {:>15s}  }};".format( (r.name+'_reg' if r.reg_read else r.name ) ) +
-                        " end // {:}".format(inline(r.desc))
+                        "{:5s} : sys_rdata <=".format(r.addr)+
+                        " {{  {{{:>2d}{{{:s}[{:d}]}}}} ".format(32-r.nbits, name, r.nbits-1).ljust(28)+
+                        ",  {:>15s}  }};".format( name ) +
+                        " // {:}".format(inline(r.desc))
                         )
             else:
                 txt.add(
-                        "{:5s} : begin sys_ack <= sys_en;  sys_rdata <=".format(r.addr)+
+                        "{:5s} : sys_rdata <=".format(r.addr)+
                         " {{  {:>2d}'b0 ".format(32-r.nbits).ljust(28)+
-                        ",  {:>15s}  }};".format(  (r.name+'_reg' if r.reg_read else r.name )  ) +
-                        " end // {:}".format(inline(r.desc))
+                        ",  {:>15s}  }};".format( name ) +
+                        " // {:}".format(inline(r.desc))
                         )
-    txt.add("default   : begin sys_ack <= sys_en;  sys_rdata <=  32'h0        ; end")
+    txt.add("default   : sys_rdata <=  32'h0        ;")
     txt.indent_minus()
     txt.add("endcase")
+    txt.indent_minus()
+    txt.add("end")
     txt.indent_minus()
     txt.add("end")
 

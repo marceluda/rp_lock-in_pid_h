@@ -70,6 +70,58 @@ Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE pro
 simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
 < 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
+## v2.3.17 - Bus reads of in1/oscA, Config load time window, host name resolved once
+
+### Fixed
+- **Corrupt bus reads of fast signals (FPGA, preexisting).** About 2-3 % of the reads of `in1`
+  (0x406000D4) and of `oscA` showing `in1` (0xE4) returned 32 bits of garbage (e.g. `0x0118c9c1`) when `in1`
+  changed sign between clocks (lock mode, ramp); found by testAgent, also with the FPGA of v2.3.14. Cause: the
+  PS side of the bus (`sys_bus_cdc`, clock `fclk[0]`) takes `sys_rdata` some cycles after `sys_ack`,
+  asynchronously to the ADC clock, and `lock.v` reloaded `sys_rdata` on every ADC clock with the live value,
+  so the PS could take a mix of the bits of two values. Now `sys_rdata` only changes while a read is requested
+  (`sys_ren`) and then holds its value (the same fix the scope got in v2.3.10). The read-only wires (`in1`,
+  `in2`, `out1`, `out2`, `oscA`, `oscB`, `pidA_in/out`, `pidB_in/out`, `ramp_A/B`, `sin_ref`..`cos_3f`,
+  `error_mean/std`, `lock_status`) are read from registered copies held during the read (the value read is
+  the one of the clock before the request; one more clock of latency, bus reads only, the loop does not use
+  them), the `read_ctrl[0]` copies are also held during the read, and a 2-cycle multicycle constraint covers
+  the read multiplexer. Worst path to `sys_rdata`: -10.035 ns (34 logic levels from the PID) -> +1.892 ns;
+  `in1` -> its copy +3.7 ns. Design WNS -10.035 -> -8.954 ns; TNS -8637 -> -9565 ns (new copies of
+  `out1`/`out2`/`pidX_in`/`pidX_out`, which carry the long paths of the loop: -462 ns; the rest is place and
+  route variation, mostly the reset net of the scope). New FPGA image.
+- **Config -> load applied the time window in the units of the server** (since v2.3.12): `xmin`/`xmax` of a
+  config are in the time units of the moment it was saved, but the server reads them in the units it uses
+  now (`time_units` is read-only and follows the decimation), so the `lock_mode` config (ms) loaded with the
+  scope in us gave -2...33 us; with a window not starting at 0 the config window was not applied at all
+  (`loadParams()` keeps the plot window). The window is converted to seconds and applied in the current
+  units after loading (as the restore after a restart does); the server answers with forceX if the units
+  change. `time_units`, `time_range`, `gui_xmin`, `gui_xmax` of a config are no longer loaded.
+  Build 35 (found on the board in build 34, about half of the loads): the config is sent in several POSTs, and a
+  later one carried the stale `forcex_flag` 0 (and `time_units`, `time_range`, `gui_xmin/xmax`) of the page, which
+  ended the forceX of the new window; as the page does not load the answers during a config load, it kept the
+  window in the old units (`lock_mode` shown as -2069.69...33485.87 ms; also axes 0...0.131 for a config in us
+  loaded with the page in ms). These five values are no longer sent by a Config -> load, and the window and
+  units the server ends with (answer of the last POST) are applied to the page and the plot axes.
+- `example_usage.py`: the Ramp cell (`step=100`, +-4000: 12.9 ms period) was faster than the 16.58 ms time
+  trigger of the Lock cell, which never locked (ARMED, timeout). It now uses the ramp of the `lock_mode` config
+  (`step=400`, +-5000, ~64 ms), with a note that a smaller `ramp_step` is a faster ramp.
+
+### Changed
+- `control_finn.py`: the host name of the URL (e.g. `rp-XXXXXX.local`) is resolved **once**, when
+  `RedPitayaApp` (or a standalone `Lock` / `Osc`) is created, and every request (GET and the one-send POST
+  /data) goes to that IP with the original name in the `Host:` header. On the PC a `getaddrinfo()` of the
+  `.local` name took 3.5 s some times, and `requests` resolved it in every request. `rp.ip`, `rp.resolve()`
+  (resolve again, e.g. after a DHCP change), `RedPitayaApp(url, resolve=False)` (old behaviour). IPv4 first;
+  IPv6 only if not link-local; if the name does not resolve, a warning and the name is used as before.
+
+### Added
+- `test/lock_bus_read_sim.sh` + `test/lock_bus_read_tb.sv` (xsim): `lock.v` reads through `sys_bus_cdc`
+  with asynchronous clocks; checks that `sys_rdata` is stable when the PS takes it (2000 reads of `in1` and of
+  `oscA` changing sign every clock: v2.3.16 2000/2000 unstable, v2.3.17 0).
+- `test/config_load_window_sim.js`: Config -> load of the time window (21 checks): conversion of the window, and
+  the real chunked send of `index.html` against a model of `rp_set_params()` (forceX handshake) plus a GET poll;
+  the pages of v2.3.16 and of build 34 fail it (`--old`).
+- `resources/config_tool.py`: the generated read mux uses the `_rd` copies and loads `sys_rdata` only on reads.
+
 ## v2.3.16 - Remote scope without the C controller, Time/Level trigger fields with units
 
 ### Added

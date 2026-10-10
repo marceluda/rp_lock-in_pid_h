@@ -53,6 +53,17 @@ v2.3.16:
                                             + 1 with check_web_mode=True (wait=True)
                                             0 with stop_web_scope=False
     rp.osc.post_count counts them (attempts).
+
+v2.3.17:
+  - The host name of the URL (e.g. rp-XXXXXX.local, mDNS) is resolved ONCE, when RedPitayaApp (or a
+    standalone Lock / Osc) is created, and the requests go to that IP with the original "Host:" header
+    (the URL kept in rp.url, the saved files and the messages is the original one). On some PCs every
+    getaddrinfo() of a .local name took up to 3.5 s, and requests resolves the name in every request.
+    rp.ip is the address in use (None: name used as is), rp.resolve() resolves it again (e.g. after the
+    board got another IP from DHCP), RedPitayaApp(url, resolve=False) keeps the old behaviour (name
+    resolved by every request). IPv4 is preferred; IPv6 is used only if global (a link-local fe80::
+    address would need the interface in the URL). If the name can not be resolved, a warning is given
+    and the name is used as before. Objects loaded from a .npy file do not resolve (rp.resolve() does).
 """
 
 
@@ -74,7 +85,8 @@ import socket
 import json
 import http.client
 import warnings
-from urllib.parse import urlsplit
+import ipaddress
+from urllib.parse import urlsplit, urlunsplit
 
 
 
@@ -140,6 +152,85 @@ class WebScopeNotStopped(RuntimeError):
     pass
 
 
+# v2.3.17: host names resolved once (resolve_host()): netloc of the URL ('rp-XXXXXX.local' or
+# 'rp-XXXXXX.local:8080') -> netloc with the IP ('192.168.1.117' or '192.168.1.117:8080').
+# Used by every request of this module (_req_url(), _post_json_one_send()).
+_HOST_IP = {}
+
+
+def _is_ip(host):
+    try:
+        ipaddress.ip_address(host)
+        return True
+    except ValueError:
+        return False
+
+
+def resolve_host(url, warn=True):
+    """
+    Resolves the host name of url once and stores it in _HOST_IP: the requests of this module to that
+    host then go to the IP, with the original name in the "Host:" header. IPv4 first; IPv6 only if it
+    is not link-local. Returns the IP, or None if the host is already an IP, has no name or could not
+    be resolved (then the name keeps being used, resolved by every request as before).
+    """
+    u = urlsplit(url)
+    host = u.hostname
+    if not host or _is_ip(host):
+        _HOST_IP.pop(u.netloc, None)
+        return None
+    port = u.port or (443 if u.scheme == 'https' else 80)
+    ip = None
+    errors = []
+    for family in (socket.AF_INET, socket.AF_INET6):
+        try:
+            infos = socket.getaddrinfo(host, port, family, socket.SOCK_STREAM)
+        except (socket.gaierror, OSError) as e:
+            errors.append(str(e))
+            continue
+        for info in infos:
+            addr = info[4][0]
+            if family == socket.AF_INET6:
+                a = ipaddress.ip_address(addr.split('%')[0])
+                if a.is_link_local or (len(info[4]) > 3 and info[4][3]):
+                    continue
+                addr = f'[{a}]'
+            ip = addr
+            break
+        if ip:
+            break
+    if ip is None:
+        _HOST_IP.pop(u.netloc, None)
+        if warn:
+            warnings.warn(f'Could not resolve {host} ({"; ".join(errors) or "only link-local IPv6"}): '
+                          'the name is used in every request (resolved each time).')
+        return None
+    _HOST_IP[u.netloc] = ip + (f':{u.port}' if u.port else '')
+    return ip.strip('[]')
+
+
+def forget_host(url):
+    """Requests to the host of url use the name again (resolved by every request)"""
+    _HOST_IP.pop(urlsplit(url).netloc, None)
+
+
+def _req_url(url):
+    """
+    (URL to request, headers) for url: with the host resolved by resolve_host(), the URL with the IP
+    and the "Host:" header with the original name and port; otherwise (url, {}).
+    """
+    u = urlsplit(url)
+    ipn = _HOST_IP.get(u.netloc)
+    if ipn is None:
+        return url, {}
+    return urlunsplit((u.scheme, ipn, u.path, u.query, u.fragment)), {'Host': u.netloc}
+
+
+def _get(url, params=None, timeout=HTTP_TIMEOUT):
+    """requests.get() of url through _req_url() (IP resolved once, original Host header)"""
+    rurl, headers = _req_url(url)
+    return requests.get(rurl, params if params is not None else {}, headers=headers, timeout=timeout)
+
+
 def _post_json_one_send(url, obj, timeout=DATA_TIMEOUT):
     """
     POST of a JSON body with the request line, headers and body in ONE send() (one TCP segment for small
@@ -150,6 +241,9 @@ def _post_json_one_send(url, obj, timeout=DATA_TIMEOUT):
     """
     u = urlsplit(url)
     host, port = u.hostname, u.port or 80
+    ipn = _HOST_IP.get(u.netloc)                  # v2.3.17: connect to the IP resolved once (Host: the name)
+    if ipn is not None:
+        host = urlsplit('//' + ipn).hostname
     path = (u.path or '/') + (('?' + u.query) if u.query else '')
     body = json.dumps(obj, separators=(',', ':')).encode('utf-8')
     head = (f'POST {path} HTTP/1.1\r\n'
@@ -208,9 +302,9 @@ def _parse_regs(txt):
 
 def _http_get(url, params=None):
     """GET with timeout. Raises ValueError on HTTP errors and on 'ERROR' answers of c/lock, c/osc"""
-    res = requests.get(url, params if params is not None else {}, timeout=HTTP_TIMEOUT)
+    res = _get(url, params)
     if not res.ok:
-        raise ValueError(f'HTTP {res.status_code} from {res.url}')
+        raise ValueError(f'HTTP {res.status_code} from {url}')
     txt = res.text.strip()
     if 'ERROR' in txt:
         raise ValueError(f'Error was found. RP response:\n{txt}\n')
@@ -225,12 +319,16 @@ class _Registers():
 
     _protected = ['url', '_cmd', '_registers', '_reg_labels', '_parent', 'auto_stop_web_scope']
 
-    def __init__(self, url, cmd, reg=None, labels=None):
+    def __init__(self, url, cmd, reg=None, labels=None, resolve=True):
         self.url  = url
         self._cmd = cmd
+        # v2.3.17: standalone Lock(url) / Osc(url): resolve the host once (RedPitayaApp does it itself and
+        # passes resolve=False). Not for objects with the registers given (loaded from a file).
+        if resolve and reg is None:
+            resolve_host(self.url)
 
         if reg is None:
-            res = requests.get(f'{self.url}/c/{self._cmd}.txt', {}, timeout=HTTP_TIMEOUT)
+            res = _get(f'{self.url}/c/{self._cmd}.txt')
 
             if not res.ok:
                 raise ValueError('The URL is not correct')
@@ -345,8 +443,8 @@ class Lock(_Registers):
     Class for direct acces to FPGA registers.
     """
 
-    def __init__(self, url, reg=None):
-        super().__init__(url, 'lock', reg=reg, labels=reg_labels)
+    def __init__(self, url, reg=None, resolve=True):
+        super().__init__(url, 'lock', reg=reg, labels=reg_labels, resolve=resolve)
 
 # l = Lock('http://rp-f00a3b.local/lock_in+pid_harmonic')
 
@@ -387,8 +485,8 @@ class Osc(_Registers):
 
     trigger_values = ['','manual','A_rising','A_falling','B_rising','B_falling','ext_rising','ext_falling']
 
-    def __init__(self, url, parent=None, reg=None):
-        super().__init__(url, 'osc', reg=reg)
+    def __init__(self, url, parent=None, reg=None, resolve=True):
+        super().__init__(url, 'osc', reg=reg, resolve=resolve)
         self._parent = parent
         self._warned_no_unlock = False
         # v2.3.16: measure() stops the scope of the C controller (web page) first, see scope_stop()
@@ -855,7 +953,15 @@ class Osc(_Registers):
 
 
 class RedPitayaApp():
-    def __init__(self, url, name=None):
+    def __init__(self, url, name=None, resolve=True):
+        """
+        url     : URL of the App (http://rp-XXXXXX.local/lock_in+pid_harmonic, as copied from the browser), or
+                  a .npy file of save_params() (offline object: its name is not resolved, see resolve())
+        name    : name of the object (default: host of the URL)
+        resolve : v2.3.17: resolve the host name once here and send the requests to that IP (with the
+                  original Host header); False: the name is resolved by every request (old behaviour)
+        """
+        self.resolve_time = None
 
         if os.path.isfile(url):
 
@@ -881,8 +987,14 @@ class RedPitayaApp():
 
             self.url = url
 
-            self.lock = Lock(self.url)
-            self.osc  = Osc(self.url,parent=self)
+            # v2.3.17: one name resolution for all the requests of this object (and of its lock / osc)
+            if resolve:
+                self.resolve()
+            else:
+                forget_host(self.url)
+
+            self.lock = Lock(self.url, resolve=False)
+            self.osc  = Osc(self.url,parent=self, resolve=False)
 
             self._get_calib()
 
@@ -901,6 +1013,7 @@ class RedPitayaApp():
             Usefull functions and objects:
 
                 {rp}.url                                 : url of the Red Pitaya App
+                {rp}.ip / {rp}.resolve()                 : IP used for the requests (host name resolved once)
                 {rp}.calib                               : Calibration information for Voltage conversion
                 {rp}.streaming_*                         : streamign related functions
                 {rp}.save_params() / {rp}.load_params()  : Save/Load RP regs state
@@ -931,6 +1044,24 @@ class RedPitayaApp():
     def __repr__(self):
         return f'RedPitayaApp({self.name})'
 
+    def resolve(self):
+        """
+        v2.3.17: resolves the host name of the URL now (getaddrinfo) and sends all the requests of this
+        object to that IP, with the original name in the "Host:" header. Done once when the object is
+        created; call it again if the board changed its IP. Returns the IP (None: the host is already an
+        IP, or it could not be resolved and the name is used in every request). self.resolve_time [s].
+        """
+        t0 = time()
+        ip = resolve_host(self.url)
+        self.resolve_time = time() - t0
+        return ip
+
+    @property
+    def ip(self):
+        """v2.3.17: IP used for the requests (resolved once, see resolve()), or None if the name is used"""
+        ipn = _HOST_IP.get(urlsplit(self.url).netloc)
+        return urlsplit('//' + ipn).hostname if ipn else None
+
     def _get_calib(self):
         """
         Internal function to load calibration values (output of 'calib -rv' on the board).
@@ -939,7 +1070,7 @@ class RedPitayaApp():
         """
         self.calib = {}
         try:
-            res = requests.get(f'{self.url}/calib', {}, timeout=HTTP_TIMEOUT).text.strip()
+            res = _get(f'{self.url}/calib').text.strip()
         except requests.RequestException:
             return
         for dd in res.split('\n'):
@@ -956,7 +1087,7 @@ class RedPitayaApp():
         """
         Prepares RP for streaming
         """
-        res = requests.get(f'{self.url}/streaming',{}, timeout=HTTP_TIMEOUT)
+        res = _get(f'{self.url}/streaming')
         if not res.ok:
             raise ValueError('The URL is not correct')
 

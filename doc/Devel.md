@@ -294,6 +294,8 @@ After adding or changing a register: run the tool, rebuild FPGA + controller + t
 | `lock_ctrl_ui_sim.js` | `node test/lock_ctrl_ui_sim.js` | UI ↔ controller ↔ FPGA model of the lock control (v2.3.13) |
 | `lock_capture_ui_sim.js` | `node test/lock_capture_ui_sim.js` | Capture Lock, Fire on click, restore, AUTO (v2.3.14) |
 | `trig_from_graph_sim.js` | `node test/trig_from_graph_sim.js` | click → time conversion of *Choose from graph* (v2.3.12) |
+| `lock_bus_read_tb.sv` | `test/lock_bus_read_sim.sh [work_dir [lock.v]]` (Vivado 2020.1 xsim) | bus reads of `lock.v` through `sys_bus_cdc` with asynchronous clocks: `sys_rdata` stable when the PS takes it (v2.3.17); prints `TB RESULT: PASS` |
+| `config_load_window_sim.js` | `node test/config_load_window_sim.js` | time window of Config → load in the units of the server (v2.3.17) |
 | `auto_set_c_sim/` | `test/auto_set_c_sim/run.sh [src dir]` | the real C controller compiled for the PC with fake `/dev/mem` (`fake_hw.h`, `harness.c`): AUTO after a capture, forceX |
 
 Run them from `lock_in+pid_harmonic/`. All exit with code 1 on failure. Results of v2.3.14 (`devAgent.md`):

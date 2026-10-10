@@ -16,7 +16,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Harmonic lock-in+PID (v2.3.16)</title>
+  <title>Harmonic lock-in+PID (v2.3.17)</title>
   <link href="../assets/bootstrap-3.0.0/css/bootstrap.css" rel="stylesheet" type="text/css">
   <link href="../assets/style.css?6" rel="stylesheet" type="text/css">
   <script src="../assets/bootstrap-3.0.0/js/jquery.js"></script>
@@ -115,6 +115,12 @@
   var send_que = false;
   var single_que = false;  // a Single click arrived while a POST was in flight: send it when the POST ends
   var send_que_all = false;              // The queued sendParams() must use send_all (config load during a POST)
+  // v2.3.17: Config -> load. Time scale values that the server derives (or the forceX handshake) are never sent in
+  // the send_all of a config load: a stale forcex_flag 0 / time_units of params.local in a later chunk ended the
+  // forceX of the new window, and the page kept the window in the old units (x1000). The window is applied from
+  // the answer of the last chunk instead (configLoadApplyX()), as restoreState() does.
+  var send_all_skip = ['forcex_flag', 'time_units', 'time_range', 'gui_xmin', 'gui_xmax'];
+  var config_load_x_pending = false;     // set by config_load_storage(), taken by the sendParams(send_all) that sends it
   var use_long_timeout = false;
   var trig_dragging = false;
   var touch_last_y = 0;
@@ -4400,6 +4406,9 @@
 
     var auto_flag = params.local.auto_flag;  // Keep the value of auto_flag, because in POST response it is always 0
     sending = true;
+    // v2.3.17: this send_all is the one of a Config -> load: apply the time window of the last answer
+    var apply_config_x = (send_all === true && config_load_x_pending);
+    if(apply_config_x) config_load_x_pending = false;
     params.local.single_btn = (single_btn === true ? 1 : 0);
     use_long_timeout = !!auto_flag;
 
@@ -4407,6 +4416,7 @@
     // Ecosystem 2.0 hangs with big POST bodies (E3), so all the ~220 params can not be sent every time.
     var send_params = {};
     for(var key in params.local) {
+      if(send_all === true && send_all_skip.indexOf(key) >= 0) continue;   // v2.3.17 (see send_all_skip)
       if(send_all === true || !params.original || params.original[key] != params.local[key] ||
          always_send_params.indexOf(key) >= 0) {
         send_params[key] = params.local[key];
@@ -4454,6 +4464,9 @@
           plot.setupGrid();
           plot.draw();
         }
+
+        // v2.3.17: Config -> load: the window and units the server ended with (with or without forceX in this answer)
+        if(apply_config_x && auto_flag != 1) configLoadApplyX(dresult.datasets.params);
 
         if(dresult.app && dresult.app.id === app_id) saveState(dresult.datasets.params, true);
         if(!user_editing) loadParams(dresult.datasets.params, true);  // true: keep the unsent user changes
@@ -5424,6 +5437,16 @@
     user_editing = true;
     //sending = true;
 
+    // v2.3.17: time window of the config. Its xmin/xmax are in the time units of the moment it was saved
+    // (its time_units), but the server takes them in the units it uses now (time_units is read-only there and
+    // follows the decimation): a config saved in ms loaded with the scope in us gave -2...33 us. The window is
+    // taken in seconds here and applied after loadParams() (which keeps the plot window) in the current units,
+    // as restoreState() does; if they change, the server answers with forceX in the new ones. The time scale
+    // values that the server derives (time_units, time_range, gui_xmin/gui_xmax) are not loaded.
+    var cfg_x_s = configWindowSeconds(params.storage[num].data, params.local ? params.local.time_units : 0);
+    var cfg_derived = ['time_units', 'time_range', 'gui_xmin', 'gui_xmax'];
+    for(var di = 0; di < cfg_derived.length; di++) delete params.storage[num].data[ cfg_derived[di] ];
+
     // v2.3.14: a lock capture ends (the config brings its own scope settings); UI preferences of the config
     // (configs saved before v2.3.14 have none: the current ones are kept)
     lockCaptureEnd('none');
@@ -5431,6 +5454,8 @@
 
     // load into params
     loadParams(params.storage[num].data);
+    if(cfg_x_s) lockSetXWindow(cfg_x_s[0], cfg_x_s[1]);   // params.local.xmin/xmax and the plot axes
+    config_load_x_pending = true;   // the answer of the last chunk sets the window (configLoadApplyX())
     // A POST in flight: its response must not overwrite the config (empty unsent_base -> all its values are
     // unsent changes until the queued sendParams(.., send_all) sends them)
     if(sending) unsent_base = {};
@@ -5439,6 +5464,47 @@
     // send_all: loadParams() overwrote params.original, so all params must be sent, not only changed ones
     sendParams(true, true, false, false, true);
 
+  }
+
+  // v2.3.17: x window of a saved config in seconds: [xmin_s, xmax_s], or null if it has none. xmin/xmax are in the
+  // config time_units (0 us, 1 ms, 2 s); configs without time_units are taken in cur_tu (the current units, the
+  // way the server reads them).
+  function configWindowSeconds(d, cur_tu) {
+    if(!d) return null;
+    var xmin = Number(d.xmin), xmax = Number(d.xmax), tu = Number(d.time_units);
+    if(d.xmin === undefined || d.xmin === null || d.xmax === undefined || d.xmax === null) return null;
+    if(!isFinite(xmin) || !isFinite(xmax) || !(xmax > xmin)) return null;
+    if(d.time_units === undefined || d.time_units === null || !(tu === 0 || tu === 1 || tu === 2)) {
+      tu = Number(cur_tu);
+      if(!(tu === 0 || tu === 1 || tu === 2)) tu = 0;
+    }
+    var f = timeUnitFactor(tu);
+    return [ xmin / f, xmax / f ];
+  }
+
+  // v2.3.17: after the send_all of a Config -> load: window and time units of the answer of the last chunk (the
+  // server converted the window and may have changed the units). The page takes them as sent and as current, in
+  // params and in the plot axes, whatever forcex_flag says (a later chunk may have ended the forceX already).
+  function configLoadApplyX(srv) {
+    if(!srv || !params.local) return false;
+    var tu = Number(srv.time_units), xmin = Number(srv.xmin), xmax = Number(srv.xmax);
+    if(!(tu === 0 || tu === 1 || tu === 2) || !isFinite(xmin) || !isFinite(xmax) || !(xmax > xmin)) return false;
+    updateTimeUnits(srv);   // params.local/original.time_units + axis label
+    var keys = ['xmin', 'xmax', 'time_range', 'gui_xmin', 'gui_xmax', 'forcex_flag'];
+    for(var i = 0; i < keys.length; i++) {
+      if(srv[keys[i]] !== undefined && srv[keys[i]] !== null && isFinite(srv[keys[i]])) {
+        params.local[keys[i]] = Number(srv[keys[i]]);
+        if(params.original) params.original[keys[i]] = Number(srv[keys[i]]);
+      }
+    }
+    if(plot) {
+      var o = plot.getOptions();
+      o.xaxes[0].min = xmin;
+      o.xaxes[0].max = xmax;
+      plot.setupGrid();
+      plot.draw();
+    }
+    return true;
   }
 
   function config_del_storage(name){
@@ -5617,7 +5683,7 @@
     <div class="container">
       <a id="btn_exit" class="pull-left" href="/index.html"><span class="glyphicon glyphicon-chevron-left" title="Exit" alt="Exit"></span></a>
       <img class="logo pull-left" src="../assets/images/logo_white.png">
-      <h2 class="page-title">Harmonic lock-in+PID (v2.3.16)</h2>
+      <h2 class="page-title">Harmonic lock-in+PID (v2.3.17)</h2>
     </div>
   </div>
   <div class="container">
