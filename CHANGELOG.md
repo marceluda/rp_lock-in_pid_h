@@ -70,6 +70,16 @@ Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE pro
 simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
 < 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
+## Documentation (after v2.3.17, not a new version)
+
+### Changed
+- `doc/` and README updated to v2.3.17: `Remote.md` (acquisitions through `/osc` with `TrgUnlock`, the scope
+  of the C controller and `POST /data`, the CLOSE-WAIT issue of the Ecosystem, `control_finn.py` API and the
+  `POST /data` made by each function), `FPGA.md` (ranges and widths of v2.3.15, 32-bit `lock_trig_time` and
+  float32 rounding of the page, `TrgUnlock`, bus reads of v2.3.17), `Usage.md` (Time / Level trigger fields
+  with units, empty fields, Config -> load time window, ki "65 us"), `App.md`, `Structure.md`, `Devel.md`
+  (tests, upload targets, timing); references to lines of `lock.v` updated to v2.3.17.
+
 ## v2.3.17 - Bus reads of in1/oscA, Config load time window, host name resolved once
 
 ### Fixed

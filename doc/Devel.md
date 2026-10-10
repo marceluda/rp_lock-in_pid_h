@@ -1,6 +1,6 @@
 # Development: building and modifying the App
 
-How to build, modify, test and install `lock_in+pid_harmonic` v2.3.14 (branch `devel2.0`). The internal
+How to build, modify, test and install `lock_in+pid_harmonic` v2.3.17 (branch `devel2.0`). The internal
 structure is explained in [Structure.md](Structure.md) and the registers in [FPGA.md](FPGA.md).
 
 - [Source tree](#source-tree)
@@ -155,7 +155,7 @@ Root `Makefile`:
 | `target/lock_in+pid_harmonic` | staging of the installable folder (also copies `upload_app.sh`, `resources/`, README, CHANGELOG; sets the version in `info.json` and `index.html`; removes `__pycache__`/`*.pyc`) |
 | `zip`, `tar` | packages in `../archive/` |
 | `clean`, `clean_app`, `clean_fpga`, `clean_target` | clean all / C (`src`, `c`, `*.so`, target) / FPGA / target |
-| `upload`, `upload_bit`, `upload_html`, `upload_py` | copy to the board by SSH (needs `RPIP` in `../_settings.env`, see below) |
+| `upload`, `upload_bit`, `upload_html`, `upload_py` | copy to the board by SSH (needs `RPIP`, on the command line or in `../_settings.env`, see below; `check_rpip` stops if it is empty). Since v2.3.15 they depend only on `target/` (`upload_html` sends the `index.html` of `target/`, with the version), make the file system writable with the `rw` script of the OS (`/opt/redpitaya/sbin/rw` with `PATH_REDPITAYA` exported on 2.0, `/boot/sbin/rw` on 0.9x), `upload` keeps `fpga.sh` at 755 and `upload_bit` also sends `fpga.bit.bin`. Never run by the build |
 
 `lock_in+pid_harmonic/fpga/Makefile`: see [FPGA](#fpga-vivado-20201).
 
@@ -247,8 +247,13 @@ Where to change things:
 | Scope (decimation, `osc_ctrl_i`, bus read) | `rtl/rtl/classic/rp_scope_com.v`, `rp_scope_cfg.v`, `rp_decim.v` |
 | Constraints | `sdc/red_pitaya.xdc`, `prj/v0.94/sdc/` |
 
-Known: timing does not close (WNS ≈ −10 ns in the PID of the lock), as in the 2015.2 design; the App works.
-Simulation of `lock_ctrl.v`: see [test/](#simulations-and-tests-test).
+Known: timing does not close, as in the 2015.2 design; the App works. v2.3.17: WNS −8.954 ns, TNS −9565 ns
+(v2.3.15: −10.035 / −8637); the worst paths are the long combinational paths of the loop (PID → scope
+muxes, outputs); the bus read of the lock module meets timing (+1.892 ns) with the 2-cycle multicycle constraint
+of `prj/v0.94/sdc/red_pitaya.xdc` l. 82-83 (CHANGELOG v2.3.17, `devAgent.md`). If you add a register to the read
+mux of `lock.v`, keep it a register of `adc_clk` held during `sys_ren` (as the `*_rd` copies), or the multicycle
+constraint is no longer valid ([FPGA.md](FPGA.md#lock-module-0x40600000)). Simulations of `lock_ctrl.v` and of
+the bus reads: see [test/](#simulations-and-tests-test).
 
 ## Web interface (`index.html`)
 
@@ -281,7 +286,10 @@ Usage (from inside `rp_lock-in_pid_h/`): `python3 resources/config_tool.py` (ver
 with arguments `verilog|fpga`, `main`, `html`, `py`, `rp_c`, `all`, `clean`. Each run moves the modified
 files to `name_YYYYMMDD_HHmmss.ext` backups. Hand-written blocks inside a dock (e.g. the `c_block` of
 `lock_control` in `[FPGAUPDATE DOCK]`) are kept in the table of the tool; review the diff after running it.
-Updated for the v0.94 tree in v2.3.13.
+Updated for the v0.94 tree in v2.3.13; v2.3.15: `index=` of each register (for `TrgUnlock`, index 37 of the
+scope) and the ranges of `lock.txt`/`osc.txt`; v2.3.17: the generated read mux of `lock.v` uses the `*_rd` copies
+and loads `sys_rdata` only on reads. **The `html` output is out of date** (its `input_buttons` list is the one of
+v2.3.13): `index.html` has been edited by hand since v2.3.15, do not regenerate it (`devAgent.md`, 2026-10-09 12:14).
 
 After adding or changing a register: run the tool, rebuild FPGA + controller + tools, and update
 [FPGA.md](FPGA.md).
@@ -294,12 +302,22 @@ After adding or changing a register: run the tool, rebuild FPGA + controller + t
 | `lock_ctrl_ui_sim.js` | `node test/lock_ctrl_ui_sim.js` | UI ↔ controller ↔ FPGA model of the lock control (v2.3.13) |
 | `lock_capture_ui_sim.js` | `node test/lock_capture_ui_sim.js` | Capture Lock, Fire on click, restore, AUTO (v2.3.14) |
 | `trig_from_graph_sim.js` | `node test/trig_from_graph_sim.js` | click → time conversion of *Choose from graph* (v2.3.12) |
+| `trig_input_units_sim.js` | `node test/trig_input_units_sim.js [--old]` | Time / Level trigger fields with units, empty fields not sent as 0 (v2.3.16) |
 | `lock_bus_read_tb.sv` | `test/lock_bus_read_sim.sh [work_dir [lock.v]]` (Vivado 2020.1 xsim) | bus reads of `lock.v` through `sys_bus_cdc` with asynchronous clocks: `sys_rdata` stable when the PS takes it (v2.3.17); prints `TB RESULT: PASS` |
-| `config_load_window_sim.js` | `node test/config_load_window_sim.js` | time window of Config → load in the units of the server (v2.3.17) |
+| `config_load_window_sim.js` | `node test/config_load_window_sim.js [--old]` | Config → load of the time window: conversion, and the real chunked send of `index.html` against a model of `rp_set_params()` (forceX handshake) plus a GET poll (v2.3.17) |
 | `auto_set_c_sim/` | `test/auto_set_c_sim/run.sh [src dir]` | the real C controller compiled for the PC with fake `/dev/mem` (`fake_hw.h`, `harness.c`): AUTO after a capture, forceX |
 
-Run them from `lock_in+pid_harmonic/`. All exit with code 1 on failure. Results of v2.3.14 (`devAgent.md`):
-63/63, 26/26, 0 failures, 14/14.
+Run them from `lock_in+pid_harmonic/`. All exit with code 1 on failure. `--old` runs a check against the code of
+the previous version (it must fail). `lock_ctrl_tb.v` covers 32-bit time triggers ≥ 2³¹ since v2.3.15 (cases
+14-15). Results of v2.3.17 (`devAgent.md`, `build_logs/rp_lock-in_pid_h_20261009_2124_v2317c_sim.txt`):
+`lock_ctrl_sim` 35/35, `lock_bus_read_sim` PASS (0 unstable reads of 4000), `lock_ctrl_ui_sim` 28/28,
+`lock_capture_ui_sim` 63/63, `trig_input_units_sim` 38/38, `trig_from_graph_sim` 0 failures,
+`config_load_window_sim` 21/21; `auto_set_c_sim` 14/14 (v2.3.15).
+
+The Python client `control_finn.py` was tested by devAgent against a fake HTTP server of the board (Lua argument
+order, `c/lock`/`c/osc`, 2.0 scope with trigger lock, a model of the C worker, `/data` that only answers a body
+sent with the headers). Those scripts are not in the repository (devAgent scratchpad); the board tests are in
+`reportes/lock-in_pid_h.md`.
 
 On the board the reference test is the LOCK MODE procedure of `test_files/lock_test.md` (Apps root),
 with `dummy_simulator` on a second board; reports in `reportes/lock-in_pid_h_lock_test/`.
@@ -309,7 +327,7 @@ with `dummy_simulator` on a second board; reports in `reportes/lock-in_pid_h_loc
 From a package (`archive/*.tar.gz` or `.zip`, or a GitHub release):
 
 ```bash
-tar -xzf lock_in+pid_harmonic-2.3.14-<build>-devbuild.tar.gz
+tar -xzf lock_in+pid_harmonic-2.3.17-<build>-devbuild.tar.gz
 ./upload_app.sh rp-XXXXXX.local          # -p <ssh port>; -w uploads only index.html, js, css
 ```
 
@@ -326,15 +344,19 @@ reloads the FPGA.
 Notes for Ecosystem 2.0 (`testAgent.md`):
 
 - In a non-interactive SSH, `rw` needs `PATH_REDPITAYA`: `export PATH_REDPITAYA=/opt/redpitaya; /opt/redpitaya/sbin/rw`.
-  The Makefile and `upload_app.sh` call `/boot/sbin/rw`; whether that path exists on OS 2.04 is **a confirmar**.
+  The `upload*` targets of the Makefile do so since v2.3.15. `upload_app.sh` still calls `/boot/sbin/rw`
+  (l. 119, 125); whether that path exists on OS 2.04 is **a confirmar**.
+- Each `POST /data` (page, `curl`, `control_finn.py`) leaves an open connection in the nginx of the board; after
+  long test sessions restart it with `systemctl restart redpitaya_nginx` (then start the App again)
+  ([Remote.md](Remote.md#known-issue-of-the-ecosystem-post-data-leaves-connections-open)).
 - Close any browser tab with the main menu of the board before testing: it can relaunch the main menu and
   unload the App.
 
 ## Versioning and packages
 
-- Version: `lock_in+pid_harmonic/info/info.json` (`"version": "2.3.14-BUILD_NUMBER"`), the title of
-  `index.html` (`Harmonic lock-in+PID (v2.3.14)`), `CHANGELOG.md`. Build number: `_build_number`.
+- Version: `lock_in+pid_harmonic/info/info.json` (`"version": "2.3.17-BUILD_NUMBER"`), the title of
+  `index.html` (`Harmonic lock-in+PID (v2.3.17)`), `CHANGELOG.md`, `README.md` ("Current version"). Build number: `_build_number`.
   Revision: `REVISION` (default `devbuild`).
 - Package name: `lock_in+pid_harmonic-<VER>-<BUILD_NUMBER>-<REVISION>.{zip,tar.gz}` in `archive/`.
 - Branches: `master` = 0.3.x (FPGA Vivado 2015.2), `devel2.0` = 2.3.x (FPGA Vivado 2020.1, Ecosystem 2.0).
-  Tags `v2.3.11` .. `v2.3.14` on `devel2.0`.
+  Tags `v2.3.11` .. `v2.3.17` on `devel2.0`.

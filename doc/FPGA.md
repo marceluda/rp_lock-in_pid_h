@@ -1,6 +1,6 @@
 # FPGA register map
 
-Register map of the FPGA design of `lock_in+pid_harmonic` **v2.3.14** (branch `devel2.0`, Vivado 2020.1,
+Register map of the FPGA design of `lock_in+pid_harmonic` **v2.3.17** (branch `devel2.0`, Vivado 2020.1,
 RedPitaya-FPGA project `v0.94`, model Z10 / STEMlab 125-14).
 
 All registers are 32-bit words on the AXI general purpose bus of the Zynq, accessed from Linux through
@@ -51,13 +51,15 @@ Source: `lock_in+pid_harmonic/fpga/README.md` and `fpga/prj/v0.94/rtl/red_pitaya
 ## Lock module (0x40600000)
 
 Sources: the bus decoder of `fpga/prj/v0.94/rtl/lock.v` (block `[FPGA MEMORY DOCK]`, l. 1004-1305: reset
-values l. 1013-1079, writes l. 1081-1181, reads l. 1202-1301; v2.3.17), declarations l. 57-128, and
+values l. 1013-1079, writes l. 1081-1181, reads l. 1202-1301; v2.3.17), declarations l. 57-126 (bus-read
+copies l. 216-221), and
 `lock_in+pid_harmonic/c/lock.txt`. Absolute address = `0x40600000 + offset`. Index = `offset / 4` (the
 index used by `c/lock`, `py/hugo.py` and `lock.txt`).
 
 Column legend: **RW** read/write, **R** read only (writes ignored). **Bits** = width of the FPGA register.
 **s/u** = signed / unsigned. **Range** = range of meaningful values (from `lock.txt`, corrected where the
-RTL says otherwise, see the notes). **Reset** = value after the FPGA is loaded (reset of `lock.v`).
+RTL says otherwise, see the notes; since v2.3.15 `lock.txt` agrees with the RTL). **Reset** = value after the
+FPGA is loaded (reset of `lock.v`).
 "Frozen by `read_ctrl[0]`" means that the value read is a copy that stops updating while
 `read_ctrl[0] = 1`, so that several registers can be read at the same instant.
 
@@ -72,8 +74,13 @@ the read multiplexer only has registers at its inputs. The real-time logic does 
 requested (`sys_ren`, 2 clocks with the address already stable) the `_rd` copies and the `_reg` copies of
 `read_ctrl[0]` hold their value (the value read is the one of the clock before the request), so every input of
 `sys_rdata` is stable for 2 clocks: `prj/v0.94/sdc/red_pitaya.xdc` has a 2-cycle multicycle constraint to
-`i_lock/sys_rdata_reg`. Same kind of fix as the one of the scope `sys_rdata` in v2.3.10. Test:
-`test/lock_bus_read_sim.sh`.
+`i_lock/sys_rdata_reg` (l. 82-83). Same kind of fix as the one of the scope `sys_rdata` in v2.3.10. Test:
+`test/lock_bus_read_sim.sh` (simulation: 4000/4000 unstable reads with the `lock.v` of v2.3.16, 0 with v2.3.17).
+On the board (v2.3.17-34): 0 bad reads of `in1`/`oscA` in 2000 `monitor` reads per condition and in 8·10⁶ dense
+reads; out1, ctrl_A, pidA_in/out, ramp_A, error, references, in2, oscB, signal_i consistent; X/Y frozen by
+`read_ctrl[0]` identical in 2000 reads (`reportes/lock-in_pid_h.md`, v2.3.17). Before v2.3.17 the only affected
+registers seen were `in1` (0xD4) and `oscA` showing `in1` (0xE4); the bus design also changed the timing
+report: worst path to `sys_rdata` −10.035 ns → +1.892 ns, design WNS −10.035 → −8.954 ns (CHANGELOG v2.3.17).
 
 ### Scope, trigger and outputs
 
@@ -93,16 +100,26 @@ requested (`sys_ren`, 2 clocks with the address already stable) the `_rd` copies
 | `0x018` | 6 | `lock_control` | RW | 11 | u | 0..2047 | 1148 (`0x47C`) | Command + configuration of the lock state machine. Never modified by the FPGA (v2.3.13). See [bit fields](#lock_control-0x018). |
 | `0x01C` | 7 | `lock_status` | R | 16 | u | 0..65535 | — | State of the lock (v2.3.13, replaced `lock_feedback`). See [bit fields](#lock_status-0x01c). |
 | `0x020` | 8 | `lock_trig_val` | RW | 14 | s | -8192..8191 | 0 | Threshold of the **level** trigger, compared with the signal selected by `lock_trig_sw`. |
-| `0x024` | 9 | `lock_trig_time` | RW | 32 | u | 0..2³¹−1 (see note 1) | 0 | Delay of the **time** trigger, in ticks of 8 ns counted from the last scan floor (`ramp_floor_trig`). |
+| `0x024` | 9 | `lock_trig_time` | RW | 32 | u | 0..2³²−1 (34.36 s) | 0 | Delay of the **time** trigger, in ticks of 8 ns counted from the last scan floor (`ramp_floor_trig`). See the note below the table. |
 | `0x028` | 10 | `lock_trig_sw` | RW | 4 | u | 0..15 | 0 | Signal used by the level trigger. See [selector values](#lock-trigger-signal-lock_trig_sw). |
 | `0x02C` | 11 | `rl_error_threshold` | RW | 13 | u | 0..8191 | 0 | Re-lock: out of lock when `|error| > rl_error_threshold`. |
 | `0x030` | 12 | `rl_signal_sw` | RW | 3 | u | 0..7 | 0 | Re-lock: signal compared with `rl_signal_threshold` (0 in1, 1 in2, 2 in1−in2, 3 aux_A, 4 aux_B, 5..7 → 0). |
 | `0x034` | 13 | `rl_signal_threshold` | RW | 14 | s | -8192..8191 | 0 | Re-lock: out of lock when `signal < rl_signal_threshold`. |
 | `0x038` | 14 | `rl_config` | RW | 3 | u | 0..7 | 0 | Re-lock: `[0]` enable error threshold, `[1]` enable signal threshold, `[2]` relock reset. |
-| `0x03C` | 15 | `rl_state` | R | 5 | u | — | — | **Always reads 0** (`lock.v` l. 135, `assign rl_state = 5'b0`). Intended: `[state, signal_fail, error_fail, locked]`. |
+| `0x03C` | 15 | `rl_state` | R | 5 | u | 0..0 | — | **Always reads 0** (`lock.v` l. 133, `assign rl_state = 5'b0`; `lock.txt` 0..0 since v2.3.15). Intended: `[state, signal_fail, error_fail, locked]`. |
 | `0x040` | 16 | `sf_jumpA` | RW | 14 | s | -8192..8191 | 0 | Step-response measurement: value added to `ctrl_A` during the step. |
 | `0x044` | 17 | `sf_jumpB` | RW | 14 | s | -8192..8191 | 0 | Same for `ctrl_B`. |
 | `0x048` | 18 | `sf_config` | RW | 5 | u | 0..31 | 0 | Step response: `[0]` start, `[1]` freeze PID A output, `[2]` freeze PID A integrator, `[3]` freeze PID B output, `[4]` freeze PID B integrator (during the step). |
+
+Note on `lock_trig_time` (v2.3.15): the counter and the comparator of `lock/lock_ctrl.v` are 32 bits (l. 86-88,
+120, 132); up to v2.3.14 they were 31 bits, so values ≥ 2³¹ aliased to `value − 2³¹` and the counter wrapped at
+17.2 s. Written through the bus (`/lock`, `c/lock`) the value is exact (3000000000 and 4294967295 read back
+unchanged on the board). The C controller keeps its parameters as `float` (`src/main.h`), so a value written
+from the web page goes through float32: it is converted to the register with saturation
+(`lock_float_to_u32()`, `src/lock.c` l. 35 and 140), but above 2²⁴ ticks (134 ms) it is rounded to the float32
+grid (steps of 2 to 256 ticks; error ≤ 128 ticks ≈ 1 µs at 34 s; e.g. "19 s" = 2375000000 → 2375000064). The
+read-back to the page is also a float (`src/lock.c` l. 287): 0xFFFFFFFF comes back as 2³², and the page clamps it
+to 4294967295 (v2.3.16). If the page later rewrites the lock registers it writes its rounded copy.
 
 ### Lock-in amplifier
 
@@ -119,10 +136,10 @@ requested (`sys_ren`, 2 clocks with the address already stable) the `_rd` copies
 | `0x06C` | 27 | `lpf_F2` | RW | 6 | u | 0..63 | 32 | Low-pass filter of F2. |
 | `0x070` | 28 | `lpf_F3` | RW | 6 | u | 0..63 | 32 | Low-pass filter of F3. |
 | `0x074` | 29 | `error_sw` | RW | 3 | u | 0..7 | 0 | Signal used as `error`. See [selector values](#error-signal-error_sw). |
-| `0x078` | 30 | `error_offset` | RW | 14 | s | -8192..8191 | 0 | Subtracted from the selected signal: `error = sel − error_offset` (no saturation, 14-bit wrap; l. 548-551). |
+| `0x078` | 30 | `error_offset` | RW | 14 | s | -8192..8191 | 0 | Subtracted from the selected signal: `error = sel − error_offset` (no saturation, 14-bit wrap; l. 553-556). |
 | `0x07C` | 31 | `error` | R | 14 | s | -8192..8191 | — | Error signal. Frozen by `read_ctrl[0]`. |
-| `0x080` | 32 | `error_mean` | R | 32 | s | int32 | — | Sum of `error` over 2²⁷ ticks (1.074 s) / 2⁹. Mean in counts = `error_mean / 2^18` (`src/lock.c` l. 309). |
-| `0x084` | 33 | `error_std` | R | 32 | s | int32 | — | Sum of `|error|²` over 2²⁷ ticks / 2²². Mean square = `error_std / 32`; std = √(mean square − mean²) (`src/lock.c` l. 310-311). |
+| `0x080` | 32 | `error_mean` | R | 32 | s | int32 | — | Sum of `error` over 2²⁷ ticks (1.074 s) / 2⁹. Mean in counts = `error_mean / 2^18` (`src/lock.c` l. 320). |
+| `0x084` | 33 | `error_std` | R | 32 | s | int32 | — | Sum of `|error|²` over 2²⁷ ticks / 2²². Mean square = `error_std / 32`; std = √(mean square − mean²) (`src/lock.c` l. 321-322). |
 | `0x088` | 34 | `mod_out1` | RW | 14 | s | -1..8191 | −1 | Amplitude of the modulation (`cos_ref`) added to OUT1. **Negative = off.** Added amplitude ≈ `mod_out1 / 2` counts (see [App.md](App.md#modulation-generator)). |
 | `0x08C` | 35 | `mod_out2` | RW | 14 | s | -1..8191 | −1 | Same for OUT2, with `sin_ref`. |
 | `0x090` | 36 | `gen_mod_phase` | RW | 12 | u | 0..2519 | 0 | Phase of `cos_1f`, `cos_2f`, `cos_3f` with respect to `cos_ref`, in units of 360°/2520 = 0.143°. |
@@ -132,14 +149,14 @@ requested (`sys_ren`, 2 clocks with the address already stable) the `_rd` copies
 | `0x0C8` | 50 | `cos_1f` | R | 14 | s | ±4094 | — | Cosine at 1f, phase-shifted by `gen_mod_phase`. |
 | `0x0CC` | 51 | `cos_2f` | R | 14 | s | ±4094 | — | Cosine at 2f, phase-shifted. |
 | `0x0D0` | 52 | `cos_3f` | R | 14 | s | ±4094 | — | Cosine at 3f, phase-shifted. |
-| `0x0EC` | 59 | `X_28` | R | 28 | s | ±2²⁷ | — | Demodulated in-phase component (from **`cos_ref`**, `lock.v` l. 761), before `sg_amp0`. Frozen by `read_ctrl[0]`. |
+| `0x0EC` | 59 | `X_28` | R | 28 | s | ±2²⁷ | — | Demodulated in-phase component (from **`cos_ref`**, `lock.v` l. 768), before `sg_amp0`. Frozen by `read_ctrl[0]`. |
 | `0x0F0` | 60 | `Y_28` | R | 28 | s | ±2²⁷ | — | Demodulated quadrature component (from **`sin_ref`**). Frozen. |
 | `0x0F4` | 61 | `F1_28` | R | 28 | s | ±2²⁷ | — | Demodulated with `cos_1f`. Frozen. |
 | `0x0F8` | 62 | `F2_28` | R | 28 | s | ±2²⁷ | — | Demodulated with `cos_2f`. Frozen. |
 | `0x0FC` | 63 | `F3_28` | R | 28 | s | ±2²⁷ | — | Demodulated with `cos_3f`. Frozen. |
 
 The 28-bit outputs scale as `X_28 ≈ A · 2^11`, where `A` is the amplitude (in counts) of the component of
-`signal_i` in phase with `cos_ref` (derived from the RTL, `lock.v` l. 732-761; the same factor is used by
+`signal_i` in phase with `cos_ref` (derived from the RTL, `lock.v` l. 737-768; the same factor is used by
 `control_finn.py` `get_XY()`: `V = X_28 / 2^11 / 8192`).
 
 ### Ramp (scan)
@@ -158,7 +175,7 @@ The 28-bit outputs scale as `X_28 ≈ A · 2^11`, where `A` is the amplitude (in
 | `0x0BC` | 47 | `ramp_B_factor` | RW | 14 | s | -4096..4096 (RTL: -8192..8191) | 4096 | Ratio `ramp_B / ramp_A`, 4096 = 1. |
 
 Ramp period: `T = (ramp_hig_lim − ramp_low_lim) · (ramp_step + 1) · 8 ns · (2 − ramp_sawtooth)`
-(`index.html` l. 1844, consistent with `gen_ramp.v`).
+(`index.html` l. 1854, consistent with `gen_ramp.v`).
 
 ### Inputs, outputs and monitor values
 
@@ -182,7 +199,7 @@ PID B is identical to PID A at offset `+0x34` (indices +13).
 
 | Offset A / B | Idx A / B | Name | R/W | Bits | s/u | Range | Reset | Function |
 |---|---|---|---|---|---|---|---|---|
-| `0x10C` / `0x140` | 67 / 80 | `pidX_sw` | RW | 5 (4 used) | u | 0..15 | 0 (error) | PID input. Only bits `[3:0]` reach the selector (`muxer4`): 16..31 behave as 0..15. See [selector values](#pid-inputs-pida_sw-pidb_sw). |
+| `0x10C` / `0x140` | 67 / 80 | `pidX_sw` | RW | 4 | u | 0..15 | 0 (error) | PID input (4-bit register since v2.3.15, the width of the selector `muxer4`; before it was 5 bits and 16..31 behaved as 0..15). Writing 17 reads back 1. See [selector values](#pid-inputs-pida_sw-pidb_sw). |
 | `0x110` / `0x144` | 68 / 81 | `pidX_PSR` | RW | 3 | u | 0..4 | 3 | Proportional divider: 0 /1, 1 /8, 2 /64, 3 /1024, 4 /4096. Others → /1. |
 | `0x114` / `0x148` | 69 / 82 | `pidX_ISR` | RW | 4 | u | 0..9 | 8 | Integrator divider 2^n, n = 0,3,6,10,13,16,20,23,26,30. Others → 2⁰. |
 | `0x118` / `0x14C` | 70 / 83 | `pidX_DSR` | RW | 3 | u | 0..5 | 0 | Derivative: averages 2^n samples, n = 0,3,6,10,13,16. Others → 2⁰. |
@@ -194,7 +211,7 @@ PID B is identical to PID A at offset `+0x34` (indices +13).
 | `0x130` / `0x164` | 76 / 89 | `pidX_in` | R | 14 | s | -8192..8191 | — | PID input (output of the selector). |
 | `0x134` / `0x168` | 77 / 90 | `pidX_out` | R | 14 | s | -8192..8191 | — | PID output **after** the lock enable (0 while the PID is disabled). |
 | `0x138` / `0x16C` | 78 / 91 | `pidX_ctrl` | RW | 3 | u | 0..7 | 0 | `[0]` integrator reset, `[1]` freeze output, `[2]` freeze integrator. |
-| `0x13C` / `0x170` | 79 / 92 | `ctrl_A` / `ctrl_B` | R | 14 | s | -8192..8191 | — | Control signal: `pidX_out + ramp_X + sf_jumpX` saturated to 14 bits (`lock.v` l. 273-277). Frozen by `read_ctrl[0]`. |
+| `0x13C` / `0x170` | 79 / 92 | `ctrl_A` / `ctrl_B` | R | 14 | s | -8192..8191 | — | Control signal: `pidX_out + ramp_X + sf_jumpX` saturated to 14 bits (`lock.v` l. 278-282). Frozen by `read_ctrl[0]`. |
 
 ### Streaming
 
@@ -245,7 +262,7 @@ Example from the board: `0x110A` = locked, PID A on, 17 locks (`reportes/lock-in
 
 #### `trig_sw` (0x00C)
 
-`trigger_signals` in `lock.v` l. 343-351. The scope external trigger is a pulse of 8 ticks
+`trigger_signals` in `lock.v` l. 348-356. The scope external trigger is a pulse of 8 ticks
 (`lock/trigger_input.v`, N = 3) on every rising edge of `|(trigger_signals & trig_sw)`. The UI selects one
 bit at a time ("Ext Trig" in the Oscilloscope panel).
 
@@ -263,7 +280,7 @@ bit at a time ("Ext Trig" in the Oscilloscope panel).
 
 #### `lpf_F0` to `lpf_F3` (0x064-0x070)
 
-From `lock.v` l. 706-717 and `lock/LP_filter3.v`. Each line has two cascaded first-order filters A and B;
+From `lock.v` l. 711-722 and `lock/LP_filter3.v`. Each line has two cascaded first-order filters A and B;
 a filter is bypassed when bits `[5:4]` of its own 6-bit `tau` input are not 00.
 
 | `[5:4]` | Filter A | Filter B | Order (UI) |
@@ -274,7 +291,7 @@ a filter is bypassed when bits `[5:4]` of its own 6-bit `tau` input are not 00.
 | 11 | active | bypass | 1 (not offered by the UI) |
 
 `[3:0]` = n: time constant τ = 8 ns · 2^(14+n) (131 µs .. 4.29 s), cut-off f = 1/(2πτ) (1.21 kHz .. 37 mHz).
-The C controller writes `order << 4 | tau` (`src/lock.c` l. 145-148). Reset value 32 = order 2, n = 0.
+The C controller writes `order << 4 | tau` (`src/lock.c` l. 156-159). Reset value 32 = order 2, n = 0.
 
 ### Selector values
 
@@ -283,7 +300,7 @@ The labels are the ones of the UI (`index.html`) and of `reg_labels` in
 
 #### Oscilloscope channels (`oscA_sw`, `oscB_sw`)
 
-`muxer_reg5` (`lock.v` l. 282-337). 25..31 → 0.
+`muxer_reg5` (`lock.v` l. 287-342). 25..31 → 0.
 
 | Value | Signal | Value | Signal | Value | Signal |
 |---|---|---|---|---|---|
@@ -299,7 +316,7 @@ The labels are the ones of the UI (`index.html`) and of `reg_labels` in
 
 #### Fast outputs (`out1_sw`, `out2_sw`)
 
-`muxer4` (`lock.v` l. 368-414).
+`muxer4` (`lock.v` l. 373-419).
 
 | Value | Signal | Value | Signal |
 |---|---|---|---|
@@ -314,30 +331,30 @@ The labels are the ones of the UI (`index.html`) and of `reg_labels` in
 
 #### Lock-in input (`signal_sw`)
 
-0 in1, 1 in2, 2 in1 − in2, 3 cos_ref, 4 sin_ref, 5 cos_1f, 6 aux_A, 7 Ramp A (`lock.v` l. 516-529).
+0 in1, 1 in2, 2 in1 − in2, 3 cos_ref, 4 sin_ref, 5 cos_1f, 6 aux_A, 7 Ramp A (`lock.v` l. 521-534).
 
 #### Error signal (`error_sw`)
 
-0 → 0, 1 Xo, 2 Yo, 3 F1o, 4 F2o, 5 F3o, 6 in1, 7 in1 − in2 (`lock.v` l. 533-546).
+0 → 0, 1 Xo, 2 Yo, 3 F1o, 4 F2o, 5 F3o, 6 in1, 7 in1 − in2 (`lock.v` l. 538-551).
 
 #### PID inputs (`pidA_sw`, `pidB_sw`)
 
 0 error, 1 Xo, 2 Yo, 3 F1o, 4 F2o, 5 F3o, 6 signal_i, 7 Ramp A, 8 in1 − in2, 9 in1, 10 in2, 11 aux_A,
-12 aux_B, 13 cos_ref, 14 sin_ref, 15 → 0 (`lock.v` l. 869-882, the same for PID B).
+12 aux_B, 13 cos_ref, 14 sin_ref, 15 → 0 (`lock.v` l. 911-924, the same for PID B).
 
 #### Lock trigger signal (`lock_trig_sw`)
 
 0 error, 1 Xo, 2 Yo, 3 F1o, 4 F2o, 5 F3o, 6-8 → 0 (square lock-in, not implemented), 9 signal_i,
-10 Ramp A, 11 aux_A, 12 in1, 13 in2, 14 in1 − in2, 15 PID A out (before the enable) (`lock.v` l. 623-644).
+10 Ramp A, 11 aux_A, 12 in1, 13 in2, 14 in1 − in2, 15 PID A out (before the enable) (`lock.v` l. 628-649).
 
-`in1 − in2` is saturated to 14 bits (`sat14`, `lock.v` l. 513-514).
+`in1 − in2` is saturated to 14 bits (`sat14`, `lock.v` l. 518-519).
 
 ## Oscilloscope (0x40100000)
 
 Red Pitaya 2.0 scope (`fpga/rtl/rtl/classic/rp_scope_com.v`, `rp_scope_cfg.v`), with three changes of
 this App: decimation widened to 20 bits, `osc_ctrl_i` input from the lock module, and `sys_rdata` held
-outside reads (streaming fix, v2.3.10). Registers 0..19 are the ones known by `c/osc` and `c/osc.txt`
-(same order as the 0.9x scope); the rest come from `rp_scope_cfg.v` (writes l. 350-415, reads l. 440-520)
+outside reads (streaming fix, v2.3.10). Registers 0..19 and `TrgUnlock` (index 37, since v2.3.15) are the ones
+known by `c/osc` and `c/osc.txt` (0..19 in the same order as the 0.9x scope); the rest come from `rp_scope_cfg.v` (writes l. 350-415, reads l. 440-520)
 and `src/fpga.h`.
 
 | Offset | Idx | Name (`osc.txt`) | R/W | Bits | Function |
@@ -347,7 +364,7 @@ and `src/fpga.h`.
 | `0x08` | 2 | `ChAth` | RW | 14 | Trigger level of ch A (signed). |
 | `0x0C` | 3 | `ChBth` | RW | 14 | Trigger level of ch B (signed). |
 | `0x10` | 4 | `TrgDelay` | RW | 32 | Decimated samples written after the trigger. |
-| `0x14` | 5 | `Dec` | RW | **20** | Decimation. The controller uses 1, 8, 64, 128, 256, 512, 1024, 8192, 65536, 524288 (`src/fpga.c` l. 509-545). RedPitaya: 17 bits. |
+| `0x14` | 5 | `Dec` | RW | **20** | Decimation, 1..1048575 (`osc.txt` since v2.3.15). The controller uses 1, 8, 64, 128, 256, 512, 1024, 8192, 65536, 524288 (`src/fpga.c` l. 509-545). RedPitaya: 17 bits. |
 | `0x18` | 6 | `CurWpt` | R | 14 | Current write pointer. |
 | `0x1C` | 7 | `TrgWpt` | R | 14 | Write pointer at the trigger. |
 | `0x20` | 8 | `ChAHys` | RW | 14 | Trigger hysteresis of ch A (the controller writes 0x3F). |
@@ -356,14 +373,14 @@ and `src/fpga.h`.
 | `0x2C` | 11 | `PreTrgCnt` | R | 32 | 2.0: count of samples written since the arm (`adc_we_cnt`). |
 | `0x30`..`0x3C` | 12..15 | `ChAEqFil1..4` | RW | 18/25 | Equalization filter of ch A: AA, BB, KK, PP. |
 | `0x40`..`0x4C` | 16..19 | `ChBEqFil1..4` | RW | 18/25 | Equalization filter of ch B. |
-| `0x94` | (37) | trigger unlock | W | 1 | **2.0 only.** After each trigger the scope locks its trigger; writing 1 to bit 0 unlocks it. The C controller does it before each acquisition (`src/fpga.c` `osc_fpga_set_trigger()`, `src/fpga.h` `trigger_lock_ctr`). **Not accessible from `c/osc`** (see the differences below). |
+| `0x94` | 37 | `TrgUnlock` | W | 1 | **2.0 only.** After each trigger the scope locks its trigger (`TrgSrc` bit 5 = 1); writing 1 to bit 0 unlocks it (reads 0). The C controller does it before each acquisition (`src/fpga.c` `osc_fpga_set_trigger()`, `src/fpga.h` `trigger_lock_ctr`). In `c/osc` / `osc.txt` since v2.3.15 (before, an acquisition armed through `/osc` never triggered again; see [Remote.md](Remote.md#osc-oscilloscope-registers-and-memory)). |
 | `0x98` | — | filter bypass | RW | 4 | Bypass of the equalization filters (OR-ed with `osc_ctrl[1:0]` of the lock). |
 | `0x10000` | — | ch A buffer | R | 16 × 16384 | Samples of ch A, 16-bit sign-extended in 2.0 (14 valid bits). |
 | `0x20000` | — | ch B buffer | R | 16 × 16384 | Samples of ch B. |
 
 Maximum time span of an acquisition: 16384 · 8 ns · Dec (0.131 ms at Dec 1, 68.7 s at Dec 524288).
 
-Lock `osc_ctrl_w` → scope `osc_ctrl_i` (`lock.v` l. 251, `rp_scope_com.v` l. 194-207):
+Lock `osc_ctrl_w` → scope `osc_ctrl_i` (`lock.v` l. 256, `rp_scope_com.v` l. 194-207):
 `[1:0]` = `osc_ctrl` (filter bypass), `[2]` = `stream_cmd[0]` (use the streaming decimation),
 `[19:3]` = `stream_rate`, `[20]` = end of streaming pulse.
 
@@ -374,7 +391,7 @@ Lock `osc_ctrl_w` → scope `osc_ctrl_i` (`lock.v` l. 251, `rp_scope_com.v` l. 1
   `slow_out3_sw`/`slow_out4_sw` are not registers (undeclared nets). There are no slow-output registers in
   the map. See the differences below.
 - **Extension connector:** DIO0_P = external trigger input (bit 0 of `trig_sw`), DIO6_N = ramp direction
-  output, DIO7_N = digital modulation output (always 0, `lock.v` l. 586). If CAN is enabled in the
+  output, DIO7_N = digital modulation output (always 0, `lock.v` l. 591). If CAN is enabled in the
   housekeeping, DIO6_N/DIO7_N go back to CAN TX (`red_pitaya_top.sv` l. 539-546).
 
 ## Register description files (`lock.txt`, `osc.txt`)
@@ -383,7 +400,9 @@ Lock `osc_ctrl_w` → scope `osc_ctrl_i` (`lock.v` l. 251, `rp_scope_com.v` l. 1
 generated by `resources/config_tool.py` from the same table that generates the register blocks of
 `lock.v`, `c/lock.c`, `c/osc.c` and `src/`. They are installed with the App and served by nginx at
 `http://rp-XXXXXX.local/lock_in+pid_harmonic/c/lock.txt` and `.../c/osc.txt`; `control_finn.py` reads them
-to know the names. `c/lock` and `c/osc` have the same tables compiled in.
+to know the names. `c/lock` and `c/osc` have the same tables compiled in. Since v2.3.15 the ranges follow the
+RTL (`osc_ctrl` 0..3, `pidA_sw`/`pidB_sw` 0..15, `rl_state` 0..0, `Dec` 0..1048575, `TrgUnlock` 0..1), and
+`c/osc` addresses each register by its `index` column (not by its position in the table).
 
 The previous `doc/README.md` (a copy of `lock.txt` as a table) was replaced by this page.
 
@@ -391,18 +410,18 @@ The previous `doc/README.md` (a copy of `lock.txt` as a table) was replaced by t
 
 Checked against `lock.v`, `lock/*.v`, `red_pitaya_top.sv`, `rp_scope_cfg.v`, `rp_scope_com.v`,
 `src/fpga.h`, `src/fpga_lock.h`. The tables above follow the RTL. Reported to devAgent (see
-`docAgent.md`).
+`docAgent.md`); rows 1-6 and 8 were fixed in v2.3.15 (kept here as history).
 
 | # | File | Item | File says | RTL does |
 |---|---|---|---|---|
-| 1 | `c/osc.txt`, `c/osc.c` | `Dec` max | 131071 (17 bits) | 20 bits; the App uses up to 524288. `c/osc` does not check the max, so writing 524288 works. |
-| 2 | `c/osc.txt`, `c/osc.c` | trigger unlock 0x94 | not present (20 registers, up to 0x4C) | needed on the 2.0 scope to re-arm the trigger (see [Remote.md](Remote.md#limitations-of-osc-on-the-20-fpga)) |
-| 3 | `c/lock.txt` | `osc_ctrl` max | 4294967295 | 2-bit register (0..3) |
-| 4 | `c/lock.txt` | `pidA_sw`, `pidB_sw` max | 31 | only bits `[3:0]` are used (0..15) |
-| 5 | `c/lock.txt` | `rl_state` | read-only 0..31 | constant 0 (`lock.v` l. 135) |
-| 6 | `c/lock.txt` | `lock_trig_time` max | 4294967295 | only bits `[30:0]` are compared (`lock_ctrl.v`): values ≥ 2³¹ alias to `value − 2³¹` |
+| 1 | `c/osc.txt`, `c/osc.c` | `Dec` max | 131071 (17 bits) | 20 bits; the App uses up to 524288. **Fixed in v2.3.15** (1048575). |
+| 2 | `c/osc.txt`, `c/osc.c` | trigger unlock 0x94 | not present (20 registers, up to 0x4C) | needed on the 2.0 scope to re-arm the trigger. **Fixed in v2.3.15** (`TrgUnlock`, index 37) |
+| 3 | `c/lock.txt` | `osc_ctrl` max | 4294967295 | 2-bit register (0..3). **Fixed in v2.3.15** |
+| 4 | `c/lock.txt` | `pidA_sw`, `pidB_sw` max | 31 | only bits `[3:0]` are used (0..15). **Fixed in v2.3.15** (4-bit registers, max 15) |
+| 5 | `c/lock.txt` | `rl_state` | read-only 0..31 | constant 0 (`lock.v` l. 133). **Fixed in v2.3.15** (0..0) |
+| 6 | `c/lock.txt` | `lock_trig_time` max | 4294967295 | only bits `[30:0]` were compared (`lock_ctrl.v`). **Fixed in v2.3.15**: 32-bit counter and comparator |
 | 7 | `c/lock.txt` | `pidX_SAT` | 0..13 | 14-bit register, only `[7:0]` used; consistent in practice |
-| 8 | `lock.v` / `src/fpga_lock.h` comments | `X_28` / `Y_28` | "from sin_ref" / "from cos_ref" | X from `cos_ref`, Y from `sin_ref` (`lock.v` l. 761-762) |
-| 9 | `lock.v` / `fpga_lock.h` comments | `ctrl_B` | "pidA_out + ramp_B" | `pidB_out + ramp_B + sf_jumpB` |
-| 10 | `src/fpga.h` comment | `data_dec` | "bits [16:0]" | 20 bits |
-| 11 | `fpga/README.md` | scope decimation | "17-bit decimation (max 64k)" | 20 bits (max 512k), as said in the CHANGELOG of v2.3.10 |
+| 8 | `lock.v` / `src/fpga_lock.h` comments | `X_28` / `Y_28` | "from sin_ref" / "from cos_ref" | X from `cos_ref`, Y from `sin_ref` (`lock.v` l. 768-769). **Fixed in v2.3.15** |
+| 9 | `lock.v` / `fpga_lock.h` comments | `ctrl_B` | "pidA_out + ramp_B" | `pidB_out + ramp_B + sf_jumpB` (still in v2.3.17: `lock.v` l. 1174, 1294; `fpga_lock.h` l. 769) |
+| 10 | `src/fpga.h` comment | `data_dec` | "bits [16:0]" | 20 bits (still in v2.3.17, l. 113) |
+| 11 | `fpga/README.md` | scope decimation | "17-bit decimation (max 64k)" | 20 bits (max 512k), as said in the CHANGELOG of v2.3.10 (still in v2.3.17, l. 66-67) |

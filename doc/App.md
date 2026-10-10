@@ -1,6 +1,6 @@
 # The App: instruments and specifications
 
-`lock_in+pid_harmonic` ("Harmonic Lock-in+PID") **v2.3.14** for the Red Pitaya STEMlab 125-14,
+`lock_in+pid_harmonic` ("Harmonic Lock-in+PID") **v2.3.17** for the Red Pitaya STEMlab 125-14,
 Ecosystem 2.0 (tested on RedPitaya_OS 2.04-35). Branch `devel2.0`.
 
 This page describes what the App contains and its technical data. How to use it from the web page is in
@@ -40,7 +40,7 @@ with selectors, so that a measurement or a feedback loop is configured instead o
 | **Re-lock / step response** | Out-of-lock detection; a step added to the control signals to measure the loop response | `rl_*`, `sf_*` |
 | **Monitor** | Mean and standard deviation of the error over ~1 s | `error_mean`, `error_std` |
 | **Streaming** | Continuous transfer of the two scope channels to a computer over TCP | `stream_*` |
-| **Remote control** | HTTP API to read and write all the registers and read the scope memory | `/lock`, `/osc` |
+| **Remote control** | HTTP API to read and write all the registers, make scope acquisitions and run the lock (Python client `control_finn.py`) | `/lock`, `/osc`, `/data` |
 
 The two control signals of the App are:
 
@@ -57,7 +57,7 @@ ctrl_B = PID B out + Ramp B (+ jump B)     → usually sent to OUT2
 | Ecosystem | 2.0 (RedPitaya_OS 2.04-35 tested); FPGA loaded by `fpga.sh` with `fpgautil` | `fpga.sh`, test reports |
 | FPGA clock | 125 MHz (8 ns) | `src/fpga.c` l. 50, top |
 | ADC / DAC | 14 bit, 125 MS/s; signals are 14-bit signed, 8192 counts = 1 V | `lock.v`, `index.html` |
-| FPGA timing | does not close (WNS ≈ −10 ns, in the PID of the lock), as in the 2015.2 design; works in practice | CHANGELOG v2.3.10, `devAgent.md` |
+| FPGA timing | does not close (WNS −8.954 ns in v2.3.17, in the long paths of the loop: PID → scope muxes / outputs), as in the 2015.2 design; works in practice. Bus reads of the lock module are exact since v2.3.17 ([FPGA.md](FPGA.md#lock-module-0x40600000)) | CHANGELOG v2.3.10, v2.3.17, `devAgent.md` |
 
 ## Oscilloscope
 
@@ -81,7 +81,7 @@ The time span of the 68.7 s range was verified on the board (v2.3.10, `reportes/
 |---|---|
 | Fast inputs IN1, IN2 | 14 bit; ±1 V (LV jumper) or ±20 V (HV); the gain setting of the UI only changes the scale of the display |
 | Fast outputs OUT1, OUT2 | 14 bit, ±1 V, 8192 counts = 1 V; any of 0, in1, in2, in1−in2, error, cos_1f, cos_2f, cos_3f, cos_ref, sin_ref, PID A out, PID B out, ctrl_A, ctrl_B, aux_A, aux_B |
-| Modulation added to the outputs | OUT1 + `cos_ref · mod_out1 / 2^13`, OUT2 + `sin_ref · mod_out2 / 2^13`, saturated to 14 bits; off with a negative `mod_out*` (`lock.v` l. 419-426) |
+| Modulation added to the outputs | OUT1 + `cos_ref · mod_out1 / 2^13`, OUT2 + `sin_ref · mod_out2 / 2^13`, saturated to 14 bits; off with a negative `mod_out*` (`lock.v` l. 424-431) |
 | `in1 − in2` | difference saturated to 14 bits |
 | `aux_A`, `aux_B` | two constants (−8192..8191) usable as signals |
 | Slow outputs AO0-AO3 | **not driven by the lock module in this version** (the UI shows four selectors that have no effect). See [FPGA.md](FPGA.md#other-blocks) |
@@ -106,7 +106,7 @@ frequency below the field, and the phase in degrees and radians.
 
 ## Harmonic lock-in amplifier
 
-`lock.v` l. 702-860, `lock/LP_filter3.v`.
+`lock.v` l. 707-902, `lock/LP_filter3.v`.
 
 ```
 signal_i ─┬─ × cos_ref ─ LPF(F0) ─ X_28 ─ ×2^sg_amp0 ─ sat ─ Xo
@@ -161,7 +161,7 @@ configuration `lock_mode`).
 
 ## Error signal and PIDs
 
-`lock.v` l. 533-558 and 865-955, `lock/lock_pid_block.v`.
+`lock.v` l. 538-563 and 907-997, `lock/lock_pid_block.v`.
 
 The **error** is one of 0, Xo, Yo, F1o, F2o, F3o, in1, in1−in2, minus `error_offset`. Each PID can take
 the error or one of 15 other signals (`pidX_sw`).
@@ -176,12 +176,12 @@ out = kp·e / 2^P  +  Σ(ki·e) / 2^I  +  kd·(slope of e) / 2^6
 |---|---|---|
 | `kp`, `ki`, `kd`, `sp` | −8192..8191 | 14-bit signed |
 | Proportional divider P (PSR) | /1, /8, /64, /1024, /4096 | default /1024 (`kp` = 1024 → gain 1) |
-| Integrator (ISR) | 2^I, I = 0,3,6,10,13,16,20,23,26,30 → UI labels 8 ns .. 9 s | characteristic time τ_i = 8 ns · 2^I / |ki|; default I = 26 (537 ms) |
+| Integrator (ISR) | 2^I, I = 0,3,6,10,13,16,20,23,26,30 → UI labels 8 ns, 64 ns, 512 ns, 8 us, 65 us, 524 us, 8 ms, 67 ms, 537 ms, 9 s (the "65 us" label said "6 us" up to v2.3.14) | characteristic time τ_i = 8 ns · 2^I / |ki|; default I = 26 (537 ms) |
 | Derivative (DSR) | slope over averages of 2^D samples, D = 0,3,6,10,13,16 → UI 7.5 ns .. 491.5 µs | τ_d = 7.5 ns · 2^D · |kd| (UI formula) |
 | Integrator saturation (SAT) | integral term limited to ±2^SAT counts: ±122 µV (0) .. ±1 V (13) | default 13 |
 | Output | sum saturated to 14 bits (±1 V) | |
 | Controls | integrator reset, freeze output, freeze integrator (`pidX_ctrl`) | also frozen during a step (`sf_config`) |
-| Enable | the output is forced to 0 and the integrator reset while the PID is disabled by the lock control | `lock.v` l. 911 |
+| Enable | the output is forced to 0 and the integrator reset while the PID is disabled by the lock control | `lock.v` l. 953 |
 
 Example (test configuration `lock_mode`): PID A, kp = −500 with /1024 → −0.488; ki = −20 with 537 ms →
 τ_i = 26.8 ms (seen in the [PID panel](Usage.md#pids-modules)).
@@ -197,18 +197,18 @@ The lock sequence runs in the FPGA (`lock/lock_ctrl.v`, since v2.3.13). Full des
 | In IDLE / ARMED | ramp, PID A, PID B follow the manual enables ("Scan enable", "PID A enable", "PID B enable") |
 | In LOCKED | they follow the "config" enables (usually: ramp off, PID A on) |
 | Requests | Lock Now (immediate), Trigger Lock (arm, lock on the trigger) |
-| Triggers | **Time**: `lock_trig_time` ticks (8 ns) after the scan floor; **Level**: a signal crosses `lock_trig_val` upwards or downwards; **Level+time**: level crossing after the time |
+| Triggers | **Time**: `lock_trig_time` ticks (8 ns) after the scan floor, 0..2³²−1 (up to 34.36 s; 32-bit counter since v2.3.15, it was 17.18 s); **Level**: a signal crosses `lock_trig_val` upwards or downwards; **Level+time**: level crossing after the time |
 | Latency | the change happens in the same clock tick as the trigger (8 ns) |
 | Status | `lock_status`: armed, locked, effective enables, count of locks |
 | Capture | the lock event is a scope trigger source ("Lock control trig"); the web page uses it to capture the closing of the loop ([`lock_capture.md`](../lock_in+pid_harmonic/doc/lock_capture.md)) |
 
 Measured on the board against a simulated peak (`dummy_simulator` on a second Red Pitaya, LOCK MODE
-procedure of `test_files/lock_test.md`, v2.3.11 to v2.3.14; `reportes/lock-in_pid_h_lock_test/`):
+procedure of `test_files/lock_test.md`, v2.3.11 to v2.3.17; `reportes/lock-in_pid_h_lock_test/`):
 
 | Metric | Value |
 |---|---|
 | Time from the request (POST) to ARMED | 17 ms (the controller waits for the scope to be armed) |
-| ARMED → LOCKED | 16.9 ms (first sweep after arming, time trigger at 16.58 ms) |
+| ARMED → LOCKED | 5-47 ms (first sweep after arming, time trigger at 16.58 ms; 16.9 ms in v2.3.14, 26 / 47 ms in v2.3.17) |
 | Captures of the lock in the scope with Capture Lock | 16/16 |
 | Signal at the lock point | IN1 = 1.01–1.03 × the peak |
 | Error while locked | mean ≈ 0, std ≈ 7–8 mV |
@@ -228,7 +228,7 @@ procedure of `test_files/lock_test.md`, v2.3.11 to v2.3.14; `reportes/lock-in_pi
 ## Monitor
 
 `error_mean` and `error_std` are computed in the FPGA over 2²⁷ ticks (1.074 s) and shown in the Monitor
-panel in counts (`src/lock.c` l. 309-311).
+panel in counts (`src/lock.c` l. 320-322).
 
 ## Streaming
 
@@ -246,7 +246,9 @@ panel in counts (`src/lock.c` l. 309-311).
 ## Remote control
 
 - **HTTP** (recommended): `http://rp-XXXXXX.local/lock_in+pid_harmonic/lock` and `.../osc` read and write
-  the registers of the lock module and of the scope, and read the scope memory. Python client
-  `resources/remote_control/http_version/control_finn.py`. See [Remote.md](Remote.md).
+  the registers of the lock module and of the scope, and read the scope memory; `POST /data` stops or restarts
+  the scope of the C controller. Python client `resources/remote_control/http_version/control_finn.py`
+  (v2.3.15-2.3.17: triggered acquisitions on the 2.0 scope, PID / ramp / lock-in / lock helpers, host name
+  resolved once, minimal `POST /data`). See [Remote.md](Remote.md).
 - **On the board**: `c/lock`, `c/osc` and the Python scripts of `py/` (e.g. `lock_from_registers.py`).
 - **SSH** version (`resources/remote_control/shh_version`): deprecated, kept for specific cases.

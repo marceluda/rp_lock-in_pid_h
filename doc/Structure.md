@@ -1,6 +1,6 @@
 # Internal structure
 
-How `lock_in+pid_harmonic` v2.3.14 is built: the three layers (web page, server, FPGA), how they talk, and
+How `lock_in+pid_harmonic` v2.3.17 is built: the three layers (web page, server, FPGA), how they talk, and
 how the instruments are connected inside the FPGA. Registers: [FPGA.md](FPGA.md). Specifications:
 [App.md](App.md). Source tree and build: [Devel.md](Devel.md).
 
@@ -37,6 +37,7 @@ flowchart LR
   N --> C
   B -- "GET /lock_in+pid_harmonic/lock, /osc, ..." --> L
   P -- "GET /lock, /osc" --> L
+  P -- "POST /data<br/>(trig_mode only)" --> N
   L --> T
   C -- "/dev/mem (mmap)" --> F
   T -- "/dev/mem" --> F
@@ -59,10 +60,10 @@ flowchart LR
 |---|---|---|---|
 | `/bazaar?start=lock_in+pid_harmonic` / `?stop=` | GET | page at start / Restart | start the App (controller + FPGA) / stop the loaded App |
 | `/data` | GET | page, polling (~50 ms; 500 ms with a frozen capture) | parameters (JSON `datasets.params`) and the two scope traces (`datasets.signals`, 1024 points) |
-| `/data` | POST | page, on each change | changed parameters only, in chunks of at most 600 bytes, with retries (Ecosystem 2.0 hangs with large bodies) |
+| `/data` | POST | page, on each change; `control_finn.py` (`trig_mode` only) | changed parameters only, in chunks of at most 600 bytes, with retries (Ecosystem 2.0 hangs with large bodies). The handler only reads a body that arrives with the headers, and every POST leaves a CLOSE-WAIT connection in nginx ([Remote.md](Remote.md#known-issue-of-the-ecosystem-post-data-leaves-connections-open)) |
 | `/get_client_id`, `/set_client_id` | GET/POST | page | claim the board like the factory Apps; detect another client |
 | `/lock_in+pid_harmonic/lock?…` | GET | page (streaming IP), Python | run `c/lock`: read/write lock registers ([Remote.md](Remote.md)) |
-| `/lock_in+pid_harmonic/osc?…` | GET | Python | run `c/osc`: read/write scope registers, dump the scope memory |
+| `/lock_in+pid_harmonic/osc?…` | GET | Python | run `c/osc`: read/write scope registers (with `TrgUnlock` since v2.3.15), dump the scope memory |
 | `/lock_in+pid_harmonic/get_ip` | GET | page (IP button) | IP of the client |
 | `/lock_in+pid_harmonic/calib` | GET | Python | output of `calib -rv` (calibration of the board) |
 | `/lock_in+pid_harmonic/streaming` | GET | page (Prepare Streaming) | start `c/streaming` detached (`c/stream_start.sh`) |
@@ -73,7 +74,10 @@ flowchart LR
 The page keeps three copies of the parameters (`params.orig` from the server, `params.local` edited, the
 unsent changes) and sends only what changed. Read-only values (lock-in outputs, `lock_status`, monitor)
 are never sent. The page state is saved per tab (`sessionStorage`) and restored after a Restart; configs are
-saved in `localStorage` (key `lockConfig_lock_in+pid_harmonic`).
+saved in `localStorage` (key `lockConfig_lock_in+pid_harmonic`). A Config → load sends the whole config
+(`send_all`, 5-9 chunks) except the time-scale values derived by the server (`send_all_skip`: `forcex_flag`,
+`time_units`, `time_range`, `gui_xmin`, `gui_xmax`), and takes the window and units of the answer of the last
+chunk (`configLoadApplyX()`, v2.3.17).
 
 ## Server ↔ FPGA: the C controller
 
@@ -97,9 +101,9 @@ flowchart TB
   Most `lock_*` parameters map one to one to a register; some are fields of a register
   (`lock_lpf_F0_tau`/`_order` → `lpf_F0`; `lock_ctrl_aux_*` → `lock_control`; `lock_osc1/2_filt_off` →
   `osc_ctrl`; `lock_pidA_irst/freeze/ifreeze` → `pidA_ctrl`; `lock_rl_*` → `rl_config`; `lock_sf_*` → `sf_config`).
-- **`lock_update()`** (`src/lock.c` l. 99) writes the lock registers from the parameters; `lock_control`
+- **`lock_update()`** (`src/lock.c` l. 110) writes the lock registers from the parameters; `lock_control`
   only when the value composed from `lock_ctrl_aux_*` changes (v2.3.13).
-- **`lock_update_main()` / `lock_update_status()`** (l. 260, 406) read the registers back (read-only values,
+- **`lock_update_main()` / `lock_update_status()`** (l. 271, 417) read the registers back (read-only values,
   `lock_status`, and changes made from outside, e.g. Python) into the parameters, on every request.
 - **Scope worker** (`src/worker.c`): a thread that arms the scope, waits for the trigger (on 2.0, it unlocks
   the trigger at 0x94 before each acquisition and detects the end with `conf` bit 4), reads both buffers and
@@ -107,6 +111,10 @@ flowchart TB
   without scope changes does not reset it, and a lock request that arms a Single waits until the scope is
   armed (`rp_osc_worker_wait_armed()`), which makes *Capture Lock* deterministic
   ([`lock_capture.md`](../lock_in+pid_harmonic/doc/lock_capture.md) §3.2).
+- **`trig_mode` = 2 (Single)** puts the worker in its idle state: it resets and configures the scope once and
+  then does not arm it (`src/main.c` `rp_set_params()`, `src/worker.c`). After `bazaar?start` the worker runs in
+  Auto even with no page open; `control_finn.py` sets Single through `POST /data` before acquiring through
+  `/osc` (v2.3.16, [Remote.md](Remote.md#oscilloscope-acquisitions)).
 
 ## Inside the FPGA
 
@@ -192,19 +200,24 @@ flowchart LR
 
 Main points (with the lines of `lock.v`):
 
-- **Lock-in** (l. 702-860): `signal_i` is multiplied by the five references (DSP multipliers), filtered by two
+- **Lock-in** (l. 707-902): `signal_i` is multiplied by the five references (DSP multipliers), filtered by two
   cascaded first-order low-pass filters per line (A and B, `LP_filter3`), scaled by 2^`sg_amp` and saturated
   to 14 bits. X and Y use `cos_ref` and `sin_ref` with 38-bit paths (10 more bits of resolution) and share
   `lpf_F0`/`sg_amp0`; F1, F2 and F3 use `cos_1f`, `cos_2f`, `cos_3f` and have their own filter and gain.
-- **Error** (l. 533-558): one of 0, Xo, Yo, F1o, F2o, F3o, in1, in1−in2, minus `error_offset`; its mean and
+- **Error** (l. 538-563): one of 0, Xo, Yo, F1o, F2o, F3o, in1, in1−in2, minus `error_offset`; its mean and
   square are accumulated over 2²⁷ ticks for the Monitor.
-- **PIDs** (l. 865-955): each PID takes a signal (`pidX_sw`), computes P, I, D (`lock_pid_block.v`) and its
+- **PIDs** (l. 907-997): each PID takes a signal (`pidX_sw`), computes P, I, D (`lock_pid_block.v`) and its
   output is forced to 0 (and the integrator reset) when the lock control disables it.
-- **Control signals** (l. 270-277): `ctrl_A = pidA_out + ramp_A + jumpA`, `ctrl_B = pidB_out + ramp_B + jumpB`,
+- **Control signals** (l. 275-282): `ctrl_A = pidA_out + ramp_A + jumpA`, `ctrl_B = pidB_out + ramp_B + jumpB`,
   saturated.
-- **Outputs** (l. 368-426): any of 16 signals, plus the modulation (`mod_out1·cos_ref`, `mod_out2·sin_ref`)
+- **Outputs** (l. 373-431): any of 16 signals, plus the modulation (`mod_out1·cos_ref`, `mod_out2·sin_ref`)
   when `mod_outX ≥ 0`, saturated.
-- **Scope** (l. 282-340): two 25-input selectors; external trigger from `trig_sw` (l. 343-363).
+- **Scope** (l. 287-345): two 25-input selectors; external trigger from `trig_sw` (l. 348-368).
+- **Bus interface** (`[FPGA MEMORY DOCK]`, l. 1004-1305): registers written by the PS and the read
+  multiplexer. Since v2.3.17 the read-only signals are read from registered copies (`*_rd`, l. 850-881) and
+  `sys_rdata` is loaded only during a read and then held, because the PS side of the bus (`sys_bus_cdc`) takes it
+  asynchronously some cycles later; the copies are not used by the real-time loop
+  ([FPGA.md](FPGA.md#lock-module-0x40600000)).
 
 ### Lock control
 

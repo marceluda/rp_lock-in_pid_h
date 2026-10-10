@@ -1,6 +1,6 @@
 # Using the App from the web interface
 
-How to use `lock_in+pid_harmonic` **v2.3.14** from the browser, panel by panel, and the usual procedures:
+How to use `lock_in+pid_harmonic` **v2.3.17** from the browser, panel by panel, and the usual procedures:
 scan, see a peak, get an error signal with the lock-in, close a lock and check it. Technical data of each
 instrument is in [App.md](App.md); registers in [FPGA.md](FPGA.md).
 
@@ -22,9 +22,9 @@ instrument is in [App.md](App.md); registers in [FPGA.md](FPGA.md).
 - [Several clients and Restart](#several-clients-and-restart)
 - [Known limitations of the interface](#known-limitations-of-the-interface)
 
-The screenshots were taken on RP2 (RedPitaya_OS 2.04-35) with v2.3.14, during the lock tests of
-`reportes/lock-in_pid_h_lock_test/` (a simulated peak made by `dummy_simulator` on a second board) and
-while writing this page.
+The screenshots were taken on RP2 (RedPitaya_OS 2.04-35) with v2.3.14 to v2.3.17 (the version is said when it
+matters), during the lock tests of `reportes/lock-in_pid_h_lock_test/` and `reportes/lock-in_pid_h.md` (a
+simulated peak made by `dummy_simulator` on a second board) and while writing this page.
 
 ## Opening the App
 
@@ -45,7 +45,8 @@ same browser tab. Use a single tab per board (see [Several clients and Restart](
 - **Right column**: the original scope controls (Trigger, Range, Measure, Gain settings) and the Monitor.
 
 Every change is sent to the board when the field loses focus or Enter is pressed (Escape cancels the edit).
-Only changed values are sent.
+Only changed values are sent. A field left empty (e.g. after Backspace) or with an invalid text is **not** sent:
+the last value comes back (up to v2.3.15 an emptied field sent 0).
 
 ## Panels
 
@@ -120,7 +121,10 @@ In the screenshot: ±5000 counts (±610 mV), period 200000, sawtooth → 16.0 s.
 - **PID A / PID B**: *input* (error by default), *reset integral*, *freeze out*, *freeze integral*, and
   the gains *kp*, *ki*, *kd* with the effective value written below (kp as a factor, ki and kd as τ and f).
 - **More Options** shows the set point *sp*, the scale selectors of kp (/1../4096), ki (8 ns..9 s) and kd
-  (7.5 ns..491.5 µs), and *SAT lim* (saturation of the integral term, ±122 µV..±1 V).
+  (7.5 ns..491.5 µs), and *SAT lim* (saturation of the integral term, ±122 µV..±1 V). The ki option 4 is
+  labelled "65 us" since v2.3.15 (2¹³ · 8 ns = 65.5 µs; it said "6 us"):
+
+![PID A with ki scale 65 us (v2.3.15)](.Usage/panel_pidA_isr_65us.jpg)
 
 ![PID A with More Options](.Usage/panel_pidA_more_options.jpg)
 
@@ -148,8 +152,10 @@ The main part of the panel (from top to bottom):
 
   - *Scan enable*, *PID A enable*, *PID B enable*: what is on **while LOCKED** (usually: scan off, PID A on).
   - *Trigger type*: OFF (only Lock Now), Time trigger, Level Trigger, Level+time Trigger.
-  - *Time trigger*: delay after the scan floor, in ticks of 8 ns (shown as T below; 2072622 = 16.58 ms).
-  - *Signal for trigger*, *Level trigger* (in counts, shown in mV below), *trig upward?*: for the level trigger.
+  - *Time trigger*: delay after the scan floor, in ticks of 8 ns or with units (`16.58 ms`, `20 s`; see
+    [below](#typing-values-with-units)); shown as T below (2072622 = 16.58 ms). 0 = OFF, up to 4294967295 =
+    34.36 s (32 bits since v2.3.15; it was limited to 17.18 s).
+  - *Signal for trigger*, *Level trigger* (counts or `V`/`mV`, shown in mV below), *trig upward?*: for the level trigger.
   - **Choose from graph**: the next click on the plot sets the time (and/or level) of the trigger. A second
     click on the button (*Cancel*) or Esc cancels it. A red warning appears if the scope is not in
     Normal/Single + External + Scan floor (the only setup where t = 0 of the plot is the scan floor).
@@ -189,18 +195,38 @@ See the Outputs screenshot above.
 
 ## Typing values with units
 
-The JavaScript of the page converts a number followed by a unit, separated by a space (e.g. `16.58 ms`),
-into counts or ticks (`index.html` l. 1781-2245). **A confirmar:** these fields are `<input type="number">`
-in this version, and browsers do not let letters be typed in a number field, so the units probably cannot be
-used from the UI any more (they were text fields in older versions). The conversions are:
+Since v2.3.16 the **Time trigger** and **Level trigger** fields of *Lock Control → config* are text fields that
+accept a number with a unit (`index.html` l. 2217-2258, `parseTrigTime()`, `parseTrigLevel()`):
+
+| Field | Without unit | Units | Range | Examples |
+|---|---|---|---|---|
+| Time trigger | ticks of 8 ns | `s` (`seg`), `ms`, `us` (`µs`), `ns`, `tick(s)` | 0 .. 4294967295 (34.36 s); larger values are clamped; a nonzero time below one tick is 1 tick | `16.58 ms` → 2072500, `20 s` → 2500000000, `16,58ms` → 2072500 |
+| Level trigger | counts | `V`, `mV`, `count(s)` | −8192 .. 8191 (clamped) | `0.1 V` → 819, `-50 mV` → −410 |
+
+- Decimal point or comma; the space between number and unit is optional; units are not case sensitive.
+- The value is sent when the edit ends (Enter or leaving the field); then the field is rewritten in ticks /
+  counts and T / V_trg below it are updated. Escape restores the previous value.
+- An empty or invalid text (`abc`, `-5 ms`) is not sent: a red hint appears below the field and the last value
+  comes back. The mouse wheel changes the value by one tick / count.
+- Values above 2²⁴ ticks (134 ms) go through the float parameters of the C controller and are rounded to a
+  multiple of 2 to 256 ticks (e.g. `19 s` = 2375000000 is written as 2375000064, 0.5 µs more); see
+  [FPGA.md](FPGA.md#lock-control-auto-lock).
+
+Tested on the board (v2.3.16): `20 s`, a pasted `19 s`, `16.58 ms`, `16,58ms`, empty / `abc` / `-5 ms` (nothing
+sent), `0` (OFF), `40 s` (→ 4294967295), wheel, Escape; `0.1 V`, `-50 mV`, empty (`reportes/lock-in_pid_h.md`).
+
+![Time trigger typed as "20 s"](.Usage/time_trigger_units_20s.png) ![Time trigger "40 s", clamped to 34.36 s](.Usage/time_trigger_max_34s.png)
+
+Other fields still have older unit conversions in the JavaScript (`index.html` l. 1790-2265), but they are
+`<input type="number">` fields, where browsers do not let letters be typed: **a confirmar** whether they can be
+used from the UI. Those conversions are:
 
 | Field | Units |
 |---|---|
-| Ramp hig/low lim, Level trigger, PID sp | `V`, `mV` (converted to counts) |
+| Ramp hig/low lim, PID sp | `V`, `mV` (converted to counts) |
 | Ramp period | `s`, `ms` (see the limitation below) |
 | Period of the harmonic oscillator | `s`, `ms`, `us` |
 | Phase | `deg`, `rad`, `pi` |
-| Time trigger | `s`, `ms`, `us` |
 
 ## Procedures
 
@@ -295,10 +321,22 @@ or over HTTP (see [Remote.md](Remote.md)); the page follows the state without se
 
 - *Save in browser* stores all the parameters (and the Capture Lock / Fire on click preferences) under the
   *Config Name* in the browser (`localStorage`, key specific of this App). *Save as file* downloads a JSON.
-- The list shows the saved configs with *del*, *download* and *load*. *Load file* loads a JSON file.
+- The list shows the saved configs with *del*, *download* and *load*. *Load file* adds a JSON file to the list
+  (then press its *load*).
 - **Don't turn on PIDs and Ramp on config loading**: when checked, a loaded config never turns on the
   ramp, the PIDs or a lock request (safe default when the outputs are connected to an experiment).
 - Configs are per browser, not stored on the board.
+- **Time window** (v2.3.17): *load* applies the time window of the config in the units it was saved with.
+  The config keeps `xmin`/`xmax` in the time units of the moment it was saved (µs, ms or s); the page converts
+  them to seconds, sets the window in the current units and then takes the window and units that the server
+  ends with (the answer of the last of the 5-9 POSTs of a load), so page, axes and server agree. The scale values
+  that the server derives (`time_units`, `time_range`, `gui_xmin`, `gui_xmax`, `forcex_flag`) are not loaded nor
+  sent. Up to v2.3.16 the window was taken in the units of the server (`lock_mode`, saved in ms, loaded with the
+  scope in µs gave −2…33 **µs**) or not applied at all. Tested on the board: 14/14 loads (from 0-131 µs,
+  10-120 µs, 0-10 ms, 0-2 s, and a config in µs loaded with the page in ms).
+- A load ends a frozen lock capture (the config brings its own scope settings).
+
+![lock_mode loaded with the scope in µs: window −2.07…33.49 ms (v2.3.17)](.Usage/config_load_lock_mode_window.jpg)
 
 ## Saving data
 
@@ -319,12 +357,13 @@ slowly, and waits until it answers fast again.
 ## Known limitations of the interface
 
 - The **Slow outputs** selectors have no effect; the **R|Phase Mode** button is disabled.
-- *Time trigger* values ≥ 2³¹ (17.18 s) are not usable: the FPGA compares only 31 bits.
+- *Time trigger* values above 2²⁴ ticks (134 ms) set from the page are rounded to the float32 grid (≤ 1 µs).
 - *Ramp period* typed in `s`/`ms` sets `ramp_step` for (hig − low) steps, i.e. half of the period in
-  triangle mode (`index.html` l. 1831-1836): check the τ shown below the field.
+  triangle mode (`index.html` l. 1842-1847): check the τ shown below the field.
 - The labels of *Signal for trigger* 6-8 show code text (`/*sqXo */ 14'b0`): those options are 0.
-- The ki scale option 4 is labelled "6 us"; the real value is 2¹³ · 8 ns = 65.5 µs.
-- Config → load does not restore the time window of the scope.
+- Each change made in the page is a `POST /data`, and on Ecosystem 2.0 each one leaves an open connection in the
+  nginx of the board; after ~1000 the board stops answering until nginx is restarted
+  ([Remote.md](Remote.md#known-issue-of-the-ecosystem-post-data-leaves-connections-open)).
 - Level+time with the time after the level crossing stays ARMED (the level crossing has to happen after
   the time).
 

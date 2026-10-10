@@ -12,7 +12,7 @@ loop, controlled from a web page or remotely over HTTP.
 ![Lock captured by the App (v2.3.14): the scan stops and the error goes to zero at t = 0](.README/lock_captured_v2.3.14.jpg)
 
 
-## Version 2.3.14 (Ecosystem 2.0)
+## Version 2.3.x (Ecosystem 2.0)
 
 Current version: **2.3.17** (branch `devel2.0`).
 
@@ -22,7 +22,7 @@ It is intended for the Red Pitaya **Ecosystem 2.0** (e.g. `RedPitaya_OS_2.04`; t
 The 0.3.x series (branch `master`, FPGA with Vivado 2015.2) is the version for the 0.9x / 1.0 ecosystems.
 
 - Web interface and C controller: those of v0.3.11 plus the Ecosystem 2.0 changes of v2.3.10 and the
-  fixes of v2.3.12 to v2.3.14 (see [CHANGELOG](CHANGELOG.md))
+  fixes of v2.3.12 to v2.3.17 (see [CHANGELOG](CHANGELOG.md))
   (still built with Vivado 2015.2 SDK + Linaro toolchain).
 - FPGA: ported to Vivado 2020.1 (see [Building](#building)), oscilloscope of the Ecosystem 2.0 with the
   decimation widened to 20 bits (time ranges up to ~68 s).
@@ -34,6 +34,15 @@ The 0.3.x series (branch `master`, FPGA with Vivado 2015.2) is the version for t
   triggered by the lock event, and freezes it until Auto / Single) and **Fire on click** (a click with
   *Choose from graph* sets the value and fires Trigger Lock). See
   [lock_in+pid_harmonic/doc/lock_capture.md](lock_in+pid_harmonic/doc/lock_capture.md).
+- v2.3.15: **HTTP remote control on Ecosystem 2.0** (`/osc` acquisitions with the new `TrgUnlock` register;
+  `control_finn.py` with PID, ramp, lock-in and lock helpers), lock time trigger of 32 bits (up to 34.36 s),
+  register ranges matching the FPGA.
+- v2.3.16: `control_finn.py` stops the scope of the web page before acquiring (`scope_stop()` /
+  `scope_auto()`, minimal `POST /data`); the *Time trigger* / *Level trigger* fields accept units
+  (`16.58 ms`, `20 s`, `0.1 V`); an emptied field is no longer sent as 0.
+- v2.3.17: exact bus reads of fast signals (`in1`, `oscA`: ~2-3 % of the reads were corrupt), Config → load
+  applies the time window in the right units, `control_finn.py` resolves the host name once.
+  See [doc/Remote.md](doc/Remote.md) for the remote control and a known issue of the Ecosystem (`POST /data`).
 
 
 ## Features
