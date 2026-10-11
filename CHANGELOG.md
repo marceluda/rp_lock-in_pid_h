@@ -70,6 +70,62 @@ Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE pro
 simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
 < 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
+## v2.3.18 - Minor fixes found in the tests (no FPGA change)
+
+The FPGA image is the one of v2.3.17 (only comments of `lock.v` changed).
+
+### Fixed
+- **Lock trigger registers written from Python** (`py/lock_from_registers.py --time/--level/--sw`, `control_finn.py`):
+  the page never showed them and the C controller wrote its own copy back at the next change of any lock parameter
+  in the page (a lock armed from Python with `--time 100ms` then fired at the 18 ms of the page). `lock_trig_val`,
+  `lock_trig_time` and `lock_trig_sw` now follow the rule of `lock_control` (v2.3.13): `lock_update()` writes each one
+  only when its parameter changes, and `lock_update_status()` (every request) copies a value written from outside to
+  the parameter, so the page shows it and keeps it. Above 2^24 ticks the parameter is the float32 rounding, the
+  register keeps the exact value. `lock_init()` resets this memory (and the one of `lock_control`).
+- Config -> load: the send of the whole config no longer includes read-only parameters of the server (`meas_*`,
+  `lock_X/Y/F1..F3`, `lock_lock_status`, `lock_lock_control`, `trig_delay`, ...; `server_ro_keys`, the read-only
+  list of `src/main.c`). The server ignored them; they only made the POSTs bigger (8 POSTs, 203-231 keys).
+- **Single mode made no request at all** once its acquisition was shown (e.g. after Prepare Streaming, or with the
+  scope stopped by `control_finn.py`): a `bazaar?stop` or another client was not noticed, and the lock state label
+  was not refreshed (it showed LOCKED with the lock already off). In Single the page now polls every 1 s
+  (`/get_client_id` check, then `GET /data`, which does not arm the scope). In Single an `AGAIN` answer starts the
+  fast polling only while a Single click waits for its acquisition.
+- Console message "Capture Lock: ended by , scope settings restored" (AUTO, unchecking Capture Lock): the reason is
+  given.
+- Mouse wheel on Ramp period / limits: the tau/f text below the field was not updated (only the `input` event did
+  it); also for the PID, modulation and lock trigger fields.
+- X+ of the plot range stopped at 10 s: it goes up to the longest window of the scope (68.72 s, decimation 524288).
+- `py/lock_from_registers.py`: `--time 40s` gave `OverflowError` (5e9 ticks): the time is clamped to 0..2^32-1
+  ticks (34.36 s) with a message, as in the page; `ns` and `µs` accepted. `--sw` limited to 0..15. Docstring: the
+  `--sw` register is "Signal for trigger" of the page (`lock_lock_trig_sw`), not the scope Ext Trig (`lock_trig_sw`),
+  options 6-8 are constant 0, and the note on the registers rewritten by the controller follows the fix above.
+- `resources/remote_control/http_version/example_usage.py`: the Lock cell restores the lock-in and PID A of the
+  `lock_mode` config (the Lock-in cell turned the modulation off and the PID cell left kp = ki = 0, so the level
+  trigger never fired and the lock held nothing; `RESTORE_LOCK_MODE = False` prints a warning instead), and the cell
+  "save data" ends with `rp.scope_auto()` (the script left the scope of the page in Single).
+- `upload_app.sh`: the rw script of the OS as in the Makefile (`/opt/redpitaya/sbin/rw` in 2.0, `/boot/sbin/rw` in
+  0.9x), `-w` removed `{index.html,js.css}` (now `js,css`), and `fpga.sh` gets the exec bit.
+
+### Changed
+- `c/streaming.c` closes the file descriptors inherited from the nginx worker (as `lock_in+pid_harmonic2` v2.4.3):
+  `streaming` and `stream_tcp_osc_cmd` kept its sockets open while streaming. `c/stream_tcp_osc_cmd` runs with
+  nice -10 and locked memory: at decimation 128 an ssh login or a loop forking on the board delayed it 11-16 ms
+  (the scope buffer is 16.8 ms) and samples were lost. Not real time (at decimation 64 the loop never sleeps).
+  `STREAM_NICE=<n>` in the environment changes the value (0: normal priority).
+- AUTO: minimum window 1 us (was 100 ns). With only noise in the inputs (lock closed, ramp stopped) the "period" found
+  in the noise gave 0...139 ns.
+- Texts: labels of "Signal for trigger" 6-8 `0 (sqXo)`, `0 (sqYo)`, `0 (sqFo)` (showed code `/*sqXo */ 14'b0`);
+  `ctrl_B` = "pidB_out + ramp_B" (said pidA_out) in `lock.v`, `fpga_lock.h`, `main.c`, `config_tool.py`; `src/fpga.h`
+  `data_dec` 20 bits; `fpga/README.md` 20-bit decimation of the 2.0 scope; `resources/README.md`: a register is
+  read with `name=` or `name`; `doc/lock_control.md`, `doc/Remote.md` (trigger registers written from outside).
+
+### Added
+- `test/minor_ui_sim.js` (wheel -> tau/f text, X+ up to 68.72 s, labels; 7 checks, the page of 2.3.17 fails 6).
+- `test/lock_capture_ui_sim.js` part 7 (Single poll ~1 GET/s, fast only while a Single click waits, chain ended by
+  Stop, console reason of the end of a capture; 6 checks); `test/config_load_window_sim.js` checks that no read-only
+  parameter of `src/main.c` is sent; `test/auto_set_c_sim` parts 4 (trigger registers written from outside, 7 checks)
+  and 5 (AUTO with noise, window >= 1 us).
+
 ## Documentation (after v2.3.17, not a new version)
 
 ### Changed

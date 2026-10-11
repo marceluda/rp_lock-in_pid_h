@@ -16,7 +16,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Harmonic lock-in+PID (v2.3.17)</title>
+  <title>Harmonic lock-in+PID (v2.3.18)</title>
   <link href="../assets/bootstrap-3.0.0/css/bootstrap.css" rel="stylesheet" type="text/css">
   <link href="../assets/style.css?6" rel="stylesheet" type="text/css">
   <script src="../assets/bootstrap-3.0.0/js/jquery.js"></script>
@@ -108,6 +108,15 @@
   // Settings which should not be modified
 
   var update_timer = null;
+  // v2.3.18: Single mode used to make no request at all once its acquisition was shown (e.g. after Prepare Streaming,
+  // or the scope stopped by control_finn.py): a bazaar?stop or another client was not noticed, and the lock state
+  // label was not refreshed. In Single the page polls every single_poll_ms (same path as Auto: /get_client_id check,
+  // then GET /data, which never arms the scope). In Single an 'AGAIN' answer (no new data) starts the fast polling
+  // only while a Single click is waiting for its acquisition (single_seq != single_seq_done); before, every 'AGAIN'
+  // did, in any mode.
+  var single_poll_ms = 1000;
+  var single_seq = 0;                    // Single clicks
+  var single_seq_done = 0;               // single_seq when the last GET /data with new data ('OK') started
   var zoompan_timer = null;
   var downloading = false;
   var scope_stop = false;
@@ -185,6 +194,14 @@
                            'meas_min_ch2,meas_max_ch2,meas_amp_ch2,meas_avg_ch2,meas_freq_ch2,meas_per_ch2,'+
                            'lock_X,lock_Y,lock_F1,lock_F2,lock_F3,lock_error_mean,lock_error_std,'+
                            'lock_lock_status,lock_lock_control,lock_stream_status').split(',');
+  // v2.3.18: read-only params of the server (src/main.c, read_only = 1: rp_set_params() ignores them). The send_all
+  // of a Config -> load sent the ones in params.local (meas_*, lock_X/Y, lock_lock_status, lock_lock_control...,
+  // copied there from display_keep_keys): they only made the POSTs bigger. Never sent by a send_all now.
+  var server_ro_keys = display_keep_keys.concat(('trig_delay,time_range,time_units,gui_reset_y_range,gui_xmin,gui_xmax,'+
+                           'scale_ch1,scale_ch2,lock_rl_state,lock_signal_i,lock_error,lock_ramp_A,lock_ramp_B,lock_sin_ref,'+
+                           'lock_cos_ref,lock_cos_1f,lock_cos_2f,lock_cos_3f,lock_in1,lock_in2,lock_out1,lock_out2,lock_oscA,'+
+                           'lock_oscB,lock_cnt_clk,lock_cnt_clk2,lock_pidA_in,lock_pidA_out,lock_ctrl_A,lock_pidB_in,'+
+                           'lock_pidB_out,lock_ctrl_B').split(','));
   // Unsent user changes. A change made while a POST is in flight only sets send_que; the POST (or GET) response
   // then calls loadParams(), which used to overwrite params.local with the server values and the queued
   // sendParams() found nothing to send (the 2nd of two quick changes was lost). unsent_base holds the values
@@ -202,6 +219,7 @@
   var last_get_failed = false;
   var refresh_counter = 0;
   var autorun = 1;
+  var wheel_text_update = {};             // v2.3.18: field id -> function that updates its text (see ScrollIncrement)
   var datasets = [];
   var plot = null;
   var params = {
@@ -1263,7 +1281,7 @@
       ui_capture_lock = $(this).is(':checked') ? 1 : 0;
       $(this).blur();
       user_editing = false;
-      if(!ui_capture_lock && lockCaptureLeave('')) {   // unchecked during a capture: scope settings back
+      if(!ui_capture_lock && lockCaptureLeave('', 'unchecking Capture Lock')) {   // unchecked during a capture: scope settings back
         sendParams(true);
         runStop();
       }
@@ -1375,6 +1393,9 @@
         event.preventDefault();
         //user_editing = user_editing_old ;
         params.local[id] = $currVal;
+        // v2.3.18: the text under the field (tau/f of Ramp period, mV, PID times...) is updated by its 'input' handler,
+        // which a value changed by the wheel does not fire: it kept the old tau/f
+        if(wheel_text_update[id]) wheel_text_update[id]();
         // 3rd arg is single_btn: must be false here (true made the scope stop after one acquisition and froze R/X/Y/phi)
         sendParams(true,true,false,true);
         //console.log('currVal='+$currVal);
@@ -1446,6 +1467,16 @@
         lock_ramp_step_update();
         //$(this).blur();
     });
+
+    // v2.3.18: the same text updates for a value changed with the mouse wheel (ScrollIncrement(), no 'input' event)
+    wheel_text_update = {
+      lock_lock_trig_time_val: lock_ctrl_update, lock_lock_trig_val: lock_ctrl_update,
+      lock_gen_mod_phase: lock_modulation_update, lock_gen_mod_hp: lock_modulation_update,
+      lock_pidA_sp: lock_pidA_update, lock_pidA_kp: lock_pidA_update, lock_pidA_ki: lock_pidA_update, lock_pidA_kd: lock_pidA_update,
+      lock_pidB_sp: lock_pidB_update, lock_pidB_kp: lock_pidB_update, lock_pidB_ki: lock_pidB_update, lock_pidB_kd: lock_pidB_update,
+      lock_ramp_step: lock_ramp_step_update, lock_ramp_low_lim: lock_ramp_step_update, lock_ramp_hig_lim: lock_ramp_step_update,
+      lock_ramp_B_factor: lock_ramp_step_update
+    };
 
     // Switches
     var switches=['#lock_oscA_sw','#lock_oscB_sw','#lock_trig_sw','#lock_out1_sw','#lock_out2_sw','#lock_lock_trig_sw','#lock_rl_signal_sw',
@@ -3122,10 +3153,12 @@
     return true;
   }
 
-  // Scope setting changed by the user (trigger mode/source/Ext Trig, Single, AUTO) during a capture
-  function lockCaptureLeave(keep) {
+  // Scope setting changed by the user (trigger mode/source/Ext Trig, Single, AUTO) during a capture.
+  // why: text for the console (v2.3.18: AUTO and unchecking Capture Lock pass keep = '' and the message said
+  // "ended by , ..."); by default the name of the kept setting.
+  function lockCaptureLeave(keep, why) {
     if(!lockCaptureActive()) return false;
-    console.log('Capture Lock: ended by ' + keep + ', scope settings restored');
+    console.log('Capture Lock: ended by ' + (why || keep || 'the user') + ', scope settings restored');
     return lockCaptureEnd(keep);
   }
 
@@ -3522,6 +3555,7 @@
     sendParams();
 
     var arun_before_ajax = autorun;
+    var seq_get  = single_seq;        // v2.3.18: Single clicks before this GET
     var long_timeout_used = use_long_timeout;
     var cap_state0 = lock_cap.state;  // v2.3.14: capture state when this GET starts (lockCaptureOnData())
 
@@ -3640,8 +3674,11 @@
 
         updateRanges();
 
+        // v2.3.18: new data: the Single clicks made before this GET have their acquisition
+        if(dresult.status !== 'AGAIN') single_seq_done = seq_get;
+        var single_waiting = (single_seq !== single_seq_done);
         // v2.3.14: polling goes on during a capture (waiting: its data; frozen: only the lock state, slower)
-        if(autorun || dresult.status === 'AGAIN' || lockCaptureActive()) {
+        if(autorun || lockCaptureActive() || (dresult.status === 'AGAIN' && single_waiting)) {
           if(autorun) {
             $('#btn_single').prop('disabled', true);
           }
@@ -3651,6 +3688,7 @@
         }
         else {
           $('#btn_single').prop('disabled', false);
+          scheduleSinglePoll();   // v2.3.18: light polling in Single (see single_poll_ms)
         }
       }
       else {
@@ -4417,6 +4455,7 @@
     var send_params = {};
     for(var key in params.local) {
       if(send_all === true && send_all_skip.indexOf(key) >= 0) continue;   // v2.3.17 (see send_all_skip)
+      if(send_all === true && server_ro_keys.indexOf(key) >= 0) continue;  // v2.3.18 (see server_ro_keys)
       if(send_all === true || !params.original || params.original[key] != params.local[key] ||
          always_send_params.indexOf(key) >= 0) {
         send_params[key] = params.local[key];
@@ -4656,12 +4695,24 @@
         clearTimeout(update_timer);
         update_timer = null;
       }
+      scheduleSinglePoll();   // v2.3.18: Single keeps a slow poll (see single_poll_ms)
     }
+  }
+
+  // v2.3.18: next Single poll in single_poll_ms (replaces a pending update_timer). The chain ends by itself when
+  // updateGraphData() returns early (stop button, control lost, cautious mode, App check) or Auto/Normal is selected.
+  function scheduleSinglePoll() {
+    if(update_timer) clearTimeout(update_timer);
+    update_timer = setTimeout(function() {
+      update_timer = null;
+      if(!autorun && !lockCaptureActive()) updateGraphData();
+    }, single_poll_ms);
   }
 
   function singleUpdate() {
     lockCaptureLeave('single');  // v2.3.14: new acquisition with the scope settings saved before the capture
     if(! autorun) {
+      single_seq++;              // v2.3.18: its acquisition is waited for with fast polling (see single_poll_ms)
       sendParams(true, true, true);
     }
   }
@@ -5024,7 +5075,9 @@
     var yrange = axes.yaxis.max - axes.yaxis.min;
     var yminrange = 5e-3;  // Volts
     var ymaxrange = params.original.gui_reset_y_range;
-    var xmaxrange = 10.0;  // seconds
+    // v2.3.18: longest window of the scope, 16384 samples at the largest decimation (524288, range 6): 68.72 s.
+    // It was 10 s, so X+ stopped at 10 s although the 20 s and 50 s windows exist.
+    var xmaxrange = 16384 * 524288 * 8e-9;  // seconds
     var xminrange = 20e-9; // seconds
     var decimals = 0;
 
@@ -5118,7 +5171,7 @@
   }
 
   function serverAutoScale() {
-    var restored = lockCaptureLeave('');  // v2.3.14: ends a capture, scope settings back
+    var restored = lockCaptureLeave('', 'AUTO');  // v2.3.14: ends a capture, scope settings back
     params.local.auto_flag = 1;
     sendParams(true);
     if(restored) runStop();
@@ -5683,7 +5736,7 @@
     <div class="container">
       <a id="btn_exit" class="pull-left" href="/index.html"><span class="glyphicon glyphicon-chevron-left" title="Exit" alt="Exit"></span></a>
       <img class="logo pull-left" src="../assets/images/logo_white.png">
-      <h2 class="page-title">Harmonic lock-in+PID (v2.3.17)</h2>
+      <h2 class="page-title">Harmonic lock-in+PID (v2.3.18)</h2>
     </div>
   </div>
   <div class="container">
@@ -7616,9 +7669,9 @@
                               <option  value="3">F1o</option>
                               <option  value="4">F2o</option>
                               <option  value="5">F3o</option>
-                              <option  value="6">/*sqXo */ 14'b0</option>
-                              <option  value="7">/*sqYo */ 14'b0</option>
-                              <option  value="8">/*sqFo */ 14'b0</option>
+                              <option  value="6">0 (sqXo)</option>
+                              <option  value="7">0 (sqYo)</option>
+                              <option  value="8">0 (sqFo)</option>
                               <option  value="9">signal_i</option>
                               <option  value="10">Ramp A</option>
                               <option  value="11">aux_A</option>

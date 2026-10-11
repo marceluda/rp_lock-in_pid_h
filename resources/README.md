@@ -189,7 +189,7 @@ If you access to:
 
 You will read `Dec` register and set and read `conf=2` in the oscilloscope module.
 
-IMPORTANT: GET protocol will only work if you put the `=` character after the reg name for only reading operation.
+A register name alone reads it: `Dec=` or `Dec` (without `=`, since v2.3.10; before it was a Lua error 500). `name=value` writes the value (integers only) and reads it back.
 
 The same thing can be used for `lock` module. If you don't send params, all the registers are read:
 

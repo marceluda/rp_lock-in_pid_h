@@ -115,6 +115,10 @@ fn = rp.save_last_meas()
 
 print(f"You saved data in file: {fn}")
 
+# measure() stopped the scope of the web page again (scope_stop()): give it back, otherwise the page stays
+# in Single (its plot and the lock state shown do not refresh until Auto is pressed)
+rp.scope_auto()
+
 
 
 #%% Load saveda data
@@ -173,6 +177,28 @@ print(rp.lock_status())
 
 
 #%% Lock  #####################################################################
+
+# The cells "Lock-in" and "PID" above are examples of each call: they turned the modulation off
+# (set_modulation_amplitud(-1)), changed frequency, phase, filters and gain, and left PID A with kp = ki = 0.
+# Without modulation there is no error signal (the level trigger never fires) and with kp = ki = 0 there is no
+# feedback (the lock "closes", LOCKED, but holds nothing). Restore the lock-in and PID A of the lock_mode config
+# (test_files/lock_in+pid_harmonic__lock_mode.json, the one of the lock tests with dummy_simulator) first:
+RESTORE_LOCK_MODE = True
+if RESTORE_LOCK_MODE:
+    rp.set_signal('in1')                               # lock-in input
+    rp.set_freq(0)                                     # gen_mod_hp 0: 49.603 kHz
+    rp.set_phase(0)
+    rp.set_modulation_amplitud(100, ch='out1')         # A Out1 = 100 (as lock_mode)
+    rp.set_modulation_amplitud(-1, ch='out2')
+    rp.set_lpf(tau_exponent=15, order=2, line='ref')   # X, Y: 262 us, 2nd order
+    rp.set_gain('ref', 'x32')
+    rp.lock.error_sw = 'Yo'                            # error signal = Yo
+    rp.set_pid('A', sw='error', sp=0, kp=-500, ki=-20, kd=0, PSR=3, ISR=8, DSR=0, SAT=13)
+    rp.pid_reset('A')
+    rp.lock.out1_sw  = 'ctrl_A'                        # OUT1 = PID A + ramp A (+ modulation)
+else:
+    print('WARNING: with the modulation off or kp = ki = 0 the lock below does not hold anything '
+          '(the level trigger needs the error signal)')
 
 # configuration: time trigger 16.58 ms after the scan floor, PID A on (ramp off) while locked. The time must be
 # shorter than half the period of the ramp (Ramp cell: ~64 ms); with dummy_simulator the peak is at ~16.3 ms.

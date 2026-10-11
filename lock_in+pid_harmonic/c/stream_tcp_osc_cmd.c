@@ -14,6 +14,7 @@
 #include <time.h>
 
 #include <errno.h>
+#include <sys/resource.h>
 
 
 #define OSC_CONF   0
@@ -208,6 +209,26 @@ int main(int argc, char **argv){
     }
 
     fprintf(stderr,"[+] Connected with %s:%d\n",inet_ntoa(server.sin_addr),htons(server.sin_port));
+
+    // v2.3.18: higher priority for the reader. The buffer of the scope holds 16384 samples (16.8 ms at
+    // decimation 128): an ssh login or a loop that forks on the board delayed this process 11-16 ms and
+    // samples were lost (overrun, testAgent 2026-10-11). nice -10 (CFS weight ~10x of a normal process;
+    // the other processes still run, the CPU use is the same) and the memory locked (no page faults).
+    // Real-time scheduling is not used: at decimation 64 the loop never sleeps and would take a whole core.
+    // Both are optional: without permission (not root) it goes on with a warning.
+    // STREAM_NICE=<n> (environment, -20..19) changes the nice value; STREAM_NICE=0 keeps the default.
+    {
+        int   nv = -10;
+        char *e  = getenv("STREAM_NICE");
+        if(e && *e) nv = atoi(e);
+        if(nv < -20) nv = -20;
+        if(nv >  19) nv =  19;
+        if(nv != 0 && setpriority(PRIO_PROCESS, 0, nv) < 0)
+            fprintf(stderr, "[!] setpriority(%d) failed: %s (normal priority)\n", nv, strerror(errno));
+        if(mlockall(MCL_CURRENT | MCL_FUTURE) < 0)
+            fprintf(stderr, "[!] mlockall failed: %s\n", strerror(errno));
+        fprintf(stderr, "[+] nice %d\n", getpriority(PRIO_PROCESS, 0));
+    }
 
     // SIGTERM/SIGINT (c/streaming stops us with SIGTERM): leave the loop and print the counters
     struct sigaction sa;

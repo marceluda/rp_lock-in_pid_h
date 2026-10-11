@@ -28,6 +28,18 @@
 
 
 int main(int argc, char **argv){
+    // v2.3.18 (as lock_in+pid_harmonic2 v2.4.3): close every inherited fd except stdin/stdout/stderr.
+    // c/stream_start.sh is run by the nginx worker (os.execute) and its fds (client sockets, listening
+    // sockets, logs) are not close-on-exec: without this, this process and stream_tcp_osc_cmd kept them
+    // open while streaming (sockets left in CLOSE-WAIT, listening sockets held after an nginx restart).
+    {
+        long maxfd = sysconf(_SC_OPEN_MAX);
+        int  i;
+        if(maxfd < 0 || maxfd > 65536) maxfd = 65536;
+        for(i = 3; i < maxfd; i++) close(i);
+        errno = 0;   // EBADF of the closed fds: the perror() at the end printed "Bad file descriptor"
+    }
+
     // mapping memory addreses for FPGA registers to variables ------------------------------
 
     // Open Linux memory device

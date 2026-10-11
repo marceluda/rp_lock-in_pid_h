@@ -63,5 +63,6 @@ Differences with the RedPitaya v0.94 design, to behave as the 2015.2 design:
 - `ip/ip/` of RedPitaya-FPGA (asg_dat_fifo, sync_fifo) is not included: only the ASG
   uses those IPs, and their tcl scripts are for Vivado 2025.1 (error IPS_TCL-100 in 2020.1).
 
-The 2.0 scope differs from the 0.9x one in the trigger lock (0x94) and the 17-bit
-decimation (max 64k): the C controller (`../src/fpga.c`) handles both.
+The 2.0 scope differs from the 0.9x one in the trigger lock (0x94) and the 20-bit
+decimation (the App uses up to 524288; 0.9x: 17 bits, max 64k): the C controller
+(`../src/fpga.c`) handles both.

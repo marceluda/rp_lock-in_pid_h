@@ -130,6 +130,13 @@ that only looked at the enables still work. Writes to 0x1C are ignored. No other
   `lock_update_main()`, so the UI sees the state also when the scope gets no triggers.
 - The `lock_ctrl_aux_*` parameters are no longer overwritten from the feedback in
   `lock_update_main()`.
+- v2.3.18: the same rule for the trigger registers `lock_trig_val` (0x20), `lock_trig_time` (0x24)
+  and `lock_trig_sw` (0x28): `lock_update()` writes each one only when the value derived from its
+  parameter (`lock_lock_trig_val`, `lock_lock_trig_time_val`, `lock_lock_trig_sw`) changes, and
+  `lock_update_status()` copies a value written from outside (e.g. `py/lock_from_registers.py
+  --time/--level/--sw`) to its parameter, so the page shows it and a later change of another lock
+  parameter does not write the page value back. `lock_init()` resets this memory (and the one of
+  `lock_control`): after a start the first `lock_update()` writes all of them.
 
 ## 4. Web UI (`index.html`)
 

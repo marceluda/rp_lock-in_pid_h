@@ -538,8 +538,10 @@ should use the HTTP API.
 
 - The web page and a script can be used at the same time: the page reads the registers on every request
   and shows changes made from outside (e.g. a lock closed from Python), without sending anything back.
-- The C controller writes `lock_control` only when the user changes a lock button or checkbox. **The other
-  lock registers are rewritten with the controller's copy when the user changes any lock parameter in the
+- The C controller writes `lock_control` only when the user changes a lock button or checkbox, and (v2.3.18)
+  `lock_trig_time`, `lock_trig_val`, `lock_trig_sw` only when the user changes them; values written to these
+  four registers from a script are copied to the parameters of the page (shown and kept). **The other lock
+  registers are rewritten with the controller's copy when the user changes any lock parameter in the
   page**, so a value written from a script can be overwritten by a later change in the page
   (`py/lock_from_registers.py` docstring).
 - The scope is shared: `control_finn.py` stops the scope of the controller / page before acquiring
