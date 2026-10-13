@@ -247,9 +247,11 @@ Where to change things:
 | Scope (decimation, `osc_ctrl_i`, bus read) | `rtl/rtl/classic/rp_scope_com.v`, `rp_scope_cfg.v`, `rp_decim.v` |
 | Constraints | `sdc/red_pitaya.xdc`, `prj/v0.94/sdc/` |
 
-Known: timing does not close, as in the 2015.2 design; the App works. v2.3.17: WNS −8.954 ns, TNS −9565 ns
-(v2.3.15: −10.035 / −8637); the worst paths are the long combinational paths of the loop (PID → scope
-muxes, outputs); the bus read of the lock module meets timing (+1.892 ns) with the 2-cycle multicycle constraint
+Known: timing does not fully close; the App works. v2.3.19: WNS −1.099 ns, TNS −207.5 ns (774 endpoints) after
+adding pipeline registers to the lock-in, PIDs, generator and outputs ([`lock_latency.md`](../lock_in+pid_harmonic/doc/lock_latency.md));
+v2.3.17: WNS −8.954 ns, TNS −9565 ns (v2.3.15: −10.035 / −8637), the worst paths were the long combinational paths of
+the loop (PID → scope muxes, outputs). If you add logic between two registers of the loop, keep it short (8 ns) or
+add a register and document its latency; the bus read of the lock module meets timing (+1.892 ns) with the 2-cycle multicycle constraint
 of `prj/v0.94/sdc/red_pitaya.xdc` l. 82-83 (CHANGELOG v2.3.17, `devAgent.md`). If you add a register to the read
 mux of `lock.v`, keep it a register of `adc_clk` held during `sys_ren` (as the `*_rd` copies), or the multicycle
 constraint is no longer valid ([FPGA.md](FPGA.md#lock-module-0x40600000)). Simulations of `lock_ctrl.v` and of
@@ -305,6 +307,7 @@ After adding or changing a register: run the tool, rebuild FPGA + controller + t
 | `trig_input_units_sim.js` | `node test/trig_input_units_sim.js [--old]` | Time / Level trigger fields with units, empty fields not sent as 0 (v2.3.16) |
 | `lock_bus_read_tb.sv` | `test/lock_bus_read_sim.sh [work_dir [lock.v]]` (Vivado 2020.1 xsim) | bus reads of `lock.v` through `sys_bus_cdc` with asynchronous clocks: `sys_rdata` stable when the PS takes it (v2.3.17); prints `TB RESULT: PASS` |
 | `config_load_window_sim.js` | `node test/config_load_window_sim.js [--old]` | Config → load of the time window: conversion, and the real chunked send of `index.html` against a model of `rp_set_params()` (forceX handshake) plus a GET poll (v2.3.17) |
+| `lock_latency_tb.sv` | `test/lock_latency_sim.sh [work_dir [old_ref]]` (Vivado 2020.1 xsim) | `lock.v` of the working tree side by side with the one of a commit (default v2.3.18): every signal is the old one delayed by the latency of [`lock_latency.md`](../lock_in+pid_harmonic/doc/lock_latency.md), bit by bit (v2.3.19); prints `TB RESULT: PASS` |
 | `auto_set_c_sim/` | `test/auto_set_c_sim/run.sh [src dir]` | the real C controller compiled for the PC with fake `/dev/mem` (`fake_hw.h`, `harness.c`): AUTO after a capture, forceX |
 
 Run them from `lock_in+pid_harmonic/`. All exit with code 1 on failure. `--old` runs a check against the code of

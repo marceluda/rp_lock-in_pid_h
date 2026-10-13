@@ -70,6 +70,44 @@ Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE pro
 simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
 < 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
+## v2.3.19 - FPGA timing: pipeline registers in the lock-in, PIDs, generator and outputs
+
+The FPGA did not meet timing at 125 MHz (WNS -8.954 ns, TNS -9565 ns, 5101 failing endpoints): long
+combinational chains of the loop (generator ROM -> product -> LPF / bypass -> gain -> saturation -> PID / scope /
+lock control; PID sum -> ctrl -> out mux -> modulation -> DAC). With the approval of the user to add latency,
+v2.3.19 registers those chains: **WNS -1.099 ns, TNS -207.5 ns, 774 endpoints** (adc_clk -> dac_clk_1x
+-8.789 -> +1.123 ns; what is left: recursive loops of the LPF and the PID integrator, in1 -> PID input, and paths of
+the oscilloscope outside the lock module). Same behaviour except for the latencies, checked bit by bit in simulation
+against v2.3.18. Details, latency of each signal and timing per group: `lock_in+pid_harmonic/doc/lock_latency.md`.
+
+### Changed (FPGA)
+- Added latency (8 ns per clock): generator outputs (`sin_ref`, `cos_ref`, `cos_1f..3f`, `harmonic_trig`) +1;
+  lock-in outputs `Xo`, `Yo`, `F1o..F3o` +2 (register at the output of the first LPF stage and after the gain /
+  saturation); bus reads `X_28..F3_28` +1; PID outputs +1 (`lock_pid_block` output registered, enable delayed with
+  it); `out1`/`out2` +1 for everything that goes to the DACs. LOCK MODE loop (in1 -> Y -> PID A -> out1): +32 ns.
+  The modulation that goes out through `out1` is 1 clock later than the reference: in a loop through the DAC the
+  phase of the lock-in changes by -0.143 deg at 49.6 kHz (one step of `gen_mod_phase` at hp 0), less at lower
+  frequencies; not compensated.
+- Same values with fewer logic levels: `lock/shift_sat14.v` (gain + the two saturations of `Xo..F3o` in one test),
+  `sum_div` of the second LPF stage kept in a register (a change of `lpf_F*` reaches it 1 clock later), `sat14`
+  without barrel shifter, integrator of the PID with the ISR shift in parallel with the saturation.
+- `red_pitaya.bit` / `fpga.bit.bin` rebuilt (Vivado 2020.1). No change in C, page (version only) or registers.
+
+### Changed
+- `resources/remote_control/http_version/example_usage.py` (Lock cell, `lock_mode`) and the PID example of
+  `doc/Remote.md`: PID A kp -250 (was -500), as the `*__lock_mode*.json` test configs since 2026-10-12 (approved by
+  the user: with -500 the loop was at the edge of oscillating, ~4.7 kHz).
+
+- Page title (`h2.page-title`) said v2.3.18; the build now writes the version of `info/info.json` in it and in
+  `<title>` (Makefile, target/), so they cannot fall behind again.
+- `c/streaming.c`: `perror("[+] Finishing streaming")` -> `fprintf(stderr, ...)` (with errno 0 the log said
+  ": Success"), as in `lock_in+pid_harmonic_hf` 2.3.12 / h2 2.4.5.
+
+### Added
+- `test/lock_latency_sim.sh` + `test/lock_latency_tb.sv` (xsim): `lock.v` of the working tree side by side with the
+  one of v2.3.18 (or another commit), 412 checks of the latency of each signal, bit exact (lock-in with the LPFs on,
+  bypassed and with every gain, PIDs with every PSR/ISR/DSR/SAT, modulation, Level trigger, step responses).
+
 ## v2.3.18 - Minor fixes found in the tests (no FPGA change)
 
 The FPGA image is the one of v2.3.17 (only comments of `lock.v` changed).

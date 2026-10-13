@@ -57,7 +57,7 @@ ctrl_B = PID B out + Ramp B (+ jump B)     → usually sent to OUT2
 | Ecosystem | 2.0 (RedPitaya_OS 2.04-35 tested); FPGA loaded by `fpga.sh` with `fpgautil` | `fpga.sh`, test reports |
 | FPGA clock | 125 MHz (8 ns) | `src/fpga.c` l. 50, top |
 | ADC / DAC | 14 bit, 125 MS/s; signals are 14-bit signed, 8192 counts = 1 V | `lock.v`, `index.html` |
-| FPGA timing | does not close (WNS −8.954 ns in v2.3.17, in the long paths of the loop: PID → scope muxes / outputs), as in the 2015.2 design; works in practice. Bus reads of the lock module are exact since v2.3.17 ([FPGA.md](FPGA.md#lock-module-0x40600000)) | CHANGELOG v2.3.10, v2.3.17, `devAgent.md` |
+| FPGA timing | almost closes since v2.3.19 (WNS −1.099 ns, was −8.954 ns: pipeline registers in the lock-in, PIDs, generator and outputs, [`lock_latency.md`](../lock_in+pid_harmonic/doc/lock_latency.md)); works in practice. Bus reads of the lock module are exact since v2.3.17 ([FPGA.md](FPGA.md#lock-module-0x40600000)) | CHANGELOG v2.3.10, v2.3.17, `devAgent.md` |
 
 ## Oscilloscope
 
@@ -123,6 +123,7 @@ signal_i ─┬─ × cos_ref ─ LPF(F0) ─ X_28 ─ ×2^sg_amp0 ─ sat ─ X
 | Scale | with gain ×1 the outputs read the **amplitude** (in counts) of the component of the input in phase with each reference: an input `A·cos_ref/4094` gives `Xo ≈ A`, `Yo ≈ 0`; an input in phase with `sin_ref` gives `Yo ≈ A` (φ = +90°). Times 2^`sg_amp`. Derived from the RTL (reference ±4094 ≈ 2^12, products shifted 21 bits) and consistent with the loopback test OUT1 → IN1: `cos_ref` → X = 461 mV, φ = 1.6°; `sin_ref` → Y = R = 461 mV, φ = 91.6° (`reportes/lock-in_pid_h.md`) |
 | Gains | `sg_amp0` ×1 .. ×512k (UI; register up to 2^31); `sg_amp1..3` ×1 .. ×512 (UI; register up to 2^15) |
 | Low-pass filters | 4 independent: X&Y share `lpf_F0`, then F1, F2, F3. Order 0 (off), 1 or 2 (cascade of identical 1st-order stages) |
+| Latency | v2.3.19: outputs 2 clocks (16 ns) later than in v2.3.18, the generator 1 clock later, the PID outputs and `out1`/`out2` 1 clock each ([`lock_latency.md`](../lock_in+pid_harmonic/doc/lock_latency.md)) |
 | Time constants | τ = 8 ns · 2^(14+n), n = 0..15 |
 | R and φ | computed in the web page from X and Y: R = √(X² + Y²), φ = atan2(Y, X) |
 | Registers with more resolution | `X_28`, `Y_28`, `F1_28`..`F3_28` (28 bit, before the gain): `X_28 ≈ A·cos φ · 2^11` |
@@ -198,7 +199,7 @@ The lock sequence runs in the FPGA (`lock/lock_ctrl.v`, since v2.3.13). Full des
 | In LOCKED | they follow the "config" enables (usually: ramp off, PID A on) |
 | Requests | Lock Now (immediate), Trigger Lock (arm, lock on the trigger) |
 | Triggers | **Time**: `lock_trig_time` ticks (8 ns) after the scan floor, 0..2³²−1 (up to 34.36 s; 32-bit counter since v2.3.15, it was 17.18 s); **Level**: a signal crosses `lock_trig_val` upwards or downwards; **Level+time**: level crossing after the time |
-| Latency | the change happens in the same clock tick as the trigger (8 ns) |
+| Latency | the change happens in the same clock tick as the trigger (8 ns); since v2.3.19 a lock-in output used as signal for trigger is itself 16 ns later than before ([`lock_latency.md`](../lock_in+pid_harmonic/doc/lock_latency.md)) |
 | Status | `lock_status`: armed, locked, effective enables, count of locks |
 | Capture | the lock event is a scope trigger source ("Lock control trig"); the web page uses it to capture the closing of the loop ([`lock_capture.md`](../lock_in+pid_harmonic/doc/lock_capture.md)) |
 

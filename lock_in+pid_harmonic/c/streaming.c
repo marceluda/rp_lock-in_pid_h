@@ -142,7 +142,7 @@ int main(int argc, char **argv){
                 kill(-pid, SIGKILL);
 
                 #ifdef DEBUG
-                    perror("[+] Finishing streaming\n");
+                    fprintf(stderr, "[+] Finishing streaming\n");   // was perror(): ": Success" in the log (errno 0)
                 #endif
                 break;
             }

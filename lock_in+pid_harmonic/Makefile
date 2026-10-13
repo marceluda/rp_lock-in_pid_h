@@ -98,6 +98,8 @@ target/$(APP): red_pitaya.bit $(FPGA_BIN) $(CONTROLLERHF) c_tools index.html
 	sed -i target/$(APP)/info/info.json -e 's/REVISION/$(REVISION)/'
 	sed -i target/$(APP)/info/info.json -e 's/BUILD_NUMBER/$(BUILD_NUMBER)/'
 	sed -i target/$(APP)/index.html -e "s/\(\\s*\)var\\s*app_version\\s*=\\s*'VERSION'\\s*;\\s*/\\1var app_version = '$(VER)-$(BUILD_NUMBER)-$(REVISION)';/"
+	# v2.3.19: the version in <title> and in the page title (h2.page-title) is the one of info/info.json
+	sed -i target/$(APP)/index.html -e 's/\(<title>[^<(]*(v\)[0-9.]*)/\1$(VER))/' -e 's/\(class="page-title">[^<(]*(v\)[0-9.]*)/\1$(VER))/'
 
 
 zip: $(CONTROLLERHF) target/$(APP)

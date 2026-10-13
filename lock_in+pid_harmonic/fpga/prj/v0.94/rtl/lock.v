@@ -155,6 +155,7 @@ module lock(
 
     wire  signed [15-1:0] out1_plus,out2_plus;
     wire  signed [14-1:0] out1_tmp ,out2_tmp;
+    reg   signed [14-1:0] out1_tmp_r=14'd0 ,out2_tmp_r=14'd0 ,out_cos1_r=14'd0 ,out_cos2_r=14'd0; // v2.3.19
     //wire  signed [14-1:0] in1_lpf,in2_lpf;
 
     assign    pidA_irst    = pidA_ctrl[0];
@@ -194,7 +195,9 @@ module lock(
     // ERASE lolo // wire                 ramp_trig ;
 
 
-    wire signed [14-1:0] Xo,Yo,F1o,F2o,F3o ;
+    // v2.3.19: Xo..F3o are registers (outputs of the lock-in, +2 clocks in total, see doc/lock_latency.md)
+    reg  signed [14-1:0] Xo=14'd0,Yo=14'd0,F1o=14'd0,F2o=14'd0,F3o=14'd0 ;
+    wire signed [14-1:0] Xo_w,Yo_w,F1o_w,F2o_w,F3o_w ;
 
 
     wire signed [14-1:0] slow_out1_14,slow_out2_14,slow_out3_14,slow_out4_14 ;
@@ -202,6 +205,7 @@ module lock(
     wire        [24-1:0] slow_out1_aux,slow_out2_aux,slow_out3_aux,slow_out4_aux ;
 
     wire signed [14-1:0] pidA_out_cache,pidB_out_cache ;
+    reg                  pidA_enable_d=1'b0,pidB_enable_d=1'b0 ;
 
     wire signed [15-1:0] in1_m_in2,in1_m_in2_aux;
 
@@ -424,8 +428,21 @@ module lock(
     assign out_cos1    = ($signed(mod_out1) * $signed(cos_ref)) >>> 13 ;
     assign out_cos2    = ($signed(mod_out2) * $signed(sin_ref)) >>> 13 ;
 
-    assign out1_plus   = ~mod_out1[13] ? $signed(out1_tmp) + $signed(out_cos1[14-1:0]) : $signed(out1_tmp) ;
-    assign out2_plus   = ~mod_out2[13] ? $signed(out2_tmp) + $signed(out_cos2[14-1:0]) : $signed(out2_tmp) ;
+    // v2.3.19: the outputs to the DACs come 1 clock (8 ns) later, for everything that goes out (PID/ctrl,
+    // ramp, modulation, in1...): the two terms of the sum (output of the out1/out2 mux and modulation) are
+    // registered and added after the register. The chain PID or ramp -> ctrl_A/B (+ saturation) -> out mux ->
+    // + modulation -> saturation did not fit in one clock before the DAC registers (red_pitaya_top.sv,
+    // dac_clk_1x) nor before the scope muxes (out1/out2 are also scope signals). Same values as before:
+    // ~mod[13] ? tmp + cos : tmp  ==  tmp + (~mod[13] ? cos : 0). See doc/lock_latency.md.
+    always @(posedge clk) begin
+        out1_tmp_r  <=  out1_tmp ;
+        out2_tmp_r  <=  out2_tmp ;
+        out_cos1_r  <=  ~mod_out1[13] ? out_cos1[14-1:0] : 14'b0 ;
+        out_cos2_r  <=  ~mod_out2[13] ? out_cos2[14-1:0] : 14'b0 ;
+    end
+
+    assign out1_plus   = $signed(out1_tmp_r) + $signed(out_cos1_r) ;
+    assign out2_plus   = $signed(out2_tmp_r) + $signed(out_cos2_r) ;
 
     satprotect #(.Ri(15),.Ro(14),.SAT(14)) i_satprotect_out1  ( .in(out1_plus),  .out(out1) );
     satprotect #(.Ri(15),.Ro(14),.SAT(14)) i_satprotect_out2  ( .in(out2_plus),  .out(out2) );
@@ -740,30 +757,20 @@ module lock(
     // multiplied signal " "_mult goes in LPF_?_A
     // (lpf_X_* and lpf_Y_* are the same signal, both from lpf_F0. X = cos_ref chain (in phase),
     //  Y = sin_ref chain (quadrature): see X_28 / Y_28 below)
-    LP_filter3 #(.R(38)) i_LP_filter_sin_ref_A (.clk(clk), .rst(rst), .tau( lpf_X_A   ), .in( sin_ref_mult ), .out( sin_ref_lpf1 ) );
-    LP_filter3 #(.R(38)) i_LP_filter_cos_ref_A (.clk(clk), .rst(rst), .tau( lpf_Y_A   ), .in( cos_ref_mult ), .out( cos_ref_lpf1 ) );
-    LP_filter3 #(.R(28)) i_LP_filter_cos_1f_A  (.clk(clk), .rst(rst), .tau( lpf_F1_A  ), .in( cos_1f_mult  ), .out( cos_1f_lpf1  ) );
-    LP_filter3 #(.R(28)) i_LP_filter_cos_2f_A  (.clk(clk), .rst(rst), .tau( lpf_F2_A  ), .in( cos_2f_mult  ), .out( cos_2f_lpf1  ) );
-    LP_filter3 #(.R(28)) i_LP_filter_cos_3f_A  (.clk(clk), .rst(rst), .tau( lpf_F3_A  ), .in( cos_3f_mult  ), .out( cos_3f_lpf1  ) );
+    LP_filter3 #(.R(38),.OREG(1)) i_LP_filter_sin_ref_A (.clk(clk), .rst(rst), .tau( lpf_X_A   ), .in( sin_ref_mult ), .out( sin_ref_lpf1 ) );
+    LP_filter3 #(.R(38),.OREG(1)) i_LP_filter_cos_ref_A (.clk(clk), .rst(rst), .tau( lpf_Y_A   ), .in( cos_ref_mult ), .out( cos_ref_lpf1 ) );
+    LP_filter3 #(.R(28),.OREG(1)) i_LP_filter_cos_1f_A  (.clk(clk), .rst(rst), .tau( lpf_F1_A  ), .in( cos_1f_mult  ), .out( cos_1f_lpf1  ) );
+    LP_filter3 #(.R(28),.OREG(1)) i_LP_filter_cos_2f_A  (.clk(clk), .rst(rst), .tau( lpf_F2_A  ), .in( cos_2f_mult  ), .out( cos_2f_lpf1  ) );
+    LP_filter3 #(.R(28),.OREG(1)) i_LP_filter_cos_3f_A  (.clk(clk), .rst(rst), .tau( lpf_F3_A  ), .in( cos_3f_mult  ), .out( cos_3f_lpf1  ) );
 
 
     // LPF_A goes into LPF_?_B
-    LP_filter3 #(.R(38)) i_LP_filter_sin_ref_B (.clk(clk), .rst(rst), .tau( lpf_X_B   ), .in( sin_ref_lpf1 ), .out( sin_ref_lpf2 ) );
-    LP_filter3 #(.R(38)) i_LP_filter_cos_ref_B (.clk(clk), .rst(rst), .tau( lpf_Y_B   ), .in( cos_ref_lpf1 ), .out( cos_ref_lpf2 ) );
-    LP_filter3 #(.R(28)) i_LP_filter_cos_1f_B  (.clk(clk), .rst(rst), .tau( lpf_F1_B  ), .in( cos_1f_lpf1  ), .out( cos_1f_lpf2  ) );
-    LP_filter3 #(.R(28)) i_LP_filter_cos_2f_B  (.clk(clk), .rst(rst), .tau( lpf_F2_B  ), .in( cos_2f_lpf1  ), .out( cos_2f_lpf2  ) );
-    LP_filter3 #(.R(28)) i_LP_filter_cos_3f_B  (.clk(clk), .rst(rst), .tau( lpf_F3_B  ), .in( cos_3f_lpf1  ), .out( cos_3f_lpf2  ) );
+    LP_filter3 #(.R(38),.DREG(1)) i_LP_filter_sin_ref_B (.clk(clk), .rst(rst), .tau( lpf_X_B   ), .in( sin_ref_lpf1 ), .out( sin_ref_lpf2 ) );
+    LP_filter3 #(.R(38),.DREG(1)) i_LP_filter_cos_ref_B (.clk(clk), .rst(rst), .tau( lpf_Y_B   ), .in( cos_ref_lpf1 ), .out( cos_ref_lpf2 ) );
+    LP_filter3 #(.R(28),.DREG(1)) i_LP_filter_cos_1f_B  (.clk(clk), .rst(rst), .tau( lpf_F1_B  ), .in( cos_1f_lpf1  ), .out( cos_1f_lpf2  ) );
+    LP_filter3 #(.R(28),.DREG(1)) i_LP_filter_cos_2f_B  (.clk(clk), .rst(rst), .tau( lpf_F2_B  ), .in( cos_2f_lpf1  ), .out( cos_2f_lpf2  ) );
+    LP_filter3 #(.R(28),.DREG(1)) i_LP_filter_cos_3f_B  (.clk(clk), .rst(rst), .tau( lpf_F3_B  ), .in( cos_3f_lpf1  ), .out( cos_3f_lpf2  ) );
 
-
-    //wire signed [37-1:0] Xo_37,Yo_37,F1o_37,F2o_37,F3o_37;
-    // wire signed [47-1:0] Xo_47,Yo_47;
-    wire signed [53-1:0] Xo_53,Yo_53;
-    //wire signed [37-1:0] F1o_37,F2o_37,F3o_37;
-    wire signed [43-1:0] F1o_43,F2o_43,F3o_43;
-
-    //wire signed [28-1:0] Xo_28,Yo_28,F1o_28,F2o_28,F3o_28;
-    wire signed [38-1:0] Xo_38,Yo_38;
-    wire signed [28-1:0] F1o_28,F2o_28,F3o_28;
 
     assign X_28   = cos_ref_lpf2 >>> 4'd10 ;
     assign Y_28   = sin_ref_lpf2 >>> 4'd10 ;
@@ -772,28 +779,29 @@ module lock(
     assign F3_28  = cos_3f_lpf2  ;
 
 
+    // Amplification (sg_amp) and saturation to 14 bits ---------------------------------------
+    // Up to v2.3.18: Xo_53 = cos_ref_lpf2 <<< sg_amp0 -> satprotect2(53->38) -> [37:21] ->
+    // satprotect2(17->14) (and the same for Yo; F1o..F3o: 43 -> 28 -> [27:11] -> 14).
+    // v2.3.19: shift_sat14 gives the same value with fewer logic levels, and the result is
+    // registered (Xo..F3o): +1 clock. With the output register of the first LPF stage
+    // (LP_filter3 .OREG(1)) the lock-in outputs come 2 clocks (16 ns) later than before.
+    // Timing: the combinational chain LPF -> bypass -> shift -> saturation -> PID / scope / lock_ctrl
+    // did not fit in 8 ns (devAgent.md, Problemas abiertos 58). See doc/lock_latency.md.
 
-    assign Xo_53    = ( cos_ref_lpf2   <<< sg_amp0  );
-    assign Yo_53    = ( sin_ref_lpf2   <<< sg_amp0  );
-    assign F1o_43   = ( F1_28  <<< sg_amp1  );
-    assign F2o_43   = ( F2_28  <<< sg_amp2  );
-    assign F3o_43   = ( F3_28  <<< sg_amp3  );
+    shift_sat14 #(.RI(38),.W(53),.RO(38),.SB(5)) i_shift_sat14_Xo  ( .in( cos_ref_lpf2 ), .sh( sg_amp0 ), .out( Xo_w  ) );
+    shift_sat14 #(.RI(38),.W(53),.RO(38),.SB(5)) i_shift_sat14_Yo  ( .in( sin_ref_lpf2 ), .sh( sg_amp0 ), .out( Yo_w  ) );
+    shift_sat14 #(.RI(28),.W(43),.RO(28),.SB(4)) i_shift_sat14_F1o ( .in( F1_28        ), .sh( sg_amp1 ), .out( F1o_w ) );
+    shift_sat14 #(.RI(28),.W(43),.RO(28),.SB(4)) i_shift_sat14_F2o ( .in( F2_28        ), .sh( sg_amp2 ), .out( F2o_w ) );
+    shift_sat14 #(.RI(28),.W(43),.RO(28),.SB(4)) i_shift_sat14_F3o ( .in( F3_28        ), .sh( sg_amp3 ), .out( F3o_w ) );
 
-
-
-
-    // satprotect #(.Ri(47),.Ro(38),.SAT(38)) i_satprotect_Xo_47   ( .in( Xo_47  ), .out( Xo_38  ) );
-    // satprotect #(.Ri(47),.Ro(38),.SAT(38)) i_satprotect_Yo_47   ( .in( Yo_47  ), .out( Yo_38  ) );
-    // satprotect #(.Ri(37),.Ro(28),.SAT(28)) i_satprotect_F1o_37  ( .in( F1o_37 ), .out( F1o_28 ) );
-    // satprotect #(.Ri(37),.Ro(28),.SAT(28)) i_satprotect_F2o_37  ( .in( F2o_37 ), .out( F2o_28 ) );
-    // satprotect #(.Ri(37),.Ro(28),.SAT(28)) i_satprotect_F3o_37  ( .in( F3o_37 ), .out( F3o_28 ) );
-
-
-    satprotect2 #(.Ri(53),.Ro(38)) i_satprotect_Xo_53   ( .in( Xo_53  ), .out( Xo_38  ) );
-    satprotect2 #(.Ri(53),.Ro(38)) i_satprotect_Yo_53   ( .in( Yo_53  ), .out( Yo_38  ) );
-    satprotect2 #(.Ri(43),.Ro(28)) i_satprotect_F1o_43  ( .in( F1o_43 ), .out( F1o_28 ) );
-    satprotect2 #(.Ri(43),.Ro(28)) i_satprotect_F2o_43  ( .in( F2o_43 ), .out( F2o_28 ) );
-    satprotect2 #(.Ri(43),.Ro(28)) i_satprotect_F3o_43  ( .in( F3o_43 ), .out( F3o_28 ) );
+    // no reset (data path): they follow Xo_w..F3o_w one clock later
+    always @(posedge clk) begin
+        Xo   <=  Xo_w  ;
+        Yo   <=  Yo_w  ;
+        F1o  <=  F1o_w ;
+        F2o  <=  F2o_w ;
+        F3o  <=  F3o_w ;
+    end
 
 
 
@@ -881,24 +889,7 @@ module lock(
     end
     //read_ctrl
 
-    // Amplified signal output
-
-    //wire signed [16-1:0] Xo_16,Yo_16,F1o_16,F2o_16,F3o_16;
-
-
-    // assign Xo_16   = $signed(Xo_38[  37-1:21]) ;// + Xo_38[  20] ;
-    // assign Yo_16   = $signed(Yo_38[  37-1:21]) ;// + Yo_38[  20] ;
-    // assign F1o_16  = $signed(F1o_28[ 27-1:11]) ;// + F1o_28[ 10] ;
-    // assign F2o_16  = $signed(F2o_28[ 27-1:11]) ;// + F2o_28[ 10] ;
-    // assign F3o_16  = $signed(F3o_28[ 27-1:11]) ;// + F3o_28[ 10] ;
-    //
-
-
-    satprotect2 #(.Ri(17),.Ro(14)) i_satprotect_Xo    ( .in(  Xo_38[  38-1:21] ),    .out( Xo    ) );
-    satprotect2 #(.Ri(17),.Ro(14)) i_satprotect_Yo    ( .in(  Yo_38[  38-1:21] ),    .out( Yo    ) );
-    satprotect2 #(.Ri(17),.Ro(14)) i_satprotect_F1o   ( .in( F1o_28[  28-1:11] ),    .out( F1o   ) );
-    satprotect2 #(.Ri(17),.Ro(14)) i_satprotect_F2o   ( .in( F2o_28[  28-1:11] ),    .out( F2o   ) );
-    satprotect2 #(.Ri(17),.Ro(14)) i_satprotect_F3o   ( .in( F3o_28[  28-1:11] ),    .out( F3o   ) );
+    // Amplified signal output: Xo..F3o (shift_sat14 + register, above)
 
 
 
@@ -950,7 +941,10 @@ module lock(
       .int_rst_i    (  pidA_irst|(~pidA_enable_ctrl)    )   // integrator reset
     );
 
-    assign pidA_out = pidA_enable_ctrl ? pidA_out_cache : 14'b0 ;
+    // v2.3.19: the PID output is registered inside lock_pid_block (+1 clock); the enable that gates it
+    // is delayed by the same clock, so pidA_out is exactly the one of v2.3.18 one clock later
+    always @(posedge clk) pidA_enable_d <= pidA_enable_ctrl ;
+    assign pidA_out = pidA_enable_d ? pidA_out_cache : 14'b0 ;
 
     muxer4  #(.RES(14)) i_muxer5_pidB (
         // input
@@ -994,7 +988,8 @@ module lock(
       .int_rst_i    (  pidB_irst|(~pidB_enable_ctrl)    )   // integrator reset
     );
 
-    assign pidB_out = pidB_enable_ctrl ? pidB_out_cache : 14'b0 ;
+    always @(posedge clk) pidB_enable_d <= pidB_enable_ctrl ;
+    assign pidB_out = pidB_enable_d ? pidB_out_cache : 14'b0 ;
 
 
     /* end PIDs Blocks  ***********************************************/

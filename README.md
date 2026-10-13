@@ -14,7 +14,7 @@ loop, controlled from a web page or remotely over HTTP.
 
 ## Version 2.3.x (Ecosystem 2.0)
 
-Current version: **2.3.18** (branch `devel2.0`).
+Current version: **2.3.19** (branch `devel2.0`).
 
 This version is **based on the 0.3.x series (v0.3.11), but with the FPGA design built in Vivado 2020.1**,
 using the project structure of [RedPitaya-FPGA](https://github.com/RedPitaya/RedPitaya-FPGA).
@@ -22,7 +22,7 @@ It is intended for the Red Pitaya **Ecosystem 2.0** (e.g. `RedPitaya_OS_2.04`; t
 The 0.3.x series (branch `master`, FPGA with Vivado 2015.2) is the version for the 0.9x / 1.0 ecosystems.
 
 - Web interface and C controller: those of v0.3.11 plus the Ecosystem 2.0 changes of v2.3.10 and the
-  fixes of v2.3.12 to v2.3.18 (see [CHANGELOG](CHANGELOG.md))
+  fixes of v2.3.12 to v2.3.19 (see [CHANGELOG](CHANGELOG.md))
   (still built with Vivado 2015.2 SDK + Linaro toolchain).
 - FPGA: ported to Vivado 2020.1 (see [Building](#building)), oscilloscope of the Ecosystem 2.0 with the
   decimation widened to 20 bits (time ranges up to ~68 s).
@@ -46,6 +46,10 @@ The 0.3.x series (branch `master`, FPGA with Vivado 2015.2) is the version for t
   Single mode keeps a slow poll, Config → load without read-only keys, X+ up to 68.7 s, streaming processes
   without the fds of nginx and with a higher priority, `lock_from_registers.py --time` clamped.
   See [doc/Remote.md](doc/Remote.md) for the remote control and a known issue of the Ecosystem (`POST /data`).
+- v2.3.19: FPGA timing almost closed (WNS −8.954 → −1.099 ns) with pipeline registers in the lock-in, PIDs,
+  generator and outputs: the lock-in outputs come 16 ns later, the PID outputs and the DAC outputs 8 ns later each
+  (LOCK MODE loop +32 ns); same behaviour otherwise. See
+  [lock_in+pid_harmonic/doc/lock_latency.md](lock_in+pid_harmonic/doc/lock_latency.md).
 
 
 ## Features

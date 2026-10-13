@@ -193,7 +193,7 @@ if RESTORE_LOCK_MODE:
     rp.set_lpf(tau_exponent=15, order=2, line='ref')   # X, Y: 262 us, 2nd order
     rp.set_gain('ref', 'x32')
     rp.lock.error_sw = 'Yo'                            # error signal = Yo
-    rp.set_pid('A', sw='error', sp=0, kp=-500, ki=-20, kd=0, PSR=3, ISR=8, DSR=0, SAT=13)
+    rp.set_pid('A', sw='error', sp=0, kp=-250, ki=-20, kd=0, PSR=3, ISR=8, DSR=0, SAT=13)
     rp.pid_reset('A')
     rp.lock.out1_sw  = 'ctrl_A'                        # OUT1 = PID A + ramp A (+ modulation)
 else:

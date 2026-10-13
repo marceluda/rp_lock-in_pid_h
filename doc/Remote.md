@@ -390,7 +390,7 @@ X, Y = r['X_28'] / 2**11 / 8192, r['Y_28'] / 2**11 / 8192    # volts, amplitude 
 ### Configure a PID and the ramp
 
 ```python
-rp.set_pid('A', sw='error', sp=0, kp=-500, PSR='/1024',   # kp = -0.488
+rp.set_pid('A', sw='error', sp=0, kp=-250, PSR='/1024',   # kp = -0.244
            ki=-20, ISR='537 ms',                          # tau_i = 537 ms / 20 = 26.8 ms
            kd=0, SAT=13, ctrl=0)                          # integral term limited to +-1 V
 rp.lock.out1_sw = 'ctrl_A'                                # OUT1 = PID A + ramp A (out1_sw = 12)

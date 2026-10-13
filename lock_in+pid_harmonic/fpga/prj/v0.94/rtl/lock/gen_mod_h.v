@@ -16,10 +16,10 @@ module gen_mod_h
     input           [12-1:0] phase,    // Phase control
     input           [32-1:0] phase_sq, // Phase control
     input           [14-1:0] hp,   // Harmonic period control
-    output signed   [14-1:0] sin_ref, //sin_1f, sin_2f, sin_3f,
-    output signed   [14-1:0] cos_ref, cos_1f, cos_2f, cos_3f,
+    output reg signed [14-1:0] sin_ref=14'd0, //sin_1f, sin_2f, sin_3f,
+    output reg signed [14-1:0] cos_ref=14'd0, cos_1f=14'd0, cos_2f=14'd0, cos_3f=14'd0,
     output          [12-1:0] cntu_w,
-    output                   harmonic_trig//, square_trig
+    output reg               harmonic_trig=1'b0//, square_trig
 );
 
 
@@ -127,7 +127,7 @@ module gen_mod_h
     assign cnt_next_zero  = (quad_bit==2'b11)&(cnt==10'd000)&tau_tick ;
     assign cntu_next      = cnt_next_zero ? 12'b0 :  cntu + tau_tick  ;
 
-    assign  harmonic_trig = cnt_next_zero ;
+    // v2.3.19: harmonic_trig is registered below, with the references
 
 
     // read address engine *****************************************************************
@@ -234,14 +234,31 @@ module gen_mod_h
                             quad_bit3[0] ? cnt3 - tau_tick  :  cnt3 + tau_tick  ;
 
 
-    assign cos_ref  =  quad_bit[1]^quad_bit[0] ?  $signed(-memory_cos_r[cnt]) : memory_cos_r[cnt] ;
-    assign sin_ref  =  quad_bit[1]             ?  $signed(-memory_sin_r[cnt]) : memory_sin_r[cnt] ;
+    // v2.3.19: the references (and harmonic_trig) are registered: the whole generator comes 1 clock
+    // (8 ns) later than up to v2.3.18, all its outputs by the same clock (same waveforms and the same
+    // phases between them). The read of the ROM tables (block RAM without output register) plus the
+    // sign change did not leave time for the paths that start here (scope muxes, outputs with the
+    // modulation, PID inputs, multipliers of the lock-in). See doc/lock_latency.md.
+    wire signed [14-1:0] cos_ref_w, sin_ref_w, cos_1f_w, cos_2f_w, cos_3f_w ;
+
+    assign cos_ref_w  =  quad_bit[1]^quad_bit[0] ?  $signed(-memory_cos_r[cnt]) : memory_cos_r[cnt] ;
+    assign sin_ref_w  =  quad_bit[1]             ?  $signed(-memory_sin_r[cnt]) : memory_sin_r[cnt] ;
 
 
 
-    assign cos_1f   =  quad_bit1[1]^quad_bit1[0]   ?  $signed(-memory_cos1_r[cnt1] ) : memory_cos1_r[cnt1] ;
-    assign cos_2f   =  quad_bit2[1]^quad_bit2[0]   ?  $signed(-memory_cos2_r[cnt2])  : memory_cos2_r[cnt2] ;
-    assign cos_3f   =  quad_bit3[1]^quad_bit3[0]   ?  $signed(-memory_cos3_r[cnt3])  : memory_cos3_r[cnt3] ;
+    assign cos_1f_w   =  quad_bit1[1]^quad_bit1[0]   ?  $signed(-memory_cos1_r[cnt1] ) : memory_cos1_r[cnt1] ;
+    assign cos_2f_w   =  quad_bit2[1]^quad_bit2[0]   ?  $signed(-memory_cos2_r[cnt2])  : memory_cos2_r[cnt2] ;
+    assign cos_3f_w   =  quad_bit3[1]^quad_bit3[0]   ?  $signed(-memory_cos3_r[cnt3])  : memory_cos3_r[cnt3] ;
+
+    // no reset (data path): they follow the tables one clock later
+    always @(posedge clk) begin
+        cos_ref        <=  cos_ref_w     ;
+        sin_ref        <=  sin_ref_w     ;
+        cos_1f         <=  cos_1f_w      ;
+        cos_2f         <=  cos_2f_w      ;
+        cos_3f         <=  cos_3f_w      ;
+        harmonic_trig  <=  cnt_next_zero ;
+    end
 
 
 
