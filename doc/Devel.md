@@ -247,7 +247,9 @@ Where to change things:
 | Scope (decimation, `osc_ctrl_i`, bus read) | `rtl/rtl/classic/rp_scope_com.v`, `rp_scope_cfg.v`, `rp_decim.v` |
 | Constraints | `sdc/red_pitaya.xdc`, `prj/v0.94/sdc/` |
 
-Known: timing does not fully close; the App works. v2.3.19: WNS −1.099 ns, TNS −207.5 ns (774 endpoints) after
+Known: timing does not fully close; the App works. v2.3.20: WNS −0.888 ns, TNS −217.4 ns (762 endpoints; the
+references reach the lock-in 1 clock later than the outputs, so that the phase through the DAC is the one of v2.3.18).
+v2.3.19: WNS −1.099 ns, TNS −207.5 ns (774 endpoints) after
 adding pipeline registers to the lock-in, PIDs, generator and outputs ([`lock_latency.md`](../lock_in+pid_harmonic/doc/lock_latency.md));
 v2.3.17: WNS −8.954 ns, TNS −9565 ns (v2.3.15: −10.035 / −8637), the worst paths were the long combinational paths of
 the loop (PID → scope muxes, outputs). If you add logic between two registers of the loop, keep it short (8 ns) or

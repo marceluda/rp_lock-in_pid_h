@@ -14,7 +14,7 @@ loop, controlled from a web page or remotely over HTTP.
 
 ## Version 2.3.x (Ecosystem 2.0)
 
-Current version: **2.3.19** (branch `devel2.0`).
+Current version: **2.3.20** (branch `devel2.0`).
 
 This version is **based on the 0.3.x series (v0.3.11), but with the FPGA design built in Vivado 2020.1**,
 using the project structure of [RedPitaya-FPGA](https://github.com/RedPitaya/RedPitaya-FPGA).
@@ -50,6 +50,8 @@ The 0.3.x series (branch `master`, FPGA with Vivado 2015.2) is the version for t
   generator and outputs: the lock-in outputs come 16 ns later, the PID outputs and the DAC outputs 8 ns later each
   (LOCK MODE loop +32 ns); same behaviour otherwise. See
   [lock_in+pid_harmonic/doc/lock_latency.md](lock_in+pid_harmonic/doc/lock_latency.md).
+- v2.3.20: the references reach the lock-in 1 clock later (compensation of the output register of v2.3.19):
+  the phase measured through DAC → system → ADC is again the one of v2.3.18 (WNS −0.888 ns).
 
 
 ## Features

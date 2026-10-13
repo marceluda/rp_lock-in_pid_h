@@ -745,11 +745,25 @@ module lock(
 
     wire signed [28-1:0] sin_ref_mult_tmp_28, cos_ref_mult_tmp_28; // this is for amplitud enhancement
 
-    mult_dsp_14  i_mult_dps_sin_ref (.CLK(clk), .A($signed(sin_ref)) , .B(signal_i), .P(sin_ref_mult_tmp_28));
-    mult_dsp_14  i_mult_dps_cos_ref (.CLK(clk), .A($signed(cos_ref)) , .B(signal_i), .P(cos_ref_mult_tmp_28));
-    mult_dsp_14  i_mult_dps_cos_1f  (.CLK(clk), .A($signed(cos_1f )) , .B(signal_i), .P(cos_1f_mult ));
-    mult_dsp_14  i_mult_dps_cos_2f  (.CLK(clk), .A($signed(cos_2f )) , .B(signal_i), .P(cos_2f_mult ));
-    mult_dsp_14  i_mult_dps_cos_3f  (.CLK(clk), .A($signed(cos_3f )) , .B(signal_i), .P(cos_3f_mult ));
+    // v2.3.20: the references go to the multipliers of the lock-in 1 clock later than to the outputs
+    // (modulation). The outputs to the DACs got a register in v2.3.19 (+1 clock): with this one the
+    // reference and the signal that comes back through DAC -> system -> ADC keep the phase of v2.3.18
+    // (in v2.3.19 the measured phase changed by -360 deg * f * 8 ns, -0.143 deg at 49.6 kHz).
+    // Same as lock_in+pid_harmonic_hf v2.3.13. See doc/lock_latency.md.
+    reg  signed [14-1:0] sin_ref_d=14'd0, cos_ref_d=14'd0, cos_1f_d=14'd0, cos_2f_d=14'd0, cos_3f_d=14'd0 ;
+    always @(posedge clk) begin
+        sin_ref_d <= sin_ref ;
+        cos_ref_d <= cos_ref ;
+        cos_1f_d <= cos_1f ;
+        cos_2f_d <= cos_2f ;
+        cos_3f_d <= cos_3f ;
+    end
+
+    mult_dsp_14  i_mult_dps_sin_ref (.CLK(clk), .A($signed(sin_ref_d)) , .B(signal_i), .P(sin_ref_mult_tmp_28));
+    mult_dsp_14  i_mult_dps_cos_ref (.CLK(clk), .A($signed(cos_ref_d)) , .B(signal_i), .P(cos_ref_mult_tmp_28));
+    mult_dsp_14  i_mult_dps_cos_1f  (.CLK(clk), .A($signed(cos_1f_d)) , .B(signal_i), .P(cos_1f_mult ));
+    mult_dsp_14  i_mult_dps_cos_2f  (.CLK(clk), .A($signed(cos_2f_d)) , .B(signal_i), .P(cos_2f_mult ));
+    mult_dsp_14  i_mult_dps_cos_3f  (.CLK(clk), .A($signed(cos_3f_d)) , .B(signal_i), .P(cos_3f_mult ));
 
     assign sin_ref_mult = sin_ref_mult_tmp_28 <<< 4'd10 ; // this is for amplitud enhancement
     assign cos_ref_mult = cos_ref_mult_tmp_28 <<< 4'd10 ;

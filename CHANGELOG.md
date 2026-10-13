@@ -70,6 +70,29 @@ Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE pro
 simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
 < 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
+## v2.3.20 - FPGA: lock-in references delayed 1 clock (phase of v2.3.18 through the DAC)
+
+In v2.3.19 the outputs to the DACs got a register, so the modulation that goes out through `out1`/`out2` and comes
+back to `in1` was 1 clock (8 ns) later with respect to the reference of the lock-in: the measured phase changed by
+-360 deg * f * 8 ns (-0.143 deg at 49.6 kHz, measured -0.185 +- 0.045 deg on RP2). v2.3.20 delays the references
+into the multipliers of the lock-in 1 more clock, as in `lock_in+pid` 2.2.8, `lock_in+pid_harmonic_hf` 2.3.13,
+`lock_in+pid_harmonic2` 2.4.6 and `lock_in+pid_square` 2.0.1: in a loop through the DAC the lock-in sees the phase
+of v2.3.18 again, at every frequency and harmonic.
+
+### Changed (FPGA)
+- `lock.v`: `sin_ref_d`, `cos_ref_d`, `cos_1f_d..cos_3f_d` (+1 clock) into the five multipliers of the lock-in.
+  The references that go to the modulation, the scope and the slow DACs are not delayed. Latencies from `in1` do
+  not change (`in1` -> `Xo` 3 clocks, LOCK MODE loop +32 ns as in v2.3.19).
+- Timing (Vivado 2020.1): WNS -0.888 ns (v2.3.19: -1.099), TNS -217.4 ns (-207.5), 762 failing endpoints (774),
+  adc_clk -> dac_clk_1x +0.680 ns. `red_pitaya.bit` / `fpga.bit.bin` rebuilt. No change in C, page (version only)
+  or registers.
+
+### Added
+- `test/lock_latency_tb.sv`: the lock-in scenarios use `in1` delayed 2 clocks (the modulation leaves 2 clocks later)
+  and a new scenario S7 closes the loop `out1` -> "system" (3 clocks, gain 3/4, offset) -> `in1` for each model:
+  `Xo..F3o` = those of v2.3.18 delayed 4, bit exact (442 checks). With the `lock.v` of v2.3.19 it fails (S7: `Xo`,
+  `Yo`, `X_28` differ), i.e. it checks the compensation. `doc/lock_latency.md` updated.
+
 ## v2.3.19 - FPGA timing: pipeline registers in the lock-in, PIDs, generator and outputs
 
 The FPGA did not meet timing at 125 MHz (WNS -8.954 ns, TNS -9565 ns, 5101 failing endpoints): long

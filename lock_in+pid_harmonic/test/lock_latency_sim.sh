@@ -1,5 +1,5 @@
 #!/bin/bash
-# v2.3.19: simulates the lock.v of the working tree (N) side by side with the lock.v of a previous commit (O)
+# v2.3.19 (v2.3.20: references +1, loop scenario S7): simulates the lock.v of the working tree (N) side by side with the lock.v of a previous commit (O)
 # with test/lock_latency_tb.sv in Vivado 2020.1 xsim: every signal of N must be the one of O delayed by the
 # latency documented in doc/lock_latency.md, bit by bit; also measures the latency of a step.
 # Usage: test/lock_latency_sim.sh [work_dir [old_ref]]   (default: a temporary directory, removed at the end;

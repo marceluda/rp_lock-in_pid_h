@@ -1,12 +1,15 @@
 `timescale 1ns / 1ps
-// lock_latency_tb.sv (v2.3.19): the lock.v of this version (N) side by side with the one of a previous
+// lock_latency_tb.sv (v2.3.20): the lock.v of this version (N) side by side with the one of a previous
 // version (O, modules renamed with the prefix o_ by test/lock_latency_sim.sh), same bus writes. Checks that
 // every signal of N is the one of O delayed by the documented latency (doc/lock_latency.md), bit by bit,
 // and measures the latency of a step.
-// The generator of N comes 1 clock later than the one of O. In the scenarios with dly_in = 1, N also gets
-// in1/in2 1 clock later (as in a real loop, where in1 is the response to the modulation of out1): then N
-// must be exactly O delayed by 1 clock plus the registers added in v2.3.19. With dly_in = 0 (S3, PIDs on
-// in1, and the step tests) only the paths that do not mix in1 with the generator are compared.
+// The generator of N comes 1 clock later than the one of O (v2.3.19), and its references reach the lock-in
+// 1 clock later still (v2.3.20, compensation of the output register to the DACs). In the lock-in scenarios
+// N gets in1/in2 2 clocks later (dly_in = 2, as in a real loop, where in1 is the response to the modulation
+// of out1, which leaves 2 clocks later): then N must be exactly O delayed by 2 clocks plus the registers
+// added in v2.3.19. With dly_in = 0 (S3, PIDs on in1, and the step tests) or 1 (S4) only the paths that do
+// not mix in1 with the generator are compared. S7 closes the loop out1 -> "system" -> in1 for each model
+// (no tb delay): it checks the compensation, i.e. that the lock-in sees the same phase as v2.3.18.
 // Run with test/lock_latency_sim.sh (Vivado 2020.1 xsim). Prints "TB RESULT: PASS" or "TB RESULT: FAIL".
 //
 // Parts:
@@ -17,8 +20,11 @@
 //   S3  PIDs on in1 / in2, PSR/ISR/DSR/SAT/kd/ki swept (integrator saturation, sat14)
 //   S4  modulation on (out1 = in1 + mod, out2 = mod), S4b the same without delaying in1 (modulation +2,
 //       references +1: the modulation leaves 1 clock later with respect to the reference of the lock-in)
-//   S5  level trigger of lock_ctrl on Xo: the lock comes 2 clocks later (3 with the delayed input)
+//   S5  level trigger of lock_ctrl on Xo: the lock comes 2 clocks later (4 with the input delayed 2)
 //   S6  step response: first clock in which each output moves after a step of in1
+//   S7  loop through the "DAC": in1 of each model = its own out1 (modulation only) delayed 3 clocks and
+//       scaled, in2 = its own out2 (= ctrl_A): Xo..F3o of N = the ones of O delayed 4 (2 of the loop + 2 of
+//       Xo), i.e. same phase as v2.3.18 (without the compensation they would differ)
 module lock_latency_tb;
 
     reg clk = 1'b0;
@@ -27,10 +33,15 @@ module lock_latency_tb;
     reg                rst = 1'b1;
     reg  signed [13:0] in1 = 14'sd0, in2 = 14'sd0;
     reg  signed [13:0] in1_d = 14'sd0, in2_d = 14'sd0;   // in1/in2 one clock later
-    bit                dly_in = 0;                       // N gets in1_d/in2_d
-    wire signed [13:0] n_in1 = dly_in ? in1_d : in1;
-    wire signed [13:0] n_in2 = dly_in ? in2_d : in2;
-    always @(posedge clk) begin in1_d <= in1; in2_d <= in2; end
+    reg  signed [13:0] in1_dd = 14'sd0, in2_dd = 14'sd0; // in1/in2 two clocks later
+    int                dly_in = 0;                       // N gets in1/in2 delayed dly_in clocks (0, 1 or 2)
+    bit                loop_on = 0, loop_on_o = 0;       // S7: each model gets its own outputs back (N 2 clocks after O)
+    reg  signed [13:0] n_fb1 = 14'sd0, n_fb2 = 14'sd0, o_fb1 = 14'sd0, o_fb2 = 14'sd0;
+    wire signed [13:0] n_in1 = loop_on ? n_fb1 : (dly_in == 2) ? in1_dd : (dly_in == 1) ? in1_d : in1;
+    wire signed [13:0] n_in2 = loop_on ? n_fb2 : (dly_in == 2) ? in2_dd : (dly_in == 1) ? in2_d : in2;
+    wire signed [13:0] o_in1 = loop_on_o ? o_fb1 : in1;
+    wire signed [13:0] o_in2 = loop_on_o ? o_fb2 : in2;
+    always @(posedge clk) begin in1_d <= in1; in2_d <= in2; in1_dd <= in1_d; in2_dd <= in2_d; end
     reg         [31:0] addr = 32'd0, wdata = 32'd0;
     reg                wen = 1'b0;
 
@@ -46,13 +57,23 @@ module lock_latency_tb;
     );
 
     o_lock O (
-        .clk(clk), .rst(rst), .in1(in1), .in2(in2), .external_trigger(1'b0),
+        .clk(clk), .rst(rst), .in1(o_in1), .in2(o_in2), .external_trigger(1'b0),
         .out1(o_out1), .out2(o_out2), .osc1(o_osc1), .osc2(o_osc2),
         .trigger(), .digital_modulation(), .ramp_direction_out(),
         .pwm_cfg_a(), .pwm_cfg_b(), .pwm_cfg_c(), .pwm_cfg_d(), .osc_ctrl_w(),
         .sys_addr(addr), .sys_wdata(wdata), .sys_sel(4'hF), .sys_wen(wen), .sys_ren(1'b0),
         .sys_rdata(), .sys_err(), .sys_ack()
     );
+
+    // S7 "system": out1 -> DAC -> system -> ADC -> in1, 3 clocks and a gain of 3/4 (plus an offset), the same
+    // for both models; in2 = out2 2 clocks later
+    reg signed [13:0] n_o1_d [3], o_o1_d [3], n_o2_d, o_o2_d;
+    always @(posedge clk) begin
+        n_o1_d[0] <= n_out1; n_o1_d[1] <= n_o1_d[0]; n_o1_d[2] <= n_o1_d[1];
+        o_o1_d[0] <= o_out1; o_o1_d[1] <= o_o1_d[0]; o_o1_d[2] <= o_o1_d[1];
+        n_fb1 <= (3*n_o1_d[1]) / 4 + 14'sd250;  o_fb1 <= (3*o_o1_d[1]) / 4 + 14'sd250;
+        n_o2_d <= n_out2; o_o2_d <= o_out2; n_fb2 <= n_o2_d; o_fb2 <= o_o2_d;
+    end
 
     // ---------------------------------------------------------------- signals compared
     localparam NS = 20;
@@ -259,9 +280,9 @@ module lock_latency_tb;
         wr(OSCA, 17); wr(OSCB, 10); wr(TSW, 1); wr(LCTRL, 12);    // scope Xo / pidA_out_cache, trigger signal Xo, PIDs on
         repeat (5) @(negedge clk);
         A1 = 3000.0; A2 = 1500.0; NOISE = 200.0;
-        dly_in = 1;
+        dly_in = 2;
         run(150000);
-        setL(3, 4, 4, 3, 5, 5, 3, 4, 3, 2, 4, 0);
+        setL(4, 5, 5, 4, 6, 6, 4, 5, 4, 3, 5, 0);
         compare("S1", L, 20);
 
         // S2 bypass, sg_amp sweep -----------------------------------------------------------
@@ -275,9 +296,9 @@ module lock_latency_tb;
             wr(OSCA, 18); wr(OSCB, 21); wr(TSW, 4); wr(LCTRL, 12);
             repeat (5) @(negedge clk);
             A1 = 7000.0; A2 = 1000.0; NOISE = 1500.0;
-            dly_in = 1;
+            dly_in = 2;
             run(8000);
-            setL(3, 4, 4, 3, 5, 5, 3, 3, 3, 2, 4, 0);
+            setL(4, 5, 5, 4, 6, 6, 4, 4, 4, 3, 5, 0);
             compare($sformatf("S2 sg%0d", g), L, 20);
         end
 
@@ -308,9 +329,11 @@ module lock_latency_tb;
         A1 = 3000.0; A2 = 1500.0; NOISE = 200.0;
         dly_in = 1;
         run(10000);
-        setL(3, -1, -1, -1, 2, 2, 2, 2, -1, 2, -1, 0);
+        // in1 delayed 1: out1/out2 and the scope are compared; the lock-in (references +2) is not
+        setL(-1, -1, -1, -1, 2, 2, 2, 2, -1, -1, -1, 0);
         compare("S4", L, 20);
-        // S4b: in1 not delayed: the modulation alone (out2 = 0 + mod) comes 2 clocks later, the references 1
+        // S4b: in1 not delayed: the modulation alone (out2 = 0 + mod) comes 2 clocks later, the references
+        // (scope signal 12, cos_ref) 1
         start_scen();
         config_lockin(33, 32, 32, 32, 5, 0, 0, 0);
         wr(OUT1, 0); wr(OUT2, 0); wr(MOD1, 100); wr(MOD2, 2000);
@@ -328,7 +351,7 @@ module lock_latency_tb;
         wr(LCTRL, (1<<10) | (2<<8) | (1<<6));                      // level, rising, PID A on when locked
         repeat (5) @(negedge clk);
         A1 = 3000.0; A2 = 1500.0; NOISE = 200.0;
-        dly_in = 1;
+        dly_in = 2;
         t_stim = 0; cyc = 0; rec = 1; stim_on = 1;
         repeat (2000) @(negedge clk);
         wr(LCTRL, (1<<10) | (2<<8) | (1<<6) | 2);                  // arm
@@ -340,23 +363,52 @@ module lock_latency_tb;
             if (t_lock_o < 0 && ((ho[17][t] >> 1) & 1) && !((ho[17][t-1] >> 1) & 1)) t_lock_o = t;
         end
         checks++;
-        if (t_lock_o < 0 || t_lock_n != t_lock_o + 3) begin
-            fails++; $display("FAIL S5 level trigger on Xo: locked at clock %0d (old %0d), expected old + 3", t_lock_n, t_lock_o);
+        if (t_lock_o < 0 || t_lock_n != t_lock_o + 4) begin
+            fails++; $display("FAIL S5 level trigger on Xo: locked at clock %0d (old %0d), expected old + 4", t_lock_n, t_lock_o);
         end else
-            $display("ok   S5 level trigger on Xo: locked at clock %0d, old at %0d (+3 = 1 of the delayed input + 2 of Xo)", t_lock_n, t_lock_o);
-        setL(3, -1, -1, -1, -1, -1, -1, -1, 3, 2, -1, -1);         // PIDs and status change with the lock (checked above)
+            $display("ok   S5 level trigger on Xo: locked at clock %0d, old at %0d (+4 = 2 of the delayed input + 2 of Xo)", t_lock_n, t_lock_o);
+        setL(4, -1, -1, -1, -1, -1, -1, -1, 4, 3, -1, -1);         // PIDs and status change with the lock (checked above)
         compare("S5", L, 20);
 
         // S6 step response -------------------------------------------------------------------
-        // dly 1: N gets the step 1 clock later (its references are 1 clock later); the difference printed
-        // is the one of the chain (N - O - 1)
-        step_test("Xo, LPF bypassed (F0 0), in1 step", 0, 0, 0, 9, 1);
-        step_test("Xo, LPF on (F0 33)", 33, 5, 0, 9, 1);
+        // dly 2: N gets the step 2 clocks later (its references reach the lock-in 2 clocks later); the
+        // difference printed is the one of the chain (N - O - 2)
+        step_test("Xo, LPF bypassed (F0 0), in1 step", 0, 0, 0, 9, 2);
+        step_test("Xo, LPF on (F0 33)", 33, 5, 0, 9, 2);
         step_test("pidA_out (PID A on in1, kp only)", 0, 0, 1, 9, 0);
-        step_test("pidA_out (PID A on Xo, kp only)", 0, 0, 1, 1, 1);
-        step_test("out1 = ctrl_A (PID A on Xo)", 0, 0, 2, 1, 1);
+        step_test("pidA_out (PID A on Xo, kp only)", 0, 0, 1, 1, 2);
+        step_test("out1 = ctrl_A (PID A on Xo)", 0, 0, 2, 1, 2);
         step_test("out1 = ctrl_A (PID A on in1)", 0, 0, 2, 9, 0);
         step_test("out1 = in1", 0, 0, 3, 1, 0);
+
+        // S7 loop through the "DAC" (compensation of v2.3.20) -------------------------------------
+        // out1 = modulation only (cos_ref), in1 = 3/4 out1 3 clocks later + offset; out2 = ctrl_A (PID A on Yo,
+        // not fed back to in1: a feedback through the PID would add the PID latency to the loop), in2 = out2.
+        // N.out1 = O.out1 delayed 2 (generator + output register), so N.in1 = O.in1 delayed 2, and the references
+        // of N reach the lock-in 2 clocks later too: X/Y/F of N = those of O delayed 2 + 2. In v2.3.19 (references
+        // +1) the products would differ (the phase of the reference with respect to in1 would change by 1 clock).
+        for (int hp = 0; hp < 2; hp++) begin
+            start_scen();
+            config_lockin(33, 32, 32, 32, 5, 4, 8, 12);
+            wr(HP, hp ? 7 : 0);                                     // harmonic period (0: 49.6 kHz; 7: lower)
+            wr(ERRSW, 2);                                           // error = Yo
+            wr(ASW, 0); wr(AKP, -250 & 16'h3FFF); wr(AKI, -20 & 16'h3FFF); wr(APSR, 3); wr(AISR, 8); wr(ASAT, 13);
+            wr(OUT1, 0); wr(OUT2, 12); wr(MOD1, 5000); wr(MOD2, 14'h3FFF);   // out1 = 0 + mod, out2 = ctrl_A
+            wr(OSCA, 17); wr(OSCB, 23); wr(TSW, 1); wr(LCTRL, 12);
+            repeat (5) @(negedge clk);
+            // the loop of N closes 2 clocks after the one of O, so N.in1 = O.in1 delayed 2 from the start
+            dly_in = 0; loop_on_o = 1;
+            repeat (2) @(negedge clk);
+            loop_on = 1;
+            cyc = 0; rec = 1;
+            repeat (hp ? 60000 : 30000) @(posedge clk);
+            @(negedge clk); rec = 0;
+            loop_on = 0; loop_on_o = 0;
+            // x pa pb err o1 o2 s1 s2 sig x28 ca stat; in2 = out2 delayed (2 + its latency 6): not a plain
+            // delay of O in the PID B path, not compared (pb -1)
+            setL(4, 5, -1, 4, 2, 6, 4, 2, 4, 3, 5, 0);
+            compare($sformatf("S7 hp%0d", hp), L, 20);
+        end
 
         $display("checks %0d, fails %0d", checks, fails);
         if (fails == 0) $display("TB RESULT: PASS"); else $display("TB RESULT: FAIL");
