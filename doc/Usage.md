@@ -55,7 +55,7 @@ the last value comes back (up to v2.3.15 an emptied field sent 0).
 | Button | Action |
 |---|---|
 | Autoscale | Rescales the **Y axis** to the data on screen, only in the page. Does not end a lock capture. |
-| Reset zoom, zoom in/out, pan | Plot navigation. A zoom selects the time window of the acquisition (the decimation is chosen from it). |
+| Reset zoom, zoom in/out, pan | Plot navigation. A zoom selects the time window of the acquisition (the decimation is chosen from it). Reset zoom (v2.3.21) sets the window from t = 0 to one period of the ramp (Ext Trig = Scan floor / Scan ceil), one period of the modulation (Ext Trig = harmonic mod.) or one whole memory at the current decimation (otherwise), and Y to −1 … 1 V (raw mode −8192 … 8192); during a lock capture it first ends it, as AUTO, and uses the restored Ext Trig. The Raw Mode button rescales Y the same way. |
 | Channel 1 / Channel 2 | Show or hide each channel. |
 | Stop | Stops the acquisition. |
 | Save Data | Plot data as Python/Numpy, Matlab/Octave or CSV ([Saving data](#saving-data)). |

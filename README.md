@@ -14,7 +14,7 @@ loop, controlled from a web page or remotely over HTTP.
 
 ## Version 2.3.x (Ecosystem 2.0)
 
-Current version: **2.3.20** (branch `devel2.0`).
+Current version: **2.3.21** (branch `master`).
 
 This version is **based on the 0.3.x series (v0.3.11), but with the FPGA design built in Vivado 2020.1**,
 using the project structure of [RedPitaya-FPGA](https://github.com/RedPitaya/RedPitaya-FPGA).
@@ -22,7 +22,7 @@ It is intended for the Red Pitaya **Ecosystem 2.0** (e.g. `RedPitaya_OS_2.04`; t
 The 0.3.x series (branch `master`, FPGA with Vivado 2015.2) is the version for the 0.9x / 1.0 ecosystems.
 
 - Web interface and C controller: those of v0.3.11 plus the Ecosystem 2.0 changes of v2.3.10 and the
-  fixes of v2.3.12 to v2.3.19 (see [CHANGELOG](CHANGELOG.md))
+  fixes of v2.3.12 to v2.3.21 (see [CHANGELOG](CHANGELOG.md))
   (still built with Vivado 2015.2 SDK + Linaro toolchain).
 - FPGA: ported to Vivado 2020.1 (see [Building](#building)), oscilloscope of the Ecosystem 2.0 with the
   decimation widened to 20 bits (time ranges up to ~68 s).
@@ -52,6 +52,9 @@ The 0.3.x series (branch `master`, FPGA with Vivado 2015.2) is the version for t
   [lock_in+pid_harmonic/doc/lock_latency.md](lock_in+pid_harmonic/doc/lock_latency.md).
 - v2.3.20: the references reach the lock-in 1 clock later (compensation of the output register of v2.3.19):
   the phase measured through DAC → system → ADC is again the one of v2.3.18 (WNS −0.888 ns).
+- v2.3.21: **Reset zoom** sets the scope to one period of the ramp (Ext Trig = Scan floor / Scan ceil), one period
+  of the modulation (Ext Trig = harmonic mod.) or one whole memory at the current Dec (otherwise), and Y to
+  −1 … 1 V (raw mode −8192 … 8192); during a lock capture it first ends it (as AUTO). Raw Mode rescales Y the same way.
 
 
 ## Features

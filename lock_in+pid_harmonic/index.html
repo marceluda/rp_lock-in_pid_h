@@ -16,7 +16,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Harmonic lock-in+PID (v2.3.20)</title>
+  <title>Harmonic lock-in+PID (v2.3.21)</title>
   <link href="../assets/bootstrap-3.0.0/css/bootstrap.css" rel="stylesheet" type="text/css">
   <link href="../assets/style.css?6" rel="stylesheet" type="text/css">
   <script src="../assets/bootstrap-3.0.0/js/jquery.js"></script>
@@ -1495,6 +1495,7 @@
     $(input_buttons).on('click', function() {
       $(this).toggleClass('btn-default btn-primary');
       params.local[this.id] = ($(this).is('.btn-primary') ? 1 : 0);
+      if(this.id === 'lock_osc_raw_mode') rawModeRescaleY();   // v2.3.21: Y in the new units
       sendParams();
     });
 
@@ -3049,6 +3050,54 @@
     return { time: (t == 1 || t == 3), level: (t == 2 || t == 3) };
   }
   // [TRIG FROM GRAPH END]
+
+  // [RESET ZOOM BEGIN] v2.3.21 (pure functions, also run by test/reset_zoom_sim.js)
+  // Decimation of each scope time_range (src/fpga.c, osc_fpga_cnv_time_range_to_dec()) and length of one memory of
+  // the scope (16384 samples of 8 ns) at Dec 1, in seconds.
+  var scope_dec_list = [1, 8, 64, 128, 256, 512, 1024, 8192, 65536, 524288];
+  var scope_mem_s    = 16384 * 8e-9;
+  // Margin under the length of a memory: the server keeps xmin/xmax in float (32 bits) and takes the smallest Dec
+  // whose memory covers the window (src/main.c, transform_acq_params()), so a window of exactly one memory could
+  // round up and take the next Dec (x8 coarser).
+  var reset_zoom_margin = 1e-6;
+
+  // Period of the harmonic modulation (local oscillator of the lock-in) in FPGA clock cycles (8 ns), as gen_mod_h.v:
+  // a table of 2520 values, each one held lock_gen_mod_hp+1 cycles (hp is 14 bits in the FPGA). 0 if unknown.
+  function modPeriodCycles(p) {
+    var hp = Math.round(Number(p.lock_gen_mod_hp));
+    if(!isFinite(hp) || hp < 0) return 0;
+    return 2520 * ((hp & 0x3FFF) + 1);
+  }
+
+  // Window of Reset Zoom, from the scope / lock params p (params.local) and the current scope time_range:
+  //  - Oscilloscope Ext Trig (lock_trig_sw) = Scan floor (2) or Scan ceil (4): one period of the ramp
+  //    (rampPeriodCycles(), as gen_ramp.v: sawtooth (high-low+1)*(step+1), triangle 2*(high-low)*(step+1) cycles);
+  //  - Ext Trig = harmonic mod. (8): one period of the modulation (modPeriodCycles(): 2520*(hp+1) cycles);
+  //  - otherwise (or if that period can not be computed): one whole memory of the scope at the current Dec,
+  //    16384 * 8 ns * Dec.
+  // The window starts at t = 0 (the trigger). The server picks the Dec from the window (the smallest one whose memory
+  // covers it): a period longer than the memory at the current Dec takes a larger Dec (coarser), a shorter one a
+  // smaller Dec (finer), as a zoom does. Windows longer than the longest memory (68.72 s, Dec 524288) are clamped
+  // to it. Y: -1 V .. +1 V, or -8192 .. 8192 (ADC counts) in raw mode.
+  // Returns { xmin_s, xmax_s, ymin, ymax, source: 'ramp' | 'mod' | 'memory', period_s, dec, clamped }.
+  function resetZoomWindow(p, time_range) {
+    var tsw = Number(p.lock_trig_sw), cyc = 0, source = 'memory';
+    if(tsw == 2 || tsw == 4) { cyc = rampPeriodCycles(p); if(cyc > 0) source = 'ramp'; }
+    else if(tsw == 8)        { cyc = modPeriodCycles(p);  if(cyc > 0) source = 'mod';  }
+    var tr = Math.round(Number(time_range));
+    if(!(tr >= 0 && tr < scope_dec_list.length)) tr = 0;
+    var period_s = (source === 'memory' ? scope_mem_s * scope_dec_list[tr] : cyc * 8e-9);
+    // Dec that the server will take for this window
+    var i = 0;
+    while(i < scope_dec_list.length - 1 && scope_dec_list[i] * scope_mem_s < period_s * (1 - reset_zoom_margin)) i++;
+    var mem_s = scope_dec_list[i] * scope_mem_s;
+    var clamped = (period_s > mem_s * (1 + reset_zoom_margin));
+    var raw = !!Number(p.lock_osc_raw_mode);
+    return { xmin_s: 0, xmax_s: Math.min(period_s, mem_s * (1 - reset_zoom_margin)),
+             ymin: (raw ? -8192 : -1), ymax: (raw ? 8192 : 1),
+             source: source, period_s: period_s, dec: scope_dec_list[i], clamped: clamped };
+  }
+  // [RESET ZOOM END]
 
   // [LOCK CAPTURE BEGIN] v2.3.14: "Capture Lock" and "Fire on click" (doc/lock_capture.md). Also run by
   // test/lock_capture_ui_sim.js.
@@ -4804,30 +4853,54 @@
 
     $('#btn_ch1, #btn_ch2').data('checked', true).removeClass('btn-default').addClass('btn-primary');
 
-    var ymax = params.original.gui_reset_y_range / 2;
-    var ymin = ymax * -1;
+    // v2.3.21 (build 48): a lock capture ends first, as with AUTO (the scope settings saved before it are restored,
+    // Ext Trig included), and the window follows the restored Ext Trig
+    var restored = lockCaptureLeave('', 'Reset zoom');
 
-    $.extend(true, plot_options, {
-      xaxis:  { min: null, max: null },
-      yaxis:  { min: ymin, max: ymax },
-      yaxis2: { min: ymin, max: ymax }
-    });
+    // v2.3.21: the window depends on the Ext Trig of the scope (resetZoomWindow()): one period of the ramp (Scan
+    // floor / Scan ceil), one period of the modulation (harmonic mod.) or one whole memory at the current Dec;
+    // Y -1..1 V (raw mode -8192..8192). Before, X went to 0..130 us (Dec 1, server reset of xmin/xmax = -1e6/1e6)
+    // and Y to +-gui_reset_y_range/2 also in raw mode (+-1 count).
+    var tr = (params.original && isFinite(params.original.time_range) ? params.original.time_range : params.local.time_range);
+    var w = resetZoomWindow(params.local, tr);
+    console.log('Reset zoom: ' + (w.source === 'ramp' ? 'ramp period' : (w.source === 'mod' ? 'modulation period' :
+                'one memory of the scope')) + ' ' + w.period_s.toPrecision(6) + ' s -> window 0 .. ' +
+                w.xmax_s.toPrecision(6) + ' s (Dec ' + w.dec + ')' + (w.clamped ? ', clamped to the longest memory' : ''));
 
+    resetZoomY(w.ymin, w.ymax);
+
+    // params.local.xmin/xmax and the plot x axis, in the current time units; the server picks the Dec from them and,
+    // if the units change, answers with forceX in the new ones (as a zoom, Choose from graph or Config load)
+    lockSetXWindow(w.xmin_s, w.xmax_s);
+
+    $.extend(true, plot_options, { xaxis: { min: params.local.xmin, max: params.local.xmax } });
+
+    updateRanges();
+    updateTriggerSlider();
+    sendParams(true, true);
+    if(restored) runStop();
+  }
+
+  // v2.3.21: Y axes of the plot (and of plot_options) to ymin..ymax, without drawing (the caller does)
+  function resetZoomY(ymin, ymax) {
     var options = plot.getOptions();
-    options.xaxes[0].min = null;
-    options.xaxes[0].max = null;
     options.yaxes[0].min = ymin;
     options.yaxes[0].max = ymax;
-    options.yaxes[1].min = options.yaxes[0].min;
-    options.yaxes[1].max = options.yaxes[0].max;
+    options.yaxes[1].min = ymin;
+    options.yaxes[1].max = ymax;
+    $.extend(true, plot_options, { yaxis: { min: ymin, max: ymax }, y2axis: { min: ymin, max: ymax } });
+  }
 
+  // v2.3.21 (build 48): Raw Mode switched by the user: Y to the range of Reset zoom in the new units (-8192..8192 or
+  // -1..1 V); X does not change
+  function rawModeRescaleY() {
+    if(!plot || !params.local) return;
+    var raw = !!Number(params.local.lock_osc_raw_mode);
+    resetZoomY(raw ? -8192 : -1, raw ? 8192 : 1);
     plot.setupGrid();
     plot.draw();
-
-    params.local.xmin = xmin;
-    params.local.xmax = xmax;
-
-    sendParams(true, true);
+    updateRanges();
+    updateTriggerSlider();
   }
 
   function updateZoom() {
@@ -5736,7 +5809,7 @@
     <div class="container">
       <a id="btn_exit" class="pull-left" href="/index.html"><span class="glyphicon glyphicon-chevron-left" title="Exit" alt="Exit"></span></a>
       <img class="logo pull-left" src="../assets/images/logo_white.png">
-      <h2 class="page-title">Harmonic lock-in+PID (v2.3.20)</h2>
+      <h2 class="page-title">Harmonic lock-in+PID (v2.3.21)</h2>
     </div>
   </div>
   <div class="container">
@@ -5745,7 +5818,7 @@
         <button id="btn_autoscale_y" class="btn btn-primary btn-lg" data-autozoom="false" onclick="autoscaleY()" title="Rescales the Y axis to the data on the screen (in this page only: the scope settings do not change). It is not AUTO: it does not end a Capture Lock, so it can be used on a frozen capture.">
           <span class="glyphicon glyphicon-resize-vertical"></span> Autoscale
         </button>
-        <button class="btn btn-primary btn-lg" onclick="resetZoom()">
+        <button class="btn btn-primary btn-lg" onclick="resetZoom()" title="X: one period of the ramp (Ext Trig = Scan floor / Scan ceil), one period of the modulation (Ext Trig = harmonic mod.) or one whole memory of the scope at the current Dec (otherwise), from t = 0. Y: -1 V .. 1 V (raw mode: -8192 .. 8192)">
           <span class="glyphicon glyphicon-retweet"></span> Reset zoom
         </button>
         <div id="selzoompan" class="btn-group" data-toggle="buttons">

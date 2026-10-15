@@ -70,6 +70,43 @@ Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE pro
 simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
 < 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
+## v2.3.21 - "Reset zoom" fits the scope to the period of the trigger source (no FPGA change)
+
+"Reset zoom" used to set the time window to 0..130 us (Dec 1, the server "reset zoom" request) whatever the trigger,
+and Y to +-gui_reset_y_range/2 also in raw mode (+-1 count there). Now it depends on the Oscilloscope *Ext Trig*:
+
+### Changed (web page)
+- Ext Trig = **Scan floor** or **Scan ceil**: X = one period of the Ramp Controller as `gen_ramp.v` generates it,
+  sawtooth `(high-low+1)*(step+1)`, triangle `2*(high-low)*(step+1)` clock cycles of 8 ns (the same function as
+  Choose from graph, `rampPeriodCycles()`; measured on the RTL by `test/ramp_mod_period_sim.sh`).
+- Ext Trig = **harmonic mod.**: X = one period of the local oscillator of the lock-in, `2520*(hp+1)` cycles
+  (`gen_mod_h.v`, f = 125 MHz / (2520 (hp+1))).
+- Other Ext Trig (or a ramp with high <= low): X = one whole memory of the scope at the current Dec,
+  16384 * 8 ns * Dec.
+- The window starts at t = 0 (the trigger). It is applied as a zoom: the server picks the Dec from it (the smallest
+  one whose memory covers the period, so a period longer than the memory takes a larger Dec and a shorter one a finer
+  Dec) and the page follows the automatic time units (forceX). The window is kept 1 ppm under a whole memory, since
+  the server keeps xmin/xmax in float and one memory exactly would round up to the next Dec (x8). Periods longer than
+  the longest memory (68.72 s, Dec 524288) are clamped to it.
+- Y: -1 V .. +1 V; in raw mode -8192 .. 8192.
+- During a lock capture (Capture Lock), Reset zoom first ends it as AUTO does: the scope settings saved before the
+  capture are restored (trigger mode, source and Ext Trig; console "Capture Lock: ended by Reset zoom") and the
+  window follows the restored Ext Trig (e.g. Scan floor -> one ramp period).
+- The Raw Mode button rescales Y as Reset zoom does (-8192 .. 8192 / -1 .. 1 V); X does not change.
+- Tooltip of the button with this behaviour; `doc/Usage.md` updated. No change in C (version only), FPGA or registers.
+
+### Added
+- `test/reset_zoom_sim.js`: the real `resetZoom()` against a model of the time range code of `src/main.c` (float32
+  xmin/xmax, Dec, units, forceX): the three cases, Dec limits, raw mode, Reset zoom during a capture and the Raw
+  Mode button, 26 checks. With the page of v2.3.20 (`--old`) 25 of them fail.
+- `test/ramp_mod_period_tb.v` / `test/ramp_mod_period_sim.sh` (Vivado 2020.1 xsim): periods of the ramp floor/ceil
+  triggers (triangle, sawtooth up/down) and of `harmonic_trig` on the RTL, 10 checks.
+
+### Note
+- The period shown under *Ramp period* in the Ramp panel is `(high-low)*(step+1)*8 ns*(2-sawtooth)`: right for the
+  triangle, but one step (`(step+1)*8 ns`) short for the sawtooth. Not changed (the conversion of that field is still
+  to be reviewed).
+
 ## v2.3.20 - FPGA: lock-in references delayed 1 clock (phase of v2.3.18 through the DAC)
 
 In v2.3.19 the outputs to the DACs got a register, so the modulation that goes out through `out1`/`out2` and comes
