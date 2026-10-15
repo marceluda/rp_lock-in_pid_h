@@ -16,7 +16,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Harmonic lock-in+PID (v2.3.21)</title>
+  <title>Harmonic lock-in+PID (v2.3.22)</title>
   <link href="../assets/bootstrap-3.0.0/css/bootstrap.css" rel="stylesheet" type="text/css">
   <link href="../assets/style.css?6" rel="stylesheet" type="text/css">
   <script src="../assets/bootstrap-3.0.0/js/jquery.js"></script>
@@ -30,6 +30,11 @@
 
   <link rel="stylesheet" href="css/bootstrap.css" type="text/css">
   <link rel="stylesheet" href="css/style.css"     type="text/css">
+  <style>
+    /* v2.3.22: cursor of the scope while SHIFT (wheel: X only) or ALT (wheel: Y only) is down, see [PLOT WHEEL] */
+    #plot_holder.wheel-zoom-x, #plot_holder.wheel-zoom-x * { cursor: ew-resize !important; }
+    #plot_holder.wheel-zoom-y, #plot_holder.wheel-zoom-y * { cursor: ns-resize !important; }
+  </style>
 
 
   <script src="js/jquery.mousewheel.js"></script>
@@ -66,7 +71,7 @@
   var meas_panel_dec = 5;                // Decimation for numerical measure panel to make it human readable
   var meas_panel_dec_mobdev = 1;         // Decimation for numerical measure panel for mobile devices
   var points_per_px = 5;                 // How many points per pixel should be drawn. Set null for unlimited (will disable client side decimation).
-  var xdecimal_places = 2;               // Number of decimal places for the xmin/xmax values. Maximum supported are 12.
+  var xdecimal_places = 2;               // Number of decimal places for the xmin/xmax values. Maximum supported are 12. v2.3.22: no longer used for xmin/xmax (xWindowToParams())
   var trigger_level_xdecimal_places = 4; // Number of decimal places for trigger level tooltip
   var range_offset = 1;                  // Percentages
 
@@ -97,7 +102,9 @@
     colors: ['#3276B1', '#D2322D', '#009900'],    // channel1, channel2, trigger line
     lines: { lineWidth: 1 },
     selection: { mode: 'xy' },
-    zoom: { interactive: true, trigger: null },
+    // v2.3.22: interactive false: the mouse wheel over the plot is handled by plotWheelEvent() (see [PLOT WHEEL]);
+    // plot.zoom()/zoomOut() of jquery.flot.navigate are still used by the zoom-out tool
+    zoom: { interactive: false, trigger: null },
     xaxis: { min: xmin, max: xmax },
     y2axis: { tickFormatter: secondYaxis },
     grid: { borderWidth: 0 , hoverable: true, clickable: true },
@@ -3836,8 +3843,7 @@
         })
       );
 
-      params.local.xmin = parseFloat(ranges.xaxis.from.toFixed(xdecimal_places));
-      params.local.xmax = parseFloat(ranges.xaxis.to.toFixed(xdecimal_places));
+      xWindowToParams(ranges.xaxis.from, ranges.xaxis.to);   // v2.3.22 (build 50): no toFixed(2), see xWindowToParams()
 
       updateTriggerSlider();
       sendParams(true);
@@ -3855,15 +3861,174 @@
         zoompan_timer = null;
 
         var xaxis = plot.getAxes().xaxis;
-        params.local.xmin = parseFloat(xaxis.min.toFixed(xdecimal_places));
-        params.local.xmax = parseFloat(xaxis.max.toFixed(xdecimal_places));
+        xWindowToParams(xaxis.min, xaxis.max);   // v2.3.22 (build 50): no toFixed(2), see xWindowToParams()
 
         updateTriggerSlider();
         sendParams(true);
 
       }, 250);
     });
+
+    plotWheelBind();  // v2.3.22: mouse wheel over the plot (see [PLOT WHEEL])
   }
+
+  // [PLOT WHEEL BEGIN] v2.3.22: mouse wheel over the scope plot (also run by test/plot_wheel_sim.js)
+  //   - no key: zoom of both axes (X and the two Y axes), centred on the mouse position;
+  //   - SHIFT: X only, the cursor is a horizontal double arrow (ew-resize) while SHIFT is down over the plot;
+  //   - ALT: Y only (both Y axes), the cursor is a vertical double arrow (ns-resize). SHIFT + ALT: both axes.
+  // It replaces the wheel handler of jquery.flot.navigate (zoom.interactive: false in plot_options), which zoomed
+  // both axes whatever the keys. One wheel step zooms by plot_wheel_amount (1.5, as navigate did).
+  // X: the window goes to the server as before (event 'plotzoom' -> zoompan_timer, 250 ms debounce -> one
+  // sendParams(true), which picks the Dec and answers with forceX if the units change); it stays between 20 ns and
+  // one memory at the largest Dec (68.72 s), the limits of the X-/X+ buttons. Y is only local (no POST); it stays
+  // between 1/2048 and 1000 times the full scale (2 V, raw mode 16384 counts). During a lock capture (Capture Lock:
+  // waiting or frozen) the X zoom is local too: no POST, so the scope keeps its capture settings; ending the
+  // capture (AUTO, Reset zoom, ...) restores the window saved before it.
+  // SHIFT + wheel arrives as deltaX in Chrome (Linux/Windows) and in some Firefox versions: both are handled
+  // (jquery.mousewheel gives deltaY = -orig.deltaY but deltaX = +orig.deltaX, as in ScrollIncrement()).
+  // The wheel over the number fields (ScrollIncrement(): SHIFT x10, CTRL x100) is not affected: only #plot_holder.
+  var plot_wheel_amount = 1.5;
+  var plot_wheel_xlim = [20e-9, 16384 * 524288 * 8e-9];   // X window, seconds
+  var plot_wheel = { over: false, shift: false, alt: false, bound: false };
+
+  // v2.3.22 (build 50): X window of the plot (current time units) into params.local.xmin/xmax for the server. The
+  // zoom/pan/touch handler and the selection zoom of initPlot() used to round it with toFixed(xdecimal_places = 2)
+  // in the current units: a window under 0.01 units (e.g. -0.50..0.98 ms while the units were still s, after a quick
+  // zoom-in burst) was sent as xmin = xmax = 0 and the server answered 0..1 us. Now 12 significant digits (only to
+  // drop float noise such as 0.30000000000000004), and never xmax <= xmin (then the unrounded values).
+  function xWindowToParams(min, max) {
+    min = Number(min); max = Number(max);
+    var a = parseFloat(min.toPrecision(12)), b = parseFloat(max.toPrecision(12));
+    if(!(b > a)) { a = min; b = max; }
+    if(!(b > a)) b = a + Math.max(Math.abs(a) * 1e-9, 1e-12);
+    params.local.xmin = a;
+    params.local.xmax = b;
+  }
+
+  // 'x' (SHIFT), 'y' (ALT) or 'xy' (no key, or both)
+  function plotWheelMode(shift, alt) {
+    if(shift && !alt) return 'x';
+    if(alt && !shift) return 'y';
+    return 'xy';
+  }
+
+  // [min, max] of an axis zoomed by 'amount' (> 1 in, < 1 out) around the value v0 (kept where it is on the screen),
+  // with the range kept in [lo, hi]. A range already out of [lo, hi] can only come back towards it. null: no change.
+  function wheelZoomRange(min, max, v0, amount, lo, hi) {
+    min = Number(min); max = Number(max);
+    var range = max - min;
+    if(!(range > 0) || !isFinite(range) || !(amount > 0) || !isFinite(v0)) return null;
+    v0 = Math.min(Math.max(v0, min), max);          // mouse over the axis labels: the nearest edge
+    var nr = range / amount;
+    if(amount < 1 && hi > 0) nr = Math.min(nr, Math.max(hi, range));
+    if(amount > 1 && lo > 0) nr = Math.max(nr, Math.min(lo, range));
+    if(!(nr > 0) || nr === range) return null;
+    var a = range / nr;
+    return { min: v0 - (v0 - min) / a, max: v0 + (max - v0) / a };
+  }
+
+  // Y range limits in the units of the Y axes (V, or counts in raw mode)
+  function plotWheelYLimits() {
+    var raw = !!(params.local && Number(params.local.lock_osc_raw_mode));
+    var full = (raw ? 16384 : 2);
+    return [full / 2048, full * 1000];
+  }
+
+  // Zooms the plot around the pixel (cx, cy) of the plot area; returns which axes changed
+  function plotWheelZoom(mode, cx, cy, zoom_in) {
+    var res = { x: false, y: false };
+    if(!plot) return res;
+    var axes = plot.getAxes(), o = plot.getOptions();
+    var amount = (zoom_in ? plot_wheel_amount : 1 / plot_wheel_amount);
+    if(mode !== 'y') {
+      var tu = Number(params.local.time_units), f = timeUnitFactor(isFinite(tu) ? tu : 0);
+      var xr = wheelZoomRange(axes.xaxis.min, axes.xaxis.max, axes.xaxis.c2p(cx), amount,
+                              plot_wheel_xlim[0] * f, plot_wheel_xlim[1] * f);
+      if(xr) { o.xaxes[0].min = xr.min; o.xaxes[0].max = xr.max; res.x = true; }
+    }
+    if(mode !== 'x') {
+      var yl = plotWheelYLimits();
+      var yr = wheelZoomRange(axes.yaxis.min, axes.yaxis.max, axes.yaxis.c2p(cy), amount, yl[0], yl[1]);
+      if(yr) {
+        o.yaxes[0].min = yr.min; o.yaxes[0].max = yr.max;
+        o.yaxes[1].min = yr.min; o.yaxes[1].max = yr.max;   // the second Y axis follows the first one
+        res.y = true;
+      }
+    }
+    if(res.x || res.y) {
+      plot.setupGrid();
+      plot.draw();
+    }
+    return res;
+  }
+
+  // jquery.mousewheel handler of #plot_holder
+  function plotWheelEvent(event, delta) {
+    event.preventDefault();      // no page scroll, no history navigation of ALT + wheel (Firefox)
+    event.stopPropagation();
+    plot_wheel.over = true;
+    plot_wheel.shift = !!event.shiftKey;
+    plot_wheel.alt = !!event.altKey;
+    plotWheelCursor();
+    if(!plot) return false;
+    var dir = event.deltaY || -event.deltaX || delta || 0;
+    if(!dir) return false;
+    var off = plot.offset();
+    var r = plotWheelZoom(plotWheelMode(event.shiftKey, event.altKey), event.pageX - off.left, event.pageY - off.top, dir > 0);
+    if(r.x || r.y) {
+      updateRanges();
+      updateTriggerSlider();
+    }
+    // X window to the server (debounced, see initPlot()), except during a lock capture
+    if(r.x && !lockCaptureActive()) $('#plot_holder').trigger('plotzoom');
+    return false;
+  }
+
+  // Cursor of the plot: double arrow while SHIFT or ALT is down with the mouse over the plot
+  function plotWheelCursor() {
+    var mode = (plot_wheel.over ? plotWheelMode(plot_wheel.shift, plot_wheel.alt) : 'xy');
+    $('#plot_holder').toggleClass('wheel-zoom-x', mode === 'x').toggleClass('wheel-zoom-y', mode === 'y');
+  }
+
+  // Modifier keys from any key or mouse event (keyup of SHIFT gives shiftKey false, keydown of ALT altKey true)
+  function plotWheelMods(e) {
+    var shift = !!e.shiftKey, alt = !!e.altKey;
+    if(shift !== plot_wheel.shift || alt !== plot_wheel.alt) {
+      plot_wheel.shift = shift;
+      plot_wheel.alt = alt;
+      plotWheelCursor();
+    }
+  }
+
+  function plotWheelKey(e) {
+    plotWheelMods(e);
+    // ALT alone over the plot: no default action (Firefox shows its menu bar when ALT is released, and the menu
+    // takes the next keys). Only the ALT key itself: ALT + another key (shortcuts) is not touched.
+    if(plot_wheel.over && (e.key === 'Alt' || e.keyCode === 18)) e.preventDefault();
+  }
+
+  // Window or tab without focus: the keyup may never come, back to the normal cursor
+  function plotWheelReset() {
+    plot_wheel.shift = false;
+    plot_wheel.alt = false;
+    plotWheelCursor();
+  }
+
+  function plotWheelBind() {
+    if(plot_wheel.bound) return;
+    plot_wheel.bound = true;
+    $('#plot_holder')
+      .on('mousewheel', plotWheelEvent)
+      .on('mouseenter mousemove', function(e) {
+        if(!plot_wheel.over) { plot_wheel.over = true; plotWheelCursor(); }
+        plotWheelMods(e);
+      })
+      .on('mouseleave', function() { plot_wheel.over = false; plotWheelCursor(); });
+    $(document).on('keydown keyup', plotWheelKey);
+    $(window).on('blur', plotWheelReset);
+    $(document).on('visibilitychange', function() { if(document.hidden) plotWheelReset(); });
+  }
+  // [PLOT WHEEL END]
 
   function onDropdownChange(that, param_name, do_get) {
 
@@ -5809,7 +5974,7 @@
     <div class="container">
       <a id="btn_exit" class="pull-left" href="/index.html"><span class="glyphicon glyphicon-chevron-left" title="Exit" alt="Exit"></span></a>
       <img class="logo pull-left" src="../assets/images/logo_white.png">
-      <h2 class="page-title">Harmonic lock-in+PID (v2.3.21)</h2>
+      <h2 class="page-title">Harmonic lock-in+PID (v2.3.22)</h2>
     </div>
   </div>
   <div class="container">

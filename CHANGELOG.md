@@ -70,6 +70,49 @@ Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE pro
 simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
 < 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
+## v2.3.22 - Mouse wheel on the scope: both axes, SHIFT = time only, ALT = Y only (no FPGA change)
+
+### Added (web page)
+- Mouse wheel over the oscilloscope plot, zoom centred on the mouse, 1.5x per step:
+  - **no key**: both axes (time and the two Y axes), as before;
+  - **SHIFT** held: the time axis only; while SHIFT is down with the mouse over the plot the cursor is a horizontal
+    double arrow (`ew-resize`). SHIFT + wheel arrives as a horizontal scroll (`deltaX`) in Chrome and in some
+    Firefox versions: both directions are handled;
+  - **ALT** held: the Y axes only (both of them; counts in raw mode), cursor vertical double arrow (`ns-resize`).
+    The ALT key alone over the plot is not passed to the browser (Firefox showed its menu bar on release; ALT + wheel
+    was history back/forward there); ALT + another key (shortcuts) is not touched.
+  - The cursor follows the keys without moving the mouse (keydown/keyup) and goes back to normal when the mouse
+    leaves the plot, the key is released, the window loses the focus or the tab is hidden.
+
+### Changed (web page)
+- The wheel over the plot is no longer handled by `jquery.flot.navigate` (`zoom.interactive: false`), which zoomed
+  both axes with any key and without limits, but by the page (`[PLOT WHEEL]` block of `index.html`).
+- The time window still goes to the controller through the same debounced path (one POST 250 ms after the last
+  step; the controller chooses the decimation and the page follows its time units), and now stays between 20 ns
+  and 68.7 s (one memory at the largest decimation, the limits of the X-/X+ buttons). A Y-only zoom sends nothing.
+  Y range limited to 1/2048 ... 1000 x full scale (2 V, or 16384 counts in raw mode).
+- During a lock capture (Capture Lock, waiting or captured) the wheel zoom is only in the page: before, its time
+  window was sent to the controller and could change the decimation and units of the frozen capture. Ending the
+  capture (AUTO, Reset zoom, ...) restores the window saved before it, as before.
+- The wheel over the number fields (SHIFT x10, CTRL x100) does not change.
+
+### Fixed (web page)
+- A zoom (wheel, pan, touch or mouse selection) sent the time window rounded to 2 decimals of the current time
+  units (`toFixed(2)`): a window under 0.01 units, e.g. a quick zoom-in from s to -0.50 .. 0.98 ms, was sent as
+  xmin = xmax = 0 and the controller answered 0 .. 1 us. Now it is sent with 12 significant digits, and never with
+  xmax <= xmin. (The X-/X+ and offset buttons already sent it unrounded.)
+
+### Added
+- `test/plot_wheel_sim.js`: the `[PLOT WHEEL]` block and the `plotzoom` debounce of `index.html` with a mocked
+  plot / jQuery / `jquery.mousewheel` (wheel with and without SHIFT/ALT, deltaX/deltaY, cursor on keydown/keyup,
+  mouseenter/leave, blur and hidden tab, limits in the three time units and in raw mode, debounce, Capture Lock,
+  window sent without rounding), 59 checks. With the page of v2.3.21 (the `navigate` handler) 31 of them fail; the
+  no-key zoom passes with both.
+
+### Note
+- Some window managers on Linux take ALT + wheel (or ALT + drag) for themselves; then the browser never gets the
+  wheel event with ALT and the Y-only zoom can not work there.
+
 ## v2.3.21 - "Reset zoom" fits the scope to the period of the trigger source (no FPGA change)
 
 "Reset zoom" used to set the time window to 0..130 us (Dec 1, the server "reset zoom" request) whatever the trigger,

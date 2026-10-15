@@ -14,7 +14,7 @@ loop, controlled from a web page or remotely over HTTP.
 
 ## Version 2.3.x (Ecosystem 2.0)
 
-Current version: **2.3.21** (branch `master`).
+Current version: **2.3.22** (branch `master`).
 
 This version is **based on the 0.3.x series (v0.3.11), but with the FPGA design built in Vivado 2020.1**,
 using the project structure of [RedPitaya-FPGA](https://github.com/RedPitaya/RedPitaya-FPGA).
@@ -55,6 +55,8 @@ The 0.3.x series (branch `master`, FPGA with Vivado 2015.2) is the version for t
 - v2.3.21: **Reset zoom** sets the scope to one period of the ramp (Ext Trig = Scan floor / Scan ceil), one period
   of the modulation (Ext Trig = harmonic mod.) or one whole memory at the current Dec (otherwise), and Y to
   −1 … 1 V (raw mode −8192 … 8192); during a lock capture it first ends it (as AUTO). Raw Mode rescales Y the same way.
+- v2.3.22: **mouse wheel on the scope**: no key zooms both axes, **SHIFT** only the time axis (cursor ↔), **ALT** only
+  the Y axes (cursor ↕); time window kept within 20 ns … 68.7 s; during a lock capture the zoom stays in the page.
 
 
 ## Features
