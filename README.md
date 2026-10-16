@@ -14,7 +14,7 @@ loop, controlled from a web page or remotely over HTTP.
 
 ## Version 2.3.x (Ecosystem 2.0)
 
-Current version: **2.3.23** (branch `master`).
+Current version: **2.3.24** (branch `master`).
 
 This version is **based on the 0.3.x series (v0.3.11), but with the FPGA design built in Vivado 2020.1**,
 using the project structure of [RedPitaya-FPGA](https://github.com/RedPitaya/RedPitaya-FPGA).
@@ -63,6 +63,9 @@ The 0.3.x series (branch `master`, FPGA with Vivado 2015.2) is the version for t
   the scope really missed it; Reset zoom on a slow scan uses 0.98 × the period so that every scan is acquired;
   (FPGA) a time trigger armed after the ramp was stopped (e.g. right after releasing a lock) waits for the next scan
   floor instead of firing in the middle of the scan.
+- v2.3.24: **scope presets** below Ext Trig: `in1|in2`, `in1|ctrl`, `X|Y`, `in1|err`, `ctrl|err` and `usr` (a pair of
+  the user: double click to choose it; saved in the browser and in the configs). They change only OscA/OscB (not the
+  zoom nor the trigger). Picking an **Ext Trig** other than None sets the Trigger panel to External + Normal.
 
 
 ## Features

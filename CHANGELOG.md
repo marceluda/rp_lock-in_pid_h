@@ -70,6 +70,37 @@ Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE pro
 simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
 < 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
+## v2.3.24 - Scope presets (OscA|OscB) and Ext Trig sets the Trigger panel (web page only, no FPGA / C change)
+
+### Added (web page)
+- **Presets of the scope signals**: six small buttons in the *Oscilloscope* panel, below *Ext Trig* (row
+  *Presets*, two rows of three). Blue: `in1|in2` (OscA = in1, OscB = in2), `in1|ctrl` (in1, ctrl_A), `X|Y` (Xo, Yo);
+  green: `in1|err` (in1, error), `ctrl|err` (ctrl_A, error) and `usr`. A click sets OscA/OscB (mux values 1, 2, 3, 4,
+  17, 18 of the selects) through the same path as the two selects: one POST with only `lock_oscA_sw` /
+  `lock_oscB_sw` (and the usual `single_btn`/`xmin`/`xmax` with their current values); the zoom (time window and
+  Y axes), the trigger (Mode, Source, Edge, Level, Ext Trig) and a Capture Lock are not touched. The title of each
+  button shows its two signals.
+- **`usr` preset**: a pair chosen by the user. Double click (or a click while it is not configured, dashed border)
+  opens a dialog with two selects (the options of OscA/OscB); *Accept* saves the pair in the browser
+  (`localStorage`, key `oscUsrPreset_lock_in+pid_harmonic`) and shows it; the title of the button gives its two
+  signals. The pair is part of the page only (the controller has no such parameter): it is saved in the configs
+  (*Config* save and download json, in `ui.ui_osc_usr_a` / `ui.ui_osc_usr_b`, never sent to the server) and a
+  *Config load* of a config that has it takes it (and stores it); configs without it keep the current one. The
+  first click of a double click applies the pair already saved (at most one POST); the dialog opens once.
+
+### Changed (web page)
+- **Ext Trig sets the Trigger panel**: when the user picks in *Ext Trig* a value different from the current one
+  and not *None*, the *Trigger* panel goes at once to *Source* = External and *Mode* = Normal, in the same POST as
+  the Ext Trig (from *Single* the page polls again, as with a change of Mode). *None* changes nothing else. Only the
+  user change of the select does it: *Config load*, the restore at the end of a Capture Lock, *Reset zoom* and
+  *AUTO* set their own values (they do not go through the handler of the select). Changing Ext Trig during a Capture
+  Lock ends it (as before) and then applies the rule; the restore and the new values go in one POST (before, a GET
+  started by the restore could send them in two).
+
+### Tests
+- New `test/osc_presets_sim.js` (37 checks; the page of 2.3.23 fails 32). `test/config_load_window_sim.js`: stub of
+  `oscUsrConfigLoad()` (the function is mocked there).
+
 ## v2.3.23 - Slow scans: scope trace, Capture Lock, Reset zoom and time trigger after a stopped ramp
 
 Reported by the LOCK MODE test with a 30 s ramp (2026-10-15, v2.3.22 on RP2): the lock worked (19/19), but the scope
