@@ -200,7 +200,8 @@
   var display_keep_keys = ('meas_min_ch1,meas_max_ch1,meas_amp_ch1,meas_avg_ch1,meas_freq_ch1,meas_per_ch1,'+
                            'meas_min_ch2,meas_max_ch2,meas_amp_ch2,meas_avg_ch2,meas_freq_ch2,meas_per_ch2,'+
                            'lock_X,lock_Y,lock_F1,lock_F2,lock_F3,lock_error_mean,lock_error_std,'+
-                           'lock_lock_status,lock_lock_control,lock_stream_status').split(',');
+                           'lock_lock_status,lock_lock_control,lock_stream_status,'+
+                           'scope_gen,scope_acq_state,scope_acq_gen,sig_gen').split(',');  // v2.3.23: read-only scope state
   // v2.3.18: read-only params of the server (src/main.c, read_only = 1: rp_set_params() ignores them). The send_all
   // of a Config -> load sent the ones in params.local (meas_*, lock_X/Y, lock_lock_status, lock_lock_control...,
   // copied there from display_keep_keys): they only made the POSTs bigger. Never sent by a send_all now.
@@ -242,6 +243,10 @@
   // answer. "Choose from graph" converts the click with these units, not with params.local.time_units, which a
   // POST answer (zoom -> forceX) may change before the data in the new units arrive.
   var plot_time_units = null;
+  // v2.3.23: data of a GET /data started before the POST of a Reset zoom was answered are not drawn (plot_epoch: +1
+  // at the click and at that answer; plot_epoch_post: the next POST carries the Reset zoom). The C also replaces the
+  // trace of the old time units at once (src/worker.c): ~10 s of the old trace in ms were drawn on the new axis in s.
+  var plot_epoch = 0, plot_epoch_post = false;
   last_disp_units=false;
   lasttsp=Math.floor((new Date().getTime())/1000);
   last_unit_mode = 0 ;
@@ -3067,6 +3072,15 @@
   // whose memory covers the window (src/main.c, transform_acq_params()), so a window of exactly one memory could
   // round up and take the next Dec (x8 coarser).
   var reset_zoom_margin = 1e-6;
+  // v2.3.23: slow scans. With a window of exactly one period the acquisition ended after the next scan floor (the
+  // server also makes the window a bit longer: 1024 points with an integer number of samples between them, e.g.
+  // 0..30 s -> 0..30.06 s at Dec 524288), so that floor was lost and the scope showed one scan of every two. For a
+  // period of reset_zoom_long_s or more (the long acquisitions of src/worker.c, read while they are written) the
+  // window ends reset_zoom_rearm_frac of the period before it (0.98 T), at least reset_zoom_rearm_min_s: the worker
+  // ends the acquisition at the end of the window of the user and arms the next one in time.
+  var reset_zoom_long_s = 1.5;
+  var reset_zoom_rearm_frac = 0.02;
+  var reset_zoom_rearm_min_s = 0.05;
 
   // Period of the harmonic modulation (local oscillator of the lock-in) in FPGA clock cycles (8 ns), as gen_mod_h.v:
   // a table of 2520 values, each one held lock_gen_mod_hp+1 cycles (hp is 14 bits in the FPGA). 0 if unknown.
@@ -3094,15 +3108,34 @@
     var tr = Math.round(Number(time_range));
     if(!(tr >= 0 && tr < scope_dec_list.length)) tr = 0;
     var period_s = (source === 'memory' ? scope_mem_s * scope_dec_list[tr] : cyc * 8e-9);
+    // v2.3.23: slow scan: the window ends a bit before the next trigger (see reset_zoom_long_s)
+    var win_s = period_s, rearm = false;
+    if(source !== 'memory' && period_s >= reset_zoom_long_s) {
+      win_s = period_s - Math.max(period_s * reset_zoom_rearm_frac, reset_zoom_rearm_min_s);
+      rearm = true;
+    }
     // Dec that the server will take for this window
     var i = 0;
-    while(i < scope_dec_list.length - 1 && scope_dec_list[i] * scope_mem_s < period_s * (1 - reset_zoom_margin)) i++;
+    while(i < scope_dec_list.length - 1 && scope_dec_list[i] * scope_mem_s < win_s * (1 - reset_zoom_margin)) i++;
     var mem_s = scope_dec_list[i] * scope_mem_s;
-    var clamped = (period_s > mem_s * (1 + reset_zoom_margin));
+    var clamped = (win_s > mem_s * (1 + reset_zoom_margin));
     var raw = !!Number(p.lock_osc_raw_mode);
-    return { xmin_s: 0, xmax_s: Math.min(period_s, mem_s * (1 - reset_zoom_margin)),
+    return { xmin_s: 0, xmax_s: Math.min(win_s, mem_s * (1 - reset_zoom_margin)),
              ymin: (raw ? -8192 : -1), ymax: (raw ? 8192 : 1),
-             source: source, period_s: period_s, dec: scope_dec_list[i], clamped: clamped };
+             source: source, period_s: period_s, dec: scope_dec_list[i], clamped: clamped, rearm: rearm };
+  }
+  // v2.3.23: clears the plotted trace and drops the data of the GET /data in flight and of those started before the
+  // answer of the next POST (plot_epoch)
+  function plotClearStale() {
+    plot_epoch++;
+    plot_epoch_post = true;
+    if(typeof datasets !== 'undefined') {
+      for(var i = 0; i < datasets.length; i++) datasets[i].data = [];
+      if(plot && datasets.length) {
+        plot.setData(filterData(datasets, plot.width()));
+        plot.draw();
+      }
+    }
   }
   // [RESET ZOOM END]
 
@@ -3125,7 +3158,20 @@
   var lock_cap = { state: 'off',         // 'off' | 'config' | 'arming' | 'waiting' | 'captured'
                    saved: null,          // scope settings before the capture (see lockCaptureSave())
                    offset_s: null,       // time of the lock after the scan floor [s] (Time trigger), else null
-                   t_armed: 0, late: false, seq: 0 };
+                   t_armed: 0, late: false, seq: 0,
+                   gen: null,            // v2.3.23: scope_gen of the arming POST (traces with sig_gen >= gen are its own)
+                   t_locked: 0,          // v2.3.23: when LOCKED was first seen while waiting
+                   acq: 0 };             // v2.3.23: scope_acq_state of the capture acquisition (src/main.h)
+  // v2.3.23: LOCKED this long while the scope of the capture still waits for its trigger (or is not armed): the
+  // capture was missed ("LOCKED but not captured"). A capture being acquired (scope_acq_state 3, the window after
+  // the lock: up to tens of seconds with slow scans) is never "late"; it used to be after 2 s of LOCKED.
+  var lock_cap_late_ms = 2000;
+  // v2.3.23: scope_gen of the last answer of the server (POST or GET /data), null if unknown (older server)
+  var server_scope_gen = null;
+  function serverScopeGen(dp) {
+    var g = Number(dp && dp.scope_gen);
+    if(dp && dp.scope_gen !== undefined && isFinite(g)) server_scope_gen = g;
+  }
 
   // Window of the capture, around the lock event (t = 0 of the scope = the lock).
   //   p:  params (lock_ctrl_aux_trig_type, lock_lock_trig_time_val in 8 ns cycles)
@@ -3197,6 +3243,9 @@
     lock_cap.saved = null;
     lock_cap.offset_s = null;
     lock_cap.late = false;
+    lock_cap.gen = null;
+    lock_cap.t_locked = 0;
+    lock_cap.acq = 0;
     lock_cap.seq++;                      // pending steps of an old request do nothing
     lockCaptureBanner();
     trigFromGraphMsg();
@@ -3249,6 +3298,9 @@
       lock_cap.state    = 'config';
       lock_cap.offset_s = w.offset_s;
       lock_cap.late     = false;
+      lock_cap.gen      = null;
+      lock_cap.t_locked = 0;
+      lock_cap.acq      = 0;
       if(update_timer) { clearTimeout(update_timer); update_timer = null; }
       params.local.trig_mode    = 2;
       params.local.trig_source  = 2;
@@ -3274,6 +3326,9 @@
         if(seq !== lock_cap.seq || lock_cap.state !== 'arming') return;
         lock_cap.state   = 'waiting';    // GET /data started from now on can only bring the capture
         lock_cap.t_armed = Date.now();
+        // v2.3.23: the arming POST has been answered: traces with sig_gen >= its scope_gen are of the capture
+        // acquisition (partial ones too: slow windows are drawn while they are acquired after the lock)
+        lock_cap.gen     = server_scope_gen;
         lockCaptureBanner();
         // A GET in flight from before is ignored (lockCaptureOnData()); polling goes on while the capture
         // is active (doGetData())
@@ -3300,23 +3355,60 @@
     sendParams();
   }
 
-  // GET /data answer during a capture. state0: lock_cap.state when that GET started. Returns true if the data
-  // may be drawn (no capture, or this is the capture), false to keep the plot (waiting / frozen).
-  function lockCaptureOnData(state0, status) {
+  // GET /data answer during a capture. state0: lock_cap.state when that GET started; dp: params of the answer.
+  // Returns true if the data may be drawn (no capture, or this is the capture), false to keep the plot (waiting /
+  // frozen). v2.3.23: with the scope state of the server (dp.sig_gen / scope_acq_state / scope_acq_gen) a trace is
+  // the capture only if it comes from the capture acquisition (sig_gen >= lock_cap.gen); its partial traces
+  // (status AGAIN, long windows read while they are written) are drawn while waiting.
+  function lockCaptureOnData(state0, status, dp) {
     if(lock_cap.state === 'off') return true;
-    if(lock_cap.state === 'waiting' && state0 === 'waiting' && status === 'OK') {
+    if(lock_cap.state !== 'waiting') return false;
+    var sg = Number(dp && dp.sig_gen);
+    var known = (lock_cap.gen !== null && !!dp && dp.sig_gen !== undefined && isFinite(sg));
+    var mine = (state0 === 'waiting') && (!known || sg >= lock_cap.gen);
+    if(mine && status === 'OK') {
       lock_cap.state = 'captured';
+      lock_cap.late = false;
       lockCaptureBanner();
       trigFromGraphMsg();
       console.log('Capture Lock: lock captured');
       return true;
     }
-    if(lock_cap.state === 'waiting') {
-      var st = lockStatus(params.original);
-      var late = !!(st && st.locked && Date.now() - lock_cap.t_armed > 2000);
-      if(late !== lock_cap.late) { lock_cap.late = late; lockCaptureBanner(); }
+    lockCaptureLate(dp, known);
+    return !!(mine && known && status === 'AGAIN');
+  }
+
+  // v2.3.23: state of the capture acquisition and "LOCKED but not captured" (see lock_cap_late_ms)
+  function lockCaptureLate(dp, known) {
+    var st = lockStatus(dp && dp.lock_lock_status !== undefined ? dp : params.original);
+    var now = Date.now();
+    var ag = Number(dp && dp.scope_acq_gen), as = Number(dp && dp.scope_acq_state);
+    var acq = (known && isFinite(ag) && isFinite(as) && ag >= lock_cap.gen) ? as : 0;
+    var late = false;
+    if(st && st.locked) {
+      if(!lock_cap.t_locked) lock_cap.t_locked = now;
+      if(known) {
+        // the scope of the capture still waits for (or loads the history before) its trigger
+        late = (acq <= 2) && (now - lock_cap.t_locked > lock_cap_late_ms);
+      } else {
+        // older server: the window after the lock + margin
+        var tu = Number(params.local.time_units), xmax_s = Number(params.local.xmax) / timeUnitFactor(isFinite(tu) ? tu : 0);
+        late = (now - lock_cap.t_locked > lock_cap_late_ms + Math.max(0, isFinite(xmax_s) ? xmax_s : 0) * 1000);
+      }
     }
-    return false;
+    else lock_cap.t_locked = 0;
+    if(late !== lock_cap.late || acq !== lock_cap.acq) {
+      lock_cap.late = late;
+      lock_cap.acq = acq;
+      lockCaptureBanner();
+    }
+  }
+
+  // v2.3.23: length of the history before the lock (-xmin of the capture window), for the banner
+  function lockCaptureHistoryTxt() {
+    if(!params.local) return '';
+    var tu = Number(params.local.time_units), x = -Number(params.local.xmin) / timeUnitFactor(isFinite(tu) ? tu : 0);
+    return (isFinite(x) && x > 0) ? format_oom(x, 's') : '';
   }
 
   // Frozen capture: GET /data only every lock_cap_poll_ms (lock state), without drawing
@@ -3336,8 +3428,14 @@
       txt = 'Capture Lock: arming the scope...';
     }
     else if(lock_cap.state === 'waiting') {
-      txt = 'Capture Lock: scope armed on the lock event, waiting for the lock...' +
-            (lock_cap.late ? ' (LOCKED but not captured: press Auto or Single)' : '');
+      if(lock_cap.late)
+        txt = 'Capture Lock: scope armed on the lock event, waiting for the lock... (LOCKED but not captured: press Auto or Single)';
+      else if(lock_cap.acq === 1)         // v2.3.23: the pre-trigger history (|xmin|) before the request is applied
+        txt = 'Capture Lock: loading the scope history before the lock (' + lockCaptureHistoryTxt() + '), then the lock is requested...';
+      else if(lock_cap.acq === 3)         // v2.3.23: locked, the window after the lock is being acquired
+        txt = 'Capture Lock: lock captured, acquiring the trace...';
+      else
+        txt = 'Capture Lock: scope armed on the lock event, waiting for the lock...';
     }
     else if(lock_cap.state === 'captured') {
       cls = 'label-success';
@@ -3614,6 +3712,7 @@
     var seq_get  = single_seq;        // v2.3.18: Single clicks before this GET
     var long_timeout_used = use_long_timeout;
     var cap_state0 = lock_cap.state;  // v2.3.14: capture state when this GET starts (lockCaptureOnData())
+    var get_epoch = plot_epoch;       // v2.3.23: see plot_epoch
 
     $.ajax({
       url: get_url,
@@ -3677,7 +3776,9 @@
 
         // v2.3.14 Capture Lock: while waiting for the capture or frozen on it, the data are not drawn
         // (the lock state still is: loadParams() below)
-        var cap_draw = lockCaptureOnData(cap_state0, dresult.status);
+        serverScopeGen(dresult.datasets.params);     // v2.3.23
+        var cap_draw = lockCaptureOnData(cap_state0, dresult.status, dresult.datasets.params);
+        if(get_epoch !== plot_epoch) cap_draw = false;   // v2.3.23: started before a Reset zoom was answered
         if(cap_draw) {
           datasets = [];
           // Units of the x values of these data (see plot_time_units)
@@ -4663,6 +4764,8 @@
     if(apply_config_x) config_load_x_pending = false;
     params.local.single_btn = (single_btn === true ? 1 : 0);
     use_long_timeout = !!auto_flag;
+    var epoch_post = plot_epoch_post;      // v2.3.23: this POST carries a Reset zoom (see plot_epoch)
+    plot_epoch_post = false;
 
     // Send only the params that changed (same comparison as isParamChanged()), plus always_send_params.
     // Ecosystem 2.0 hangs with big POST bodies (E3), so all the ~220 params can not be sent every time.
@@ -4683,6 +4786,8 @@
     .done(function(dresult) {
       // OK: Load the params received as POST result
       if(dresult.datasets !== undefined && dresult.datasets.params !== undefined) {
+        serverScopeGen(dresult.datasets.params);     // v2.3.23
+        if(epoch_post) plot_epoch++;                 // v2.3.23: GET /data started before this answer are not drawn
 
         // Use the provided min/max values only once after AUTO button was clicked
         if(auto_flag == 1 && dresult.datasets.params.min_y !== dresult.datasets.params.max_y) {
@@ -5030,7 +5135,12 @@
     var w = resetZoomWindow(params.local, tr);
     console.log('Reset zoom: ' + (w.source === 'ramp' ? 'ramp period' : (w.source === 'mod' ? 'modulation period' :
                 'one memory of the scope')) + ' ' + w.period_s.toPrecision(6) + ' s -> window 0 .. ' +
-                w.xmax_s.toPrecision(6) + ' s (Dec ' + w.dec + ')' + (w.clamped ? ', clamped to the longest memory' : ''));
+                w.xmax_s.toPrecision(6) + ' s (Dec ' + w.dec + ')' + (w.clamped ? ', clamped to the longest memory' : '') +
+                (w.rearm && !w.clamped ? ' (slow scan: it ends before the next trigger, so that every scan is acquired)' : ''));
+
+    // v2.3.23: the trace on the plot (other window / time units) is cleared and GET /data started before the answer
+    // of this POST are not drawn (see plot_epoch)
+    plotClearStale();
 
     resetZoomY(w.ymin, w.ymax);
 

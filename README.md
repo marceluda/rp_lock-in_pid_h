@@ -14,7 +14,7 @@ loop, controlled from a web page or remotely over HTTP.
 
 ## Version 2.3.x (Ecosystem 2.0)
 
-Current version: **2.3.22** (branch `master`).
+Current version: **2.3.23** (branch `master`).
 
 This version is **based on the 0.3.x series (v0.3.11), but with the FPGA design built in Vivado 2020.1**,
 using the project structure of [RedPitaya-FPGA](https://github.com/RedPitaya/RedPitaya-FPGA).
@@ -57,6 +57,12 @@ The 0.3.x series (branch `master`, FPGA with Vivado 2015.2) is the version for t
   −1 … 1 V (raw mode −8192 … 8192); during a lock capture it first ends it (as AUTO). Raw Mode rescales Y the same way.
 - v2.3.22: **mouse wheel on the scope**: no key zooms both axes, **SHIFT** only the time axis (cursor ↔), **ALT** only
   the Y axes (cursor ↕); time window kept within 20 ns … 68.7 s; during a lock capture the zoom stays in the page.
+- v2.3.23: **slow scans** (windows ≥ 1.5 s, e.g. a 30 s ramp): the scope trace never mixes samples of an older lap of
+  its memory; Capture Lock works with Time, Level and Lock Now (the lock request is applied once the scope has its
+  history before the lock); the capture is drawn while it is acquired and "LOCKED but not captured" only appears if
+  the scope really missed it; Reset zoom on a slow scan uses 0.98 × the period so that every scan is acquired;
+  (FPGA) a time trigger armed after the ramp was stopped (e.g. right after releasing a lock) waits for the next scan
+  floor instead of firing in the middle of the scan.
 
 
 ## Features

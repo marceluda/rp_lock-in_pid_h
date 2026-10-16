@@ -202,6 +202,9 @@ else:
 
 # configuration: time trigger 16.58 ms after the scan floor, PID A on (ramp off) while locked. The time must be
 # shorter than half the period of the ramp (Ramp cell: ~64 ms); with dummy_simulator the peak is at ~16.3 ms.
+# NOTE (v2.3.23): time=16.58e-3 and timeout=10 are for the 64 ms ramp of the lock tests (peak 16.58 ms after the
+# scan floor). For another ramp use the time of the peak after the floor (e.g. ~7.6 s with a 30 s ramp, see
+# "Choose from graph") and a timeout longer than the time to the next floor + that time (> 38 s with 30 s).
 rp.lock_config(trig='time', time=16.58e-3, final=('pidA',))
 st = rp.lock_launch(timeout=10)      # Trigger Lock and wait for LOCKED
 print(st)                            # {'armed': False, 'locked': True, 'pidA': True, ...}

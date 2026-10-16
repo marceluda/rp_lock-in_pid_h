@@ -70,6 +70,99 @@ Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE pro
 simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
 < 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
+## v2.3.23 - Slow scans: scope trace, Capture Lock, Reset zoom and time trigger after a stopped ramp
+
+Reported by the LOCK MODE test with a 30 s ramp (2026-10-15, v2.3.22 on RP2): the lock worked (19/19), but the scope
+trace mixed old data, Capture Lock caught 2 of 7 locks and warned "LOCKED but not captured" while still acquiring.
+
+### Fixed (controller, `src/worker.c`, `src/main.c`, `src/lock.c`)
+- **Trace mixed with an older lap of the scope memory** (windows >= 1.5 s, read while the FPGA writes them). The reader
+  inherited from the RP 0.9x scope (`rp_osc_decimate_partial()`) followed the buffer with its own index: when it
+  wrapped (16383 -> 0) before the write pointer, or when the window started after the trigger (xmin > 0), it read
+  samples written 68.7 s before (one lap at Dec 524288) as new ones, and returned `OK` with them. New reader: every
+  point is a sample counted from the trigger; it is read only if it was written in this acquisition (count of the
+  samples written since the trigger, from the write pointer), not overwritten yet, and not older than the history of
+  the acquisition (pre-trigger samples: FPGA counter `adc_we_cnt`, register 0x2C, or the time the trigger was kept
+  disabled). Other points are never shown (the trace starts / ends at the valid ones; partial traces no longer
+  show the previous trace to the right). `OK` only when the acquisition is complete. The trigger is detected with
+  the trigger status bit (a reset also changed the trigger pointer).
+- **Capture Lock lost with slow scans**: the POST "Single + lock request" waited at most 1.5 s for the scope, but
+  with a long window the scope needs |xmin| (7-9 s) of history before its trigger is enabled: the lock came first
+  and its pulse "Lock control trig" was missed; the POST took ~2 s, the page sent it again and the scope was armed
+  again (another |xmin| of wait). Now the POST answers at once and the request bits are held out of `lock_control`
+  until the worker has enabled the trigger of that acquisition (deadline: history + 3 s). A release, or a value
+  written from outside, drops the held request.
+- The pre-trigger wait of the worker is no longer blind: a new POST is looked at during it, and new parameters that
+  do not change the acquisition (e.g. the same Single POST sent again) resume it instead of arming again. Single
+  with `single_btn` goes straight to the Single state (no idle in between).
+- **One scan of every two with Reset zoom on a slow scan**: the acquisition ended after the next scan floor (the
+  controller makes the window a bit longer: 1024 points, e.g. 0..30.06 s). Long acquisitions now end at the end of
+  the window of the user (points after it are not waited for) and the last points are read as soon as they are
+  written, so the scope is armed again in time.
+- A change of the time units (e.g. Reset zoom from ms to s) replaces the trace in the old units at once (it was
+  drawn ~10 s on the new axis).
+
+### Added (controller)
+- Read-only parameters `scope_gen` (generation of the scope parameters), `scope_acq_state` (0 none, 1 loading the
+  history, 2 waiting for the trigger, 3 triggered / being read, 4 complete), `scope_acq_gen` and `sig_gen`
+  (generation of the trace served). `PARAMS_NUM` 208 -> 212 (appended after the lock parameters).
+
+### Fixed / changed (web page)
+- Capture Lock: a trace is the capture only if it comes from the capture acquisition (`sig_gen`); its partial traces
+  are drawn while the window after the lock is acquired. "LOCKED but not captured" only when the scope of the
+  capture still waits for its trigger 2 s after LOCKED (it appeared after 2 s of LOCKED while a 30 s capture was
+  being acquired). New banners: "loading the scope history before the lock (x s)", "lock captured, acquiring the
+  trace...".
+- Reset zoom on Scan floor / Scan ceil / harmonic mod. with a period >= 1.5 s: window 0 .. 0.98 x period (at least
+  50 ms before the next trigger) so that every scan is acquired. Shorter periods: one whole period, as before.
+- Reset zoom clears the plotted trace and ignores the data of GET /data started before its POST is answered.
+
+### Fixed after the retest of build 51 on RP2 (2026-10-15 19:17)
+- **Time trigger in the middle of a scan, far from the peak (FPGA, `lock_ctrl.v`).** The counter of the time
+  trigger was reset only at a scan floor, kept counting while the ramp was stopped (LOCKED with "set ramp" off, the
+  ramp disabled or in reset) and wrapped every 2^32 x 8 ns = 34.4 s. After a release the ramp goes on from where it
+  stopped while the counter still counted from the old floor, so a time trigger armed then fired before any floor
+  (RP2: 4.4 s after the request, ramp at -0.28 V). Now the counter is valid (`cnt_ok`) only from a floor of a ramp
+  that has been running since then: it is cleared while the effective ramp enable of the lock control (lock_status
+  bit 4) or the ramp generator (`ramp_enable` and not `ramp_reset`, new input `ramp_run`) is off, and set at the
+  next floor. The time trigger and the level-after-time trigger need it, and the counter saturates instead of
+  wrapping. A request armed after a stop (from the page, Python or `py/lock_from_registers.py`) waits for the next
+  floor and fires at floor + time; with the ramp running nothing changes (same clock cycle as before).
+- **Capture Lock request applied only at its deadline** (RP2: 10.9 s, "scope not armed in time") when it came while
+  the capture of the same window was still waiting: the worker resumed that acquisition without saying it was
+  armed. It does now, and the POST also checks the arm the worker already published (the worker may resume before
+  the request is held). An acquisition already triggered is not resumed by a new Single any more (a new capture
+  request would have taken the trace of an older event).
+- (A software workaround of build 55, a ramp monitor in the controller that held time requests until a floor, was
+  replaced by the FPGA fix: it did not cover requests written directly to the FPGA nor ramps longer than 34.4 s.)
+
+### Notes
+- Lock Now with Capture Lock on a slow window locks after the history before it is loaded (30 % of the window,
+  e.g. 9 s for 30 s), on purpose: the capture shows that history.
+- Windows < 1.5 s at Dec 65536 (e.g. a 1 s scan) are not read while written: the scope ends each acquisition after
+  a whole memory (8.6 s), as before.
+- `example_usage.py`: `time=16.58e-3` / `timeout=10` are for the 64 ms scan of the lock tests (see the note there).
+
+### Tests
+- `test/auto_set_c_sim` (real C, native): model of the circular buffer of the scope FPGA (write pointer that wraps,
+  trigger pointer, `adc_we_cnt`, post-trigger delay, conf bits; every sample holds its number) and of the lock pulse:
+  long windows in Auto with xmin > 0, Normal + Scan floor every 3 s with a 0.98 T window (every scan), a read that
+  catches the write pointer at the end of the buffer, Capture Lock with 1.8 s of history (Lock Now, Trigger Lock,
+  POST sent again, release, kp while held), the 64 ms case, change of units. With the C of 2.3.22 9 fail (all but
+  the 64 ms case, which works in both). Section 9, model of the ramp and of `lock_ctrl.v`: 9.0 the model of the
+  old FPGA reproduces RP2 (Trigger Lock, time 1 s, right after releasing a lock closed 0.3 s after a floor: lock at
+  phase 0.70 s without a floor); 9.1 from the page and 9.3 written directly to `lock_control` with the new FPGA:
+  floor + 1.000 s after a real floor; 9.2 a new capture request while the capture of the same window waits (4 times):
+  applied in <= 2 ms (build 51: 4.8 s, at its deadline). 44/44; with the C of build 51 only 9.2 fails (9.1 and 9.3
+  are done by the FPGA now).
+- `test/lock_ctrl_tb.v` (xsim): the test ramp stops with the effective enable / `ramp_run`, as `gen_ramp`; cases
+  16-19: normal case unchanged (floor + 300 of the same scan), release mid-scan + time trigger (next floor + 300),
+  ramp generator stopped (no lock until it runs and passes a floor), counter saturation. 45/45; the old
+  `lock_ctrl.v` fails 7.
+- `test/lock_capture_ui_sim.js`: section 8, 30 s scan (Time, Level, Lock Now, arming POST answered after 2.5 s,
+  missed lock warning, model of the C of 2.3.22): 79/79; with the page of 2.3.22, 8 fail.
+- `test/reset_zoom_sim.js`: 0.98 T cases and trace clearing, 29/29.
+
 ## v2.3.22 - Mouse wheel on the scope: both axes, SHIFT = time only, ALT = Y only (no FPGA change)
 
 ### Added (web page)

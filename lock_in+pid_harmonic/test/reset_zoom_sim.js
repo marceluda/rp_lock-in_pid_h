@@ -10,6 +10,9 @@
 //     capture restored, Ext Trig included; console "Capture Lock: ended by Reset zoom"; runStop()), then applies the
 //     rule with the restored Ext Trig;
 //   - (build 48) Raw Mode button: Y to -8192..8192 / -1..1 V (rawModeRescaleY()).
+//   - v2.3.23: slow scans (ramp / modulation period >= 1.5 s): window 0 .. 0.98 T (at least 50 ms before the next
+//     trigger: the acquisition ends and the scope is armed again before the next scan floor, every scan is acquired);
+//     the trace on the plot is cleared and the data of GET /data started before the answer are dropped (plot_epoch).
 // Real functions of index.html: resetZoom(), resetZoomWindow() / modPeriodCycles() (the [RESET ZOOM] block),
 // rampPeriodCycles(), lockSetXWindow(), timeUnitFactor(), resetZoomY(), rawModeRescaleY(), and of the capture
 // lockCaptureActive(), lockCaptureEnd(), lockCaptureLeave(), lockScopeSelects().
@@ -96,11 +99,14 @@ function makeSandbox(srv, local) {
     plot_options: { xaxis: { min: -1000000, max: 1000000 }, y2axis: {} },
     units: { '-3': 'n', '-2': 'μ', '-1': 'm', '0': '', '1': 'k', '2': 'M' },
     posts: [], srv: srv,
+    // v2.3.23: plotted data and epoch (plotClearStale())
+    datasets: [ { data: [[0, 0.1], [1, 0.2]] }, { data: [[0, 0.3], [1, 0.4]] } ], plot_epoch: 0, plot_epoch_post: false,
+    filterData: d => d, setDataCalls: 0,
   };
   sb.params = { local: Object.assign({}, local), original: Object.assign({}, srv) };
   // plot: x window of the current units (the user zoomed somewhere), Y of an autoscale
   sb.plotOpts = { xaxes: [ { min: srv.xmin + 1, max: srv.xmax / 2 } ], yaxes: [ { min: -0.3, max: 0.2 }, { min: -0.3, max: 0.2 } ] };
-  sb.plot = { getOptions: () => sb.plotOpts, setupGrid() {}, draw() {},
+  sb.plot = { getOptions: () => sb.plotOpts, setupGrid() {}, draw() {}, setData() { sb.setDataCalls++; }, width: () => 500,
               getAxes: () => ({ xaxis: sb.plotOpts.xaxes[0], yaxis: sb.plotOpts.yaxes[0] }) };
   sb.$ = function() { return jq(); };
   sb.$.extend = function(a, b, c) { return (a === true) ? deepExtend(true, b, c) : Object.assign(a, b, c); };
@@ -172,6 +178,8 @@ function run(name, cur, p, exp, cap) {
   checks.push([ 'Y ' + y.join('..') + ' (expected ' + exp.y.join('..') + ')', y[0] === exp.y[0] && y[1] === exp.y[1] &&
                 y2[0] === exp.y[0] && y2[1] === exp.y[1] ]);
   checks.push([ 'one POST with xmin/xmax', sb.posts.length === 1 && isFinite(sb.posts[0].xmin) && isFinite(sb.posts[0].xmax) ]);
+  checks.push([ 'v2.3.23: trace cleared (' + sb.datasets.map(d => d.data.length).join(',') + ' points), plot_epoch ' + sb.plot_epoch +
+                ', next POST marked', sb.datasets.every(d => d.data.length === 0) && sb.plot_epoch === 1 && sb.plot_epoch_post === true ]);
   const ended = sb.logs.some(m => /Capture Lock: ended by Reset zoom/.test(m));
   if(cap) {
     const sent = sb.posts[0] || {}, sv = cap.saved;
@@ -206,10 +214,22 @@ run('2 Scan ceil, sawtooth 0..8191 step 0 (65.536 us)', { time_range: 8 },
 run('3 Scan floor, sawtooth -100..100 step 1249 (2.01 ms)', { time_range: 5 },
     { lock_trig_sw: 2, lock_ramp_low_lim: -100, lock_ramp_hig_lim: 100, lock_ramp_step: 1249, lock_ramp_sawtooth: 1 },
     { win_s: [0, 2.01e-3], dec: 64, y: V });
-// triangle 2*16000*(31249+1) = 1e9 cycles = 8 s -> Dec 65536 (8.59 s)
-run('4 Scan floor, triangle -8000..8000 step 31249 (8 s)', { time_range: 2 },
+// triangle 2*16000*(31249+1) = 1e9 cycles = 8 s -> Dec 65536 (8.59 s). v2.3.23: slow scan, 0 .. 0.98 T = 7.84 s
+run('4 Scan floor, triangle -8000..8000 step 31249 (8 s): 0.98 T', { time_range: 2 },
     { lock_trig_sw: 2, lock_ramp_low_lim: -8000, lock_ramp_hig_lim: 8000, lock_ramp_step: 31249 },
-    { win_s: [0, 8], dec: 65536, y: V });
+    { win_s: [0, 7.84], dec: 65536, y: V });
+// v2.3.23: the 30 s scan of the lock tests (2*10000*(187499+1)*8 ns = 30 s) -> 0 .. 29.4 s, Dec 524288
+run('4b Scan floor, triangle -5000..5000 step 187499 (30 s): 0.98 T', { time_range: 5 },
+    { lock_trig_sw: 2, lock_ramp_low_lim: -5000, lock_ramp_hig_lim: 5000, lock_ramp_step: 187499 },
+    { win_s: [0, 29.4], dec: 524288, y: V });
+// v2.3.23: 1.6 s (sawtooth (999+1)*(199999+1) = 2e8 cycles): 2 % = 32 ms < 50 ms -> 0 .. 1.55 s
+run('4c Scan ceil, sawtooth 0..999 step 199999 (1.6 s): T - 50 ms', { time_range: 8 },
+    { lock_trig_sw: 4, lock_ramp_low_lim: 0, lock_ramp_hig_lim: 999, lock_ramp_step: 199999, lock_ramp_sawtooth: 1 },
+    { win_s: [0, 1.55], dec: 65536, y: V });
+// v2.3.23: just below 1.5 s: one whole period as before (1.4 s = sawtooth (699+1)*(249999+1))
+run('4d Scan floor, sawtooth 0..699 step 249999 (1.4 s): whole period', { time_range: 8 },
+    { lock_trig_sw: 2, lock_ramp_low_lim: 0, lock_ramp_hig_lim: 699, lock_ramp_step: 249999, lock_ramp_sawtooth: 1 },
+    { win_s: [0, 1.4], dec: 65536, y: V });
 // longer than the longest memory: clamped to 68.72 s (Dec 524288)
 run('5 Scan floor, ramp of 2^31 step (> 68.7 s): clamped', { time_range: 0 },
     { lock_trig_sw: 2, lock_ramp_low_lim: -8000, lock_ramp_hig_lim: 8000, lock_ramp_step: 2147483647 },
