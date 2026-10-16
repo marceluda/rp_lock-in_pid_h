@@ -4,7 +4,7 @@ FPGA design of the App since v2.3.10, for the Red Pitaya **Ecosystem 2.0**
 (STEMlab 125-14, Zynq 7010). It follows the structure of
 [RedPitaya-FPGA](https://github.com/RedPitaya/RedPitaya-FPGA) (project `v0.94`,
 model `Z10`) with the `lock` module of this App. The previous design
-(Vivado 2015.2) is in `../fpga_old_2015.2/`.
+(Vivado 2015.2) is in tag `v0.3.11` (folder `lock_in+pid_harmonic/fpga/`).
 
 ## Build
 
