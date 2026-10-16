@@ -1,6 +1,6 @@
 # Internal structure
 
-How `lock_in+pid_harmonic` v2.3.17 is built: the three layers (web page, server, FPGA), how they talk, and
+How `lock_in+pid_harmonic` v2.3.24 (branch `master`) is built: the three layers (web page, server, FPGA), how they talk, and
 how the instruments are connected inside the FPGA. Registers: [FPGA.md](FPGA.md). Specifications:
 [App.md](App.md). Source tree and build: [Devel.md](Devel.md).
 
@@ -96,21 +96,27 @@ flowchart TB
   W -->|traces| GP
 ```
 
-- **Parameter table**: `src/main.c` `rp_main_params[]` (208 parameters, indices in `src/main.h`): the scope
-  (0-41), the AWG and PID of the original scope App (42-80, unused by this FPGA), and the lock module (81-207).
+- **Parameter table**: `src/main.c` `rp_main_params[]` (212 parameters, `PARAMS_NUM`, indices in `src/main.h`): the
+  scope (0-41), the AWG and PID of the original scope App (42-80, unused by this FPGA), the lock module (81-207)
+  and, since v2.3.23, four read-only scope state parameters (208-211: `scope_gen`, `scope_acq_state`,
+  `scope_acq_gen`, `sig_gen`; `src/main.h` l. 278-281) that tell the page which acquisition a trace comes from.
   Most `lock_*` parameters map one to one to a register; some are fields of a register
   (`lock_lpf_F0_tau`/`_order` → `lpf_F0`; `lock_ctrl_aux_*` → `lock_control`; `lock_osc1/2_filt_off` →
   `osc_ctrl`; `lock_pidA_irst/freeze/ifreeze` → `pidA_ctrl`; `lock_rl_*` → `rl_config`; `lock_sf_*` → `sf_config`).
-- **`lock_update()`** (`src/lock.c` l. 110) writes the lock registers from the parameters; `lock_control`
+- **`lock_update()`** (`src/lock.c` l. 221) writes the lock registers from the parameters; `lock_control`
   only when the value composed from `lock_ctrl_aux_*` changes (v2.3.13).
-- **`lock_update_main()` / `lock_update_status()`** (l. 271, 417) read the registers back (read-only values,
+- **`lock_update_main()` / `lock_update_status()`** (l. 391, 538) read the registers back (read-only values,
   `lock_status`, and changes made from outside, e.g. Python) into the parameters, on every request.
 - **Scope worker** (`src/worker.c`): a thread that arms the scope, waits for the trigger (on 2.0, it unlocks
   the trigger at 0x94 before each acquisition and detects the end with `conf` bit 4), reads both buffers and
   decimates them to 1024 points; it also runs the auto-set (AUTO) and the measurements. Since v2.3.14 a POST
-  without scope changes does not reset it, and a lock request that arms a Single waits until the scope is
-  armed (`rp_osc_worker_wait_armed()`), which makes *Capture Lock* deterministic
-  ([`lock_capture.md`](../lock_in+pid_harmonic/doc/lock_capture.md) §3.2).
+  without scope changes does not reset it. Since v2.3.23 every point is a sample counted from the trigger and is
+  read only if it was written in the current acquisition (windows ≥ 1.5 s are read while being written, and
+  partial traces are served); and a lock request that arms a Single no longer waits in the POST: the request bits
+  are held out of `lock_control` (`lock_request_hold()` and the `lock_ctrl_hold*` state, `src/lock.c` l. 75-80
+  and 604) until the worker has enabled the trigger of that acquisition, which keeps *Capture Lock* deterministic
+  also with slow scans ([`lock_capture.md`](../lock_in+pid_harmonic/doc/lock_capture.md), section "v2.3.23: slow
+  scans").
 - **`trig_mode` = 2 (Single)** puts the worker in its idle state: it resets and configures the scope once and
   then does not arm it (`src/main.c` `rp_set_params()`, `src/worker.c`). After `bazaar?start` the worker runs in
   Auto even with no page open; `control_finn.py` sets Single through `POST /data` before acquiring through
@@ -200,21 +206,21 @@ flowchart LR
 
 Main points (with the lines of `lock.v`):
 
-- **Lock-in** (l. 707-902): `signal_i` is multiplied by the five references (DSP multipliers), filtered by two
+- **Lock-in** (l. 725-908): `signal_i` is multiplied by the five references (DSP multipliers), filtered by two
   cascaded first-order low-pass filters per line (A and B, `LP_filter3`), scaled by 2^`sg_amp` and saturated
   to 14 bits. X and Y use `cos_ref` and `sin_ref` with 38-bit paths (10 more bits of resolution) and share
   `lpf_F0`/`sg_amp0`; F1, F2 and F3 use `cos_1f`, `cos_2f`, `cos_3f` and have their own filter and gain.
-- **Error** (l. 538-563): one of 0, Xo, Yo, F1o, F2o, F3o, in1, in1−in2, minus `error_offset`; its mean and
+- **Error** (l. 555-580): one of 0, Xo, Yo, F1o, F2o, F3o, in1, in1−in2, minus `error_offset`; its mean and
   square are accumulated over 2²⁷ ticks for the Monitor.
-- **PIDs** (l. 907-997): each PID takes a signal (`pidX_sw`), computes P, I, D (`lock_pid_block.v`) and its
+- **PIDs** (l. 913-1007): each PID takes a signal (`pidX_sw`), computes P, I, D (`lock_pid_block.v`) and its
   output is forced to 0 (and the integrator reset) when the lock control disables it.
-- **Control signals** (l. 275-282): `ctrl_A = pidA_out + ramp_A + jumpA`, `ctrl_B = pidB_out + ramp_B + jumpB`,
+- **Control signals** (l. 279-286): `ctrl_A = pidA_out + ramp_A + jumpA`, `ctrl_B = pidB_out + ramp_B + jumpB`,
   saturated.
-- **Outputs** (l. 373-431): any of 16 signals, plus the modulation (`mod_out1·cos_ref`, `mod_out2·sin_ref`)
+- **Outputs** (l. 377-448): any of 16 signals, plus the modulation (`mod_out1·cos_ref`, `mod_out2·sin_ref`)
   when `mod_outX ≥ 0`, saturated.
-- **Scope** (l. 287-345): two 25-input selectors; external trigger from `trig_sw` (l. 348-368).
-- **Bus interface** (`[FPGA MEMORY DOCK]`, l. 1004-1305): registers written by the PS and the read
-  multiplexer. Since v2.3.17 the read-only signals are read from registered copies (`*_rd`, l. 850-881) and
+- **Scope** (l. 291-349): two 25-input selectors; external trigger from `trig_sw` (l. 352-372).
+- **Bus interface** (`[FPGA MEMORY DOCK]`, l. 1014-1315): registers written by the PS and the read
+  multiplexer. Since v2.3.17 the read-only signals are read from registered copies (`*_rd`, l. 873-904) and
   `sys_rdata` is loaded only during a read and then held, because the PS side of the bus (`sys_bus_cdc`) takes it
   asynchronously some cycles later; the copies are not used by the real-time loop
   ([FPGA.md](FPGA.md#lock-module-0x40600000)).

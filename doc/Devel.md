@@ -1,6 +1,6 @@
 # Development: building and modifying the App
 
-How to build, modify, test and install `lock_in+pid_harmonic` v2.3.17 (branch `devel2.0`). The internal
+How to build, modify, test and install `lock_in+pid_harmonic` v2.3.24 (branch `master`). The internal
 structure is explained in [Structure.md](Structure.md) and the registers in [FPGA.md](FPGA.md).
 
 - [Source tree](#source-tree)
@@ -246,7 +246,8 @@ Where to change things:
 | Scope (decimation, `osc_ctrl_i`, bus read) | `rtl/rtl/classic/rp_scope_com.v`, `rp_scope_cfg.v`, `rp_decim.v` |
 | Constraints | `sdc/red_pitaya.xdc`, `prj/v0.94/sdc/` |
 
-Known: timing does not fully close; the App works. v2.3.20: WNS −0.888 ns, TNS −217.4 ns (762 endpoints; the
+Known: timing does not fully close; the App works. The timing of the v2.3.23 image (new `lock_ctrl.v`) is not in the
+CHANGELOG (**a confirmar**). v2.3.20: WNS −0.888 ns, TNS −217.4 ns (762 endpoints; the
 references reach the lock-in 1 clock later than the outputs, so that the phase through the DAC is the one of v2.3.18).
 v2.3.19: WNS −1.099 ns, TNS −207.5 ns (774 endpoints) after
 adding pipeline registers to the lock-in, PIDs, generator and outputs ([`lock_latency.md`](../lock_in+pid_harmonic/doc/lock_latency.md));
@@ -309,14 +310,22 @@ After adding or changing a register: run the tool, rebuild FPGA + controller + t
 | `lock_bus_read_tb.sv` | `test/lock_bus_read_sim.sh [work_dir [lock.v]]` (Vivado 2020.1 xsim) | bus reads of `lock.v` through `sys_bus_cdc` with asynchronous clocks: `sys_rdata` stable when the PS takes it (v2.3.17); prints `TB RESULT: PASS` |
 | `config_load_window_sim.js` | `node test/config_load_window_sim.js [--old]` | Config → load of the time window: conversion, and the real chunked send of `index.html` against a model of `rp_set_params()` (forceX handshake) plus a GET poll (v2.3.17) |
 | `lock_latency_tb.sv` | `test/lock_latency_sim.sh [work_dir [old_ref]]` (Vivado 2020.1 xsim) | `lock.v` of the working tree side by side with the one of a commit (default v2.3.18): every signal is the old one delayed by the latency of [`lock_latency.md`](../lock_in+pid_harmonic/doc/lock_latency.md), bit by bit (v2.3.19); prints `TB RESULT: PASS` |
-| `auto_set_c_sim/` | `test/auto_set_c_sim/run.sh [src dir]` | the real C controller compiled for the PC with fake `/dev/mem` (`fake_hw.h`, `harness.c`): AUTO after a capture, forceX |
+| `auto_set_c_sim/` | `test/auto_set_c_sim/run.sh [src dir]` | the real C controller compiled for the PC with fake `/dev/mem` (`fake_hw.h`, `harness.c`): AUTO after a capture, forceX; since v2.3.23 also a model of the circular scope buffer and of the lock pulse (slow windows, Capture Lock with history, time trigger after a stopped ramp) |
+| `minor_ui_sim.js` | `node test/minor_ui_sim.js [index.html]` | wheel → τ/f text, X+ up to 68.72 s, labels (v2.3.18) |
+| `ramp_mod_period_tb.v` | `test/ramp_mod_period_sim.sh [work_dir]` (Vivado 2020.1 xsim) | periods of the ramp floor/ceil triggers and of the harmonic modulation trigger on the RTL, the formulas used by Reset zoom (v2.3.21); prints `TB RESULT: PASS` |
+| `reset_zoom_sim.js` | `node test/reset_zoom_sim.js [index.html] [--old]` | the real `resetZoom()` against a model of the time range code of `src/main.c` (v2.3.21; 0.98 × T and trace clearing since v2.3.23) |
+| `plot_wheel_sim.js` | `node test/plot_wheel_sim.js [index.html]` | mouse wheel on the plot: no key / SHIFT / ALT, limits, debounce, Capture Lock (v2.3.22) |
+| `osc_presets_sim.js` | `node test/osc_presets_sim.js [index.html]` | the OscA\|OscB presets, the `usr` dialog and the Ext Trig → Trigger panel rule (v2.3.24) |
 
 Run them from `lock_in+pid_harmonic/`. All exit with code 1 on failure. `--old` runs a check against the code of
 the previous version (it must fail). `lock_ctrl_tb.v` covers 32-bit time triggers ≥ 2³¹ since v2.3.15 (cases
 14-15). Results of v2.3.17 (`devAgent.md`, `build_logs/rp_lock-in_pid_h_20261009_2124_v2317c_sim.txt`):
 `lock_ctrl_sim` 35/35, `lock_bus_read_sim` PASS (0 unstable reads of 4000), `lock_ctrl_ui_sim` 28/28,
 `lock_capture_ui_sim` 63/63, `trig_input_units_sim` 38/38, `trig_from_graph_sim` 0 failures,
-`config_load_window_sim` 21/21; `auto_set_c_sim` 14/14 (v2.3.15).
+`config_load_window_sim` 21/21; `auto_set_c_sim` 14/14 (v2.3.15). Counts reported in the CHANGELOG for later
+versions: `lock_ctrl_sim` 45/45, `auto_set_c_sim` 44/44, `lock_capture_ui_sim` 79/79, `reset_zoom_sim` 29/29 (v2.3.23);
+`plot_wheel_sim` 59 checks (v2.3.22); `ramp_mod_period_sim` 10 checks (v2.3.21); `minor_ui_sim` 7 checks (v2.3.18);
+`osc_presets_sim` 37 checks (v2.3.24). A full run of all the tests on 2.3.24 is **a confirmar** (not in this page's sources).
 
 The Python client `control_finn.py` was tested by devAgent against a fake HTTP server of the board (Lua argument
 order, `c/lock`/`c/osc`, 2.0 scope with trigger lock, a model of the C worker, `/data` that only answers a body
@@ -331,7 +340,7 @@ with `dummy_simulator` on a second board; reports in `reportes/lock-in_pid_h_loc
 From a package (`archive/*.tar.gz` or `.zip`, or a GitHub release):
 
 ```bash
-tar -xzf lock_in+pid_harmonic-2.3.17-<build>-devbuild.tar.gz
+tar -xzf lock_in+pid_harmonic-2.3.24-<build>-devbuild.tar.gz
 ./upload_app.sh rp-XXXXXX.local          # -p <ssh port>; -w uploads only index.html, js, css
 ```
 
@@ -348,8 +357,8 @@ reloads the FPGA.
 Notes for Ecosystem 2.0 (`testAgent.md`):
 
 - In a non-interactive SSH, `rw` needs `PATH_REDPITAYA`: `export PATH_REDPITAYA=/opt/redpitaya; /opt/redpitaya/sbin/rw`.
-  The `upload*` targets of the Makefile do so since v2.3.15. `upload_app.sh` still calls `/boot/sbin/rw`
-  (l. 119, 125); whether that path exists on OS 2.04 is **a confirmar**.
+  The `upload*` targets of the Makefile do so since v2.3.15, and `upload_app.sh` since v2.3.18 (l. 117-119:
+  `/opt/redpitaya/sbin/rw` on Ecosystem 2.0, `/boot/sbin/rw` on 0.9x).
 - Each `POST /data` (page, `curl`, `control_finn.py`) leaves an open connection in the nginx of the board; after
   long test sessions restart it with `systemctl restart redpitaya_nginx` (then start the App again)
   ([Remote.md](Remote.md#known-issue-of-the-ecosystem-post-data-leaves-connections-open)).
@@ -358,9 +367,12 @@ Notes for Ecosystem 2.0 (`testAgent.md`):
 
 ## Versioning and packages
 
-- Version: `lock_in+pid_harmonic/info/info.json` (`"version": "2.3.17-BUILD_NUMBER"`), the title of
-  `index.html` (`Harmonic lock-in+PID (v2.3.17)`), `CHANGELOG.md`, `README.md` ("Current version"). Build number: `_build_number`.
+- Version: `lock_in+pid_harmonic/info/info.json` (`"version": "2.3.24-BUILD_NUMBER"`), `CHANGELOG.md`, `README.md`
+  ("Current version"). Since v2.3.19 the build writes the version of `info.json` in `<title>` and in the page title
+  of `target/…/index.html` (Makefile l. 101-102); the title in the source `index.html` may be older (2.3.22 now) and
+  does not matter. Build number: `_build_number`.
   Revision: `REVISION` (default `devbuild`).
 - Package name: `lock_in+pid_harmonic-<VER>-<BUILD_NUMBER>-<REVISION>.{zip,tar.gz}` in `archive/`.
-- Branches: `master` = 0.3.x (FPGA Vivado 2015.2), `devel2.0` = 2.3.x (FPGA Vivado 2020.1, Ecosystem 2.0).
-  Tags `v2.3.11` .. `v2.3.17` on `devel2.0`.
+- Branches: since 2026-10-15 `master` is the 2.3.x line (FPGA Vivado 2020.1, Ecosystem 2.0); the 0.3.x series
+  (FPGA Vivado 2015.2, 0.9x / 1.0 ecosystems) stays in the tags `v0.3` .. `v0.3.11`. Tags `v2.3.11` .. `v2.3.24`.
+  `devel2.0` is left as it was (up to its last commit) and is no longer used.

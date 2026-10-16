@@ -1,7 +1,7 @@
 # The App: instruments and specifications
 
-`lock_in+pid_harmonic` ("Harmonic Lock-in+PID") **v2.3.17** for the Red Pitaya STEMlab 125-14,
-Ecosystem 2.0 (tested on RedPitaya_OS 2.04-35). Branch `devel2.0`.
+`lock_in+pid_harmonic` ("Harmonic Lock-in+PID") **v2.3.24** for the Red Pitaya STEMlab 125-14,
+Ecosystem 2.0 (tested on RedPitaya_OS 2.04-35). Branch `master`.
 
 This page describes what the App contains and its technical data. How to use it from the web page is in
 [Usage.md](Usage.md); how the parts are connected in [Structure.md](Structure.md); the registers in
@@ -57,7 +57,7 @@ ctrl_B = PID B out + Ramp B (+ jump B)     → usually sent to OUT2
 | Ecosystem | 2.0 (RedPitaya_OS 2.04-35 tested); FPGA loaded by `fpga.sh` with `fpgautil` | `fpga.sh`, test reports |
 | FPGA clock | 125 MHz (8 ns) | `src/fpga.c` l. 50, top |
 | ADC / DAC | 14 bit, 125 MS/s; signals are 14-bit signed, 8192 counts = 1 V | `lock.v`, `index.html` |
-| FPGA timing | almost closes since v2.3.19 (WNS −1.099 ns, was −8.954 ns: pipeline registers in the lock-in, PIDs, generator and outputs, [`lock_latency.md`](../lock_in+pid_harmonic/doc/lock_latency.md)); works in practice. Bus reads of the lock module are exact since v2.3.17 ([FPGA.md](FPGA.md#lock-module-0x40600000)) | CHANGELOG v2.3.10, v2.3.17, `devAgent.md` |
+| FPGA timing | almost closes since v2.3.19 (WNS −1.099 ns, v2.3.20 −0.888 ns; the image of v2.3.23, with the new `lock_ctrl.v`, **a confirmar**; was −8.954 ns: pipeline registers in the lock-in, PIDs, generator and outputs, [`lock_latency.md`](../lock_in+pid_harmonic/doc/lock_latency.md)); works in practice. Bus reads of the lock module are exact since v2.3.17 ([FPGA.md](FPGA.md#lock-module-0x40600000)) | CHANGELOG v2.3.10, v2.3.17, `devAgent.md` |
 
 ## Oscilloscope
 
@@ -68,10 +68,12 @@ the ADCs). See [FPGA.md](FPGA.md#oscilloscope-0x40100000).
 |---|---|
 | Channels | 2 (any of: 0, in1, in2, error, ctrl_A, ctrl_B, Ramp A/B, pidA/B_in, PID A/B out, sin_ref, cos_ref, cos_1f/2f/3f, Xo, Yo, F1o, F2o, F3o, signal_i, out1, out2) |
 | Memory | 16384 samples per channel; the web page gets 1024 points (`SIGNAL_LENGTH`, `src/main.h`) |
-| Decimations (time range) | 1 (131 µs), 8 (1.05 ms), 64 (8.4 ms), 128 (16.8 ms), 256 (33.6 ms), 512 (67.1 ms), 1024 (134 ms), 8192 (1.07 s), 65536 (8.6 s), 524288 (68.7 s) — `src/fpga.c` l. 509-545; 20-bit decimation in the FPGA of this App |
+| Decimations (time range) | 1 (131 µs), 8 (1.05 ms), 64 (8.4 ms), 128 (16.8 ms), 256 (33.6 ms), 512 (67.1 ms), 1024 (134 ms), 8192 (1.07 s), 65536 (8.6 s), 524288 (68.7 s) — `src/fpga.c` l. 541-577; 20-bit decimation in the FPGA of this App |
 | Trigger sources | Channel 1, Channel 2, External; modes Auto, Normal, Single; edge rising/falling |
 | External trigger | Any of: pin DIO0_P, scan floor, scan ceil, start of the modulation period, out of lock, jump (step response), lock event ("Lock control trig") — `trig_sw` |
 | Other | Averaging at decimation, anti-aliasing (equalization) filter bypass per channel, Raw mode (values in counts), save data as Python / Matlab / CSV |
+| Web page tools | Reset zoom to the period of the trigger source (v2.3.21; 0.98 × T for T ≥ 1.5 s, v2.3.23), mouse wheel zoom on both axes / time only (SHIFT) / Y only (ALT) (v2.3.22), OscA\|OscB presets (v2.3.24): [Usage.md](Usage.md#toolbar) |
+| Slow windows (≥ 1.5 s) | read while the FPGA writes them; only samples of the current acquisition are shown, never an older lap of the memory (v2.3.23, `src/worker.c`): [Usage.md](Usage.md#slow-scans) |
 
 The time span of the 68.7 s range was verified on the board (v2.3.10, `reportes/lock-in_pid_h.md`).
 
@@ -81,7 +83,7 @@ The time span of the 68.7 s range was verified on the board (v2.3.10, `reportes/
 |---|---|
 | Fast inputs IN1, IN2 | 14 bit; ±1 V (LV jumper) or ±20 V (HV); the gain setting of the UI only changes the scale of the display |
 | Fast outputs OUT1, OUT2 | 14 bit, ±1 V, 8192 counts = 1 V; any of 0, in1, in2, in1−in2, error, cos_1f, cos_2f, cos_3f, cos_ref, sin_ref, PID A out, PID B out, ctrl_A, ctrl_B, aux_A, aux_B |
-| Modulation added to the outputs | OUT1 + `cos_ref · mod_out1 / 2^13`, OUT2 + `sin_ref · mod_out2 / 2^13`, saturated to 14 bits; off with a negative `mod_out*` (`lock.v` l. 424-431) |
+| Modulation added to the outputs | OUT1 + `cos_ref · mod_out1 / 2^13`, OUT2 + `sin_ref · mod_out2 / 2^13`, saturated to 14 bits; off with a negative `mod_out*` (`lock.v` l. 428-448) |
 | `in1 − in2` | difference saturated to 14 bits |
 | `aux_A`, `aux_B` | two constants (−8192..8191) usable as signals |
 | Slow outputs AO0-AO3 | **not driven by the lock module in this version** (the UI shows four selectors that have no effect). See [FPGA.md](FPGA.md#other-blocks) |
@@ -106,7 +108,7 @@ frequency below the field, and the phase in degrees and radians.
 
 ## Harmonic lock-in amplifier
 
-`lock.v` l. 707-902, `lock/LP_filter3.v`.
+`lock.v` l. 725-908, `lock/LP_filter3.v`.
 
 ```
 signal_i ─┬─ × cos_ref ─ LPF(F0) ─ X_28 ─ ×2^sg_amp0 ─ sat ─ Xo
@@ -154,7 +156,7 @@ configuration `lock_mode`).
 | Shape | triangle (`ramp_sawtooth` = 0) or sawtooth (1); starting direction / direction of the sawtooth with `ramp_direction` |
 | Limits | `ramp_low_lim` .. `ramp_hig_lim`, −8192..8191 (±1 V); default ±5000 (±610 mV) |
 | Step | one count every `ramp_step + 1` ticks |
-| Period | T = (hig − low) · (`ramp_step` + 1) · 8 ns · (2 − sawtooth); e.g. ±5000, `ramp_step` = 200000 sawtooth → 16.0 s (seen on the board, [panel](Usage.md#ramp-controller)) |
+| Period | T = (hig − low) · (`ramp_step` + 1) · 8 ns · (2 − sawtooth); e.g. ±5000, `ramp_step` = 400 triangle → 64.16 ms (test configurations, seen on the board, [panel](Usage.md#ramp-controller)); `ramp_step` = 187499 triangle → 30.00 s ([slow scans](Usage.md#slow-scans)) |
 | Second output | `ramp_B = ramp_A · ramp_B_factor / 4096` (factor −4096..4096 in the UI, i.e. −1..1) |
 | Triggers | "Scan floor" (low limit reached) and "Scan ceil" (high limit), for the scope and for the time trigger of the lock |
 | Enable | runs while `ramp_enable` (Ramp panel, "Scan enable" checkbox) **and** the ramp enable of the lock control ("Scan enable" button) are on; `ramp_reset` holds it at 0 |
@@ -162,7 +164,7 @@ configuration `lock_mode`).
 
 ## Error signal and PIDs
 
-`lock.v` l. 538-563 and 907-997, `lock/lock_pid_block.v`.
+`lock.v` l. 555-580 and 913-1007, `lock/lock_pid_block.v`.
 
 The **error** is one of 0, Xo, Yo, F1o, F2o, F3o, in1, in1−in2, minus `error_offset`. Each PID can take
 the error or one of 15 other signals (`pidX_sw`).
@@ -182,9 +184,9 @@ out = kp·e / 2^P  +  Σ(ki·e) / 2^I  +  kd·(slope of e) / 2^6
 | Integrator saturation (SAT) | integral term limited to ±2^SAT counts: ±122 µV (0) .. ±1 V (13) | default 13 |
 | Output | sum saturated to 14 bits (±1 V) | |
 | Controls | integrator reset, freeze output, freeze integrator (`pidX_ctrl`) | also frozen during a step (`sf_config`) |
-| Enable | the output is forced to 0 and the integrator reset while the PID is disabled by the lock control | `lock.v` l. 953 |
+| Enable | the output is forced to 0 and the integrator reset while the PID is disabled by the lock control | `lock.v` l. 962 |
 
-Example (test configuration `lock_mode`): PID A, kp = −500 with /1024 → −0.488; ki = −20 with 537 ms →
+Example (test configuration `lock_mode`): PID A, kp = −250 with /1024 → −0.244; ki = −20 with 537 ms →
 τ_i = 26.8 ms (seen in the [PID panel](Usage.md#pids-modules)).
 
 ## Lock control (auto-lock)
@@ -198,7 +200,7 @@ The lock sequence runs in the FPGA (`lock/lock_ctrl.v`, since v2.3.13). Full des
 | In IDLE / ARMED | ramp, PID A, PID B follow the manual enables ("Scan enable", "PID A enable", "PID B enable") |
 | In LOCKED | they follow the "config" enables (usually: ramp off, PID A on) |
 | Requests | Lock Now (immediate), Trigger Lock (arm, lock on the trigger) |
-| Triggers | **Time**: `lock_trig_time` ticks (8 ns) after the scan floor, 0..2³²−1 (up to 34.36 s; 32-bit counter since v2.3.15, it was 17.18 s); **Level**: a signal crosses `lock_trig_val` upwards or downwards; **Level+time**: level crossing after the time |
+| Triggers | **Time**: `lock_trig_time` ticks (8 ns) after the scan floor, 0..2³²−1 (up to 34.36 s; 32-bit counter since v2.3.15, it was 17.18 s; since v2.3.23 the counter saturates and the time trigger only fires after a floor of a running ramp, [FPGA.md](FPGA.md#lock-control-auto-lock)); **Level**: a signal crosses `lock_trig_val` upwards or downwards; **Level+time**: level crossing after the time |
 | Latency | the change happens in the same clock tick as the trigger (8 ns); since v2.3.19 a lock-in output used as signal for trigger is itself 16 ns later than before ([`lock_latency.md`](../lock_in+pid_harmonic/doc/lock_latency.md)) |
 | Status | `lock_status`: armed, locked, effective enables, count of locks |
 | Capture | the lock event is a scope trigger source ("Lock control trig"); the web page uses it to capture the closing of the loop ([`lock_capture.md`](../lock_in+pid_harmonic/doc/lock_capture.md)) |
@@ -212,7 +214,7 @@ procedure of `test_files/lock_test.md`, v2.3.11 to v2.3.17; `reportes/lock-in_pi
 | ARMED → LOCKED | 5-47 ms (first sweep after arming, time trigger at 16.58 ms; 16.9 ms in v2.3.14, 26 / 47 ms in v2.3.17) |
 | Captures of the lock in the scope with Capture Lock | 16/16 |
 | Signal at the lock point | IN1 = 1.01–1.03 × the peak |
-| Error while locked | mean ≈ 0, std ≈ 7–8 mV |
+| Error while locked | mean ≈ 0, std ≈ 27 counts ≈ 3.3 mV with kp = −250 (v2.3.24, [Monitor](Usage.md#lock-control)); ≈ 7–8 mV with the kp = −500 used up to 2026-10-12 |
 | Longest lock observed | 4 h 10 min without losses (level trigger) |
 
 ## Re-lock and step response
@@ -229,7 +231,7 @@ procedure of `test_files/lock_test.md`, v2.3.11 to v2.3.17; `reportes/lock-in_pi
 ## Monitor
 
 `error_mean` and `error_std` are computed in the FPGA over 2²⁷ ticks (1.074 s) and shown in the Monitor
-panel in counts (`src/lock.c` l. 320-322).
+panel in counts (`src/lock.c` l. 440-442).
 
 ## Streaming
 

@@ -9,7 +9,7 @@ loop, controlled from a web page or remotely over HTTP.
 
 [![Example of usage](http://img.youtube.com/vi/330eYE75MYQ/0.jpg)](http://www.youtube.com/watch?v=330eYE75MYQ "Fast demosatration of usage")
 
-![Lock captured by the App (v2.3.14): the scan stops and the error goes to zero at t = 0](.README/lock_captured_v2.3.14.jpg)
+![Lock captured by the App (v2.3.24): the scan stops and the error goes to zero at t = 0](.README/lock_captured_v2.3.24.jpg)
 
 
 ## Version 2.3.x (Ecosystem 2.0)
@@ -19,10 +19,11 @@ Current version: **2.3.24** (branch `master`).
 This version is **based on the 0.3.x series (v0.3.11), but with the FPGA design built in Vivado 2020.1**,
 using the project structure of [RedPitaya-FPGA](https://github.com/RedPitaya/RedPitaya-FPGA).
 It is intended for the Red Pitaya **Ecosystem 2.0** (e.g. `RedPitaya_OS_2.04`; tested on 2.04-35).
-The 0.3.x series (branch `master`, FPGA with Vivado 2015.2) is the version for the 0.9x / 1.0 ecosystems.
+Since 2026-10-15 the branch `master` holds the 2.x series; the 0.3.x series (FPGA with Vivado 2015.2), for the
+0.9x / 1.0 ecosystems, stays in the tags `v0.3` .. `v0.3.11`.
 
 - Web interface and C controller: those of v0.3.11 plus the Ecosystem 2.0 changes of v2.3.10 and the
-  fixes of v2.3.12 to v2.3.21 (see [CHANGELOG](CHANGELOG.md))
+  fixes of v2.3.12 to v2.3.24 (see [CHANGELOG](CHANGELOG.md))
   (still built with Vivado 2015.2 SDK + Linaro toolchain).
 - FPGA: ported to Vivado 2020.1 (see [Building](#building)), oscilloscope of the Ecosystem 2.0 with the
   decimation widened to 20 bits (time ranges up to ~68 s).

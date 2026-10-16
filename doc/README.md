@@ -1,6 +1,6 @@
 # RP Lock-in+PID Harmonic — documentation
 
-Documentation of `lock_in+pid_harmonic` **v2.3.17** (branch `devel2.0`, Ecosystem 2.0, FPGA built with
+Documentation of `lock_in+pid_harmonic` **v2.3.24** (branch `master`, Ecosystem 2.0, FPGA built with
 Vivado 2020.1). Back to the [project README](../README.md) · [CHANGELOG](../CHANGELOG.md).
 
 | Document | Contents |
