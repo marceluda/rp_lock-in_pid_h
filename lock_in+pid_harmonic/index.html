@@ -36,8 +36,8 @@
     #plot_holder.wheel-zoom-y, #plot_holder.wheel-zoom-y * { cursor: ns-resize !important; }
     /* v2.3.24: presets of the scope signals (OscA|OscB), below Ext Trig, see [OSC PRESETS] */
     .osc-presets { display: flex; flex-wrap: wrap; width: 138px; padding-top: 2px; }
-    .btn.osc-preset { width: 42px; height: 34px; margin: 0 4px 4px 0; padding: 1px; font-size: 10px; line-height: 1.15;
-                      font-weight: bold; white-space: normal; word-break: break-word; color: #fff; border-radius: 3px;
+    .btn.osc-preset { width: 42px; height: 20px; margin: 0 4px 3px 0; padding: 1px 0; font-size: 10px; line-height: 16px;
+                      font-weight: bold; white-space: nowrap; overflow: hidden; color: #fff; border-radius: 3px;
                       background-image: none; box-shadow: none; text-shadow: none; }
     .btn.osc-preset-blue  { background-color: #2a6db5; border: 1px solid #1d5290; }
     .btn.osc-preset-green { background-color: #2b7a3b; border: 1px solid #1d5a29; }
@@ -3586,6 +3586,7 @@
   var osc_usr = null;                      // { a, b } or null (not configured)
   var osc_usr_storage_key = 'oscUsrPreset_' + app_id;
   var osc_usr_modal_open = false;
+  var osc_usr_default = { a: 10, b: 3 };   // what the modal offers the first time: OscA = pidA_out ("PID A out"), OscB = error
 
   // Name of a value of the OscA/OscB mux (text of its option), '' if the selects have no such option
   function oscSwName(v) {
@@ -3667,7 +3668,7 @@
     if(osc_usr_modal_open) return false;
     osc_usr_modal_open = true;
     var opts = $('#lock_oscA_sw').html();
-    var cur = osc_usr || { a: (params.local ? params.local.lock_oscA_sw : 1), b: (params.local ? params.local.lock_oscB_sw : 2) };
+    var cur = osc_usr || osc_usr_default;   // first time (no pair saved): pidA_out | error
     $('#osc_usr_a').html(opts).val(cur.a);
     $('#osc_usr_b').html(opts).val(cur.b);
     $('#modal_osc_usr').modal({ backdrop: 'static', keyboard: true, show: true });   // static: the 2nd click of a

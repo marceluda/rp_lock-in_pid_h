@@ -267,13 +267,13 @@ console.log('=== scope presets / Ext Trig (' + file + ') ===');
     E = makeEnv({});
     return E.get('osc_usr') === null && /not configured/.test(E.D('osc_preset_usr').attr.title) && E.D('osc_preset_usr').cls.has('osc-preset-unset');
   });
-  check('2.2 click while not configured: the modal opens (selects with the options of the page, current OscA/OscB), no POST', () => {
+  check('2.2 click while not configured: the modal opens (selects with the options of the page, default pidA_out|error), no POST', () => {
     const t0 = E.clock.t;
     E.get('oscUsrClick')(); E.run(300);
     extra = J(E.D('modal_osc_usr').modal);
     return E.posts(t0).length == 0 && E.D('modal_osc_usr').shown === true && E.D('modal_osc_usr').modal.length == 1 &&
-           E.D('modal_osc_usr').modal[0].backdrop === 'static' && E.D('osc_usr_a').html == optsHtml && E.D('osc_usr_a').val == '1' &&
-           E.D('osc_usr_b').val == '2';
+           E.D('modal_osc_usr').modal[0].backdrop === 'static' && E.D('osc_usr_a').html == optsHtml && E.D('osc_usr_a').val == '10' &&
+           E.D('osc_usr_b').val == '3' && valOf('PID A out') == 10 && valOf('error') == 3;
   }, () => extra);
   check('2.3 Cancel: closed, still not configured, nothing stored', () => {
     E.get('oscUsrClose')();
@@ -455,11 +455,12 @@ console.log('=== scope presets / Ext Trig (' + file + ') ===');
     [0, 1, 2].every(i => /osc-preset-blue/.test(btn('osc_preset_' + i))) && [3, 4].every(i => /osc-preset-green/.test(btn('osc_preset_' + i))) &&
     /osc-preset-green/.test(btn('osc_preset_usr')) && [0, 1, 2, 3, 4].every(i => /class="btn osc-preset/.test(btn('osc_preset_' + i)) && /title="OscA = /.test(btn('osc_preset_' + i))) &&
     /title="usr: /.test(btn('osc_preset_usr')));
-  check('4.4 small squares (CSS width/height <= 44 px, font <= 11 px)', () => {
+  check('4.4 small low buttons (CSS width <= 44 px, height 18..22 px (~40 % less than 34), font 10 px, one line)', () => {
     const m = html.match(/\.btn\.osc-preset \{[^}]*\}/);
     if(!m) return false;
     const w = +(m[0].match(/width:\s*(\d+)px/) || [])[1], h = +(m[0].match(/height:\s*(\d+)px/) || [])[1], f = +(m[0].match(/font-size:\s*(\d+)px/) || [])[1];
-    return w <= 44 && h <= 44 && f <= 11;
+    const lh = +(m[0].match(/line-height:\s*(\d+)px/) || [])[1];
+    return w <= 44 && h >= 18 && h <= 22 && f == 10 && lh >= 12 && lh <= h - 2 && /white-space:\s*nowrap/.test(m[0]);
   });
   check('4.5 bindings: presets click, usr click + dblclick, Accept/Cancel, oscUsrLoad() at page load', () =>
     /\$\('\.osc-preset\[data-preset\]'\)\.on\('click'/.test(js) && /\$\('#osc_preset_usr'\)\.on\('click'[\s\S]{0,120}\.on\('dblclick', function\(\) \{ oscUsrOpen\(\); \}\)/.test(js) &&

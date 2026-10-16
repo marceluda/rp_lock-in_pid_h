@@ -74,14 +74,15 @@ simulated by `dummy_simulator` on a second board. Lock metrics were identical in
 
 ### Added (web page)
 - **Presets of the scope signals**: six small buttons in the *Oscilloscope* panel, below *Ext Trig* (row
-  *Presets*, two rows of three). Blue: `in1|in2` (OscA = in1, OscB = in2), `in1|ctrl` (in1, ctrl_A), `X|Y` (Xo, Yo);
+  *Presets*, two rows of three; 42x20 px, label in one line, 10 px bold). Blue: `in1|in2` (OscA = in1, OscB = in2), `in1|ctrl` (in1, ctrl_A), `X|Y` (Xo, Yo);
   green: `in1|err` (in1, error), `ctrl|err` (ctrl_A, error) and `usr`. A click sets OscA/OscB (mux values 1, 2, 3, 4,
   17, 18 of the selects) through the same path as the two selects: one POST with only `lock_oscA_sw` /
   `lock_oscB_sw` (and the usual `single_btn`/`xmin`/`xmax` with their current values); the zoom (time window and
   Y axes), the trigger (Mode, Source, Edge, Level, Ext Trig) and a Capture Lock are not touched. The title of each
   button shows its two signals.
 - **`usr` preset**: a pair chosen by the user. Double click (or a click while it is not configured, dashed border)
-  opens a dialog with two selects (the options of OscA/OscB); *Accept* saves the pair in the browser
+  opens a dialog with two selects (the options of OscA/OscB; the first time, with no pair saved, it offers
+  OscA = pidA_out (*PID A out*, 10) and OscB = error (3); afterwards the saved pair); *Accept* saves the pair in the browser
   (`localStorage`, key `oscUsrPreset_lock_in+pid_harmonic`) and shows it; the title of the button gives its two
   signals. The pair is part of the page only (the controller has no such parameter): it is saved in the configs
   (*Config* save and download json, in `ui.ui_osc_usr_a` / `ui.ui_osc_usr_b`, never sent to the server) and a
