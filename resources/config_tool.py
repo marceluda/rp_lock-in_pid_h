@@ -1868,8 +1868,9 @@ for i in [ y.name for y in filter( lambda x: x.type=='select' , h) ]:
 
 
 h['lock_trig_sw'  ].control = select(idd="lock_trig_sw"   ,
-                     items=['None', 'Pin','Scan floor','Scan ceil','harmonic mod.','Square mod.','Out of lock'  ,'Jump trigger','Lock control trig'],
-                     vals =[    0 ,    1 ,          2 ,         4 ,             8 ,          16 ,            32 ,           64 ,               128  ]
+                     # v2.3.25: no 'Square mod.' (16): not implemented in this App (always 0 in the FPGA)
+                     items=['None', 'Pin','Scan floor','Scan ceil','harmonic mod.','Out of lock'  ,'Jump trigger','Lock control trig'],
+                     vals =[    0 ,    1 ,          2 ,         4 ,             8 ,            32 ,           64 ,               128  ]
                      )
 
 h["lock_sg_amp0"  ].control = select(idd="lock_sg_amp0"   ,items=['x1','x2','x4','x8','x16','x32','x64','x128','x256','x512','x1k', 'x2k', 'x4k', 'x8k', 'x16k', 'x32k', 'x64k', 'x128k', 'x256k', 'x512k'])

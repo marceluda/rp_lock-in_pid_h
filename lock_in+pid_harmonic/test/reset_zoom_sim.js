@@ -256,7 +256,7 @@ run('11 harmonic mod., hp 1 raw mode (40.32 us)', { time_range: 7 },
 console.log('--- other Ext Trig: one whole memory at the current Dec');
 run('12 Ext Trig None, Dec 1', { time_range: 0 }, { lock_trig_sw: 0 }, { win_s: [0, MEM], dec: 1, y: V });
 run('13 Ext Trig Pin, Dec 8', { time_range: 1 }, { lock_trig_sw: 1 }, { win_s: [0, 8 * MEM], dec: 8, y: V });
-run('14 Ext Trig Square mod., Dec 64', { time_range: 2 }, { lock_trig_sw: 16 }, { win_s: [0, 64 * MEM], dec: 64, y: V });
+run('14 Ext Trig 16 (Square mod., not in the menu since v2.3.25), Dec 64', { time_range: 2 }, { lock_trig_sw: 16 }, { win_s: [0, 64 * MEM], dec: 64, y: V });
 run('15 Ext Trig Lock control trig, Dec 1024', { time_range: 6 }, { lock_trig_sw: 128 }, { win_s: [0, 1024 * MEM], dec: 1024, y: V });
 run('16 Ext Trig None, Dec 8192', { time_range: 7 }, { lock_trig_sw: 0 }, { win_s: [0, 8192 * MEM], dec: 8192, y: V });
 run('17 Ext Trig Out of lock, Dec 524288', { time_range: 9 }, { lock_trig_sw: 32 }, { win_s: [0, 524288 * MEM], dec: 524288, y: V });

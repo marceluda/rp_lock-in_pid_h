@@ -429,6 +429,18 @@ static int rp_osc_acq_params_same(const rp_app_params_t *a, const rp_app_params_
     return 1;
 }
 
+/* v2.3.25: the same, but the trigger mode may differ (Mode select -> Single) */
+static int rp_osc_acq_params_same_but_mode(const rp_app_params_t *a, const rp_app_params_t *b)
+{
+    int i;
+    if(!a || !b)
+        return 0;
+    for(i = 0; rp_osc_acq_keys[i] >= 0; i++)
+        if((rp_osc_acq_keys[i] != TRIG_MODE_PARAM) && (a[rp_osc_acq_keys[i]].value != b[rp_osc_acq_keys[i]].value))
+            return 0;
+    return 1;
+}
+
 /* v2.3.23: trace with no data (all the points on (t_start, 0)): replaces a trace in other time units, which the
  * page would draw on the new axis (e.g. ms values on an axis in s after Reset zoom), until the next one comes */
 static void rp_osc_publish_empty(float t_start_units, int gen)
@@ -468,6 +480,8 @@ void *rp_osc_worker_thread(void *args)
     int acq_trig_set = 0;               /* its trigger source is enabled */
     int acq_trig = 0;                   /* its trigger was received */
     int acq_published = 0;              /* (non-long) acq. state 3 published */
+    int acq_finish = 0;                 /* v2.3.25: long acquisition finished in the idle state (Mode -> Single) */
+    int fpga_pending = 0;               /* v2.3.25: fpga_update deferred until it is finished */
     rp_osc_worker_state_t acq_state = rp_osc_idle_state;   /* worker state it was armed in */
     long long acq_arm_us = 0, acq_trig_set_us = 0, acq_pre_wait_us = 0, acq_next_rd_us = 0;
     /* time units of the last published trace (rp_osc_publish_empty()) */
@@ -623,14 +637,35 @@ void *rp_osc_worker_thread(void *args)
                     pthread_mutex_unlock(&rp_osc_ctrl_mutex);
                     lock_request_armed(curr_gen);
                 }
+            } else if(acq_armed && acq_trig && long_acq && (state == rp_osc_idle_state) &&
+                      rp_osc_acq_params_same_but_mode(prev_params, curr_params)) {
+                /* v2.3.25: Mode -> Single (select: state idle) while a long acquisition is being read after its
+                 * trigger: it is finished, so that the trace left on the page is complete (before it was cut
+                 * where the reader was: RP2, 30 s scan cut at 27.42 s). The FPGA settings wait for its end. */
+                acq_finish   = 1;
+                fpga_pending = fpga_pending || fpga_update;
+                fpga_update  = 0;
             } else {
-                acq_armed = 0;
+                acq_armed  = 0;
+                acq_finish = 0;
+                fpga_update = fpga_update || fpga_pending;
+                fpga_pending = 0;
                 time_vect_update = 1;
             }
         }
         /* other state (e.g. Normal -> Single): a new acquisition */
-        if(acq_armed && (state != acq_state))
+        if(acq_armed && (state != acq_state) && !acq_finish) {
             acq_armed = 0;
+            rp_osc_acq_set(0, curr_gen);
+        }
+        if(acq_finish && (state != rp_osc_idle_state)) {
+            /* (v2.3.25) Single button / other mode meanwhile: a new acquisition */
+            acq_armed = 0;
+            acq_finish = 0;
+            fpga_update = fpga_update || fpga_pending;
+            fpga_pending = 0;
+            rp_osc_acq_set(0, curr_gen);
+        }
 
         if(fpga_update) {
             acq_armed = 0;
@@ -696,7 +731,7 @@ void *rp_osc_worker_thread(void *args)
             }
         }
 
-        if((state == rp_osc_idle_state) || (state == rp_osc_abort_state)) {
+        if(((state == rp_osc_idle_state) && !acq_finish) || (state == rp_osc_abort_state)) {
             if(acq_armed) {
                 acq_armed = 0;
                 rp_osc_acq_set(0, curr_gen);
@@ -843,6 +878,12 @@ void *rp_osc_worker_thread(void *args)
 
         /* Acquisition complete */
         acq_armed = 0;
+        if(acq_finish) {
+            /* (v2.3.25) the FPGA settings of the change to Single now */
+            acq_finish   = 0;
+            fpga_update  = fpga_pending;
+            fpga_pending = 0;
+        }
         rp_osc_acq_set(4, curr_gen);
         if(state == rp_osc_single_state)
             rp_osc_worker_change_state(rp_osc_idle_state);

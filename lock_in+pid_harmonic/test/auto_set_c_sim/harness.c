@@ -732,6 +732,57 @@ int main(void)
     post("trig_mode", 1.0, "trig_source", 0.0, "lock_osc_raw_mode", 1.0, "lock_trig_sw", 0.0, NULL);
     usleep(50000);
     int v2323 = has_v2323();
+    if(getenv("SIM_SINGLE")) {     /* v2.3.25: SIM_SINGLE=1 test/auto_set_c_sim/run.sh -> only this scenario (Mode select -> Single in a 3 s sweep) */
+        int r, k, n1 = 0, nm1 = 0, n2 = 0, n0 = 0;
+        double t0, last_x, last_x_after;
+        pthread_mutex_lock(&ring.mx); ring.floor_period_s = 3.0; ring.next_floor_n = -1; pthread_mutex_unlock(&ring.mx);
+        post("trig_mode", 1.0, "trig_source", 2.0, "lock_trig_sw", 2.0, NULL);
+        post_window(0.0, 2.94, NULL, 0, NULL, 0, NULL, 0);
+        usleep(100000);
+        pthread_mutex_lock(&ring.mx); ring.next_floor_n = -1; pthread_mutex_unlock(&ring.mx);
+        usleep(3100000);
+        /* poll as the page until a partial trace (AGAIN -2) at least 1.5 s into the sweep */
+        t0 = now_s();
+        last_x = 0;
+        while(now_s() - t0 < 8) {
+            r = module_get();
+            if(r == -2) { last_x = mod_sig[0][SIGNAL_LENGTH-1] / unit_f(); if(last_x > 2.0) break; }
+            usleep(50000);
+        }
+        printf("DBG ntrig %d trig_sw %u src %u conf 0x%x floor_n %lld n %lld\n", ring_ntrig(), g_lock_reg->trig_sw, osc->trig_source, osc->conf, ring.next_floor_n, ring.n);
+        printf("SINGLE window 0..2.94 s (xmax_user), server xmax %.4f, Dec %d; partial trace drawn by the page, last x = %.4f s\n",
+               get("xmax") / unit_f(), cur_dec(), last_x);
+        /* the page: Mode select -> Single (POST trig_mode 2 only), then polls every 1 s */
+        post("trig_mode", 2.0, NULL);
+        t0 = now_s();
+        while(now_s() - t0 < 6) {
+            r = module_get();
+            if(r == -1) nm1++; else if(r == -2) n2++; else if(r == 0) n0++;
+            n1++;
+            usleep(200000);
+        }
+        last_x_after = mod_sig[0][SIGNAL_LENGTH-1] / unit_f();
+        for(k = SIGNAL_LENGTH-1; k > 0 && mod_sig[0][k] == mod_sig[0][k-1]; k--) ;
+        printf("SINGLE after select Single: %d GET in 6 s: %d old(-1) %d AGAIN(-2) %d OK; frozen trace last x = %.4f s (last distinct point k=%d of 1024), scope_acq_state %g\n",
+               n1, nm1, n2, n0, last_x_after, k, get("scope_acq_state"));
+        /* v2.3.25: the long acquisition already triggered is finished (2.3.24: abandoned, trace frozen where it was) */
+        check("S.1 Mode select -> Single during a long acquisition already triggered: the trace is completed up to xmax",
+              n0 >= 1 && last_x_after > 2.90, "%d OK in 6 s, last x %.4f s (window 0..2.94 s)", n0, last_x_after);
+        check("S.2 ... and scope_acq_state is not left at 3 (acquiring)", get("scope_acq_state") != 3,
+              "scope_acq_state %g", get("scope_acq_state"));
+        /* Single button */
+        post("trig_mode", 2.0, "single_btn", 1.0, NULL);
+        t0 = now_s();
+        r = -1;
+        while(now_s() - t0 < 8) { r = module_get(); if(r == 0) break; usleep(100000); }
+        printf("SINGLE after Single button: ret %d after %.2f s, last x = %.4f s\n", r, now_s() - t0, mod_sig[0][SIGNAL_LENGTH-1] / unit_f());
+        check("S.3 Single button afterwards: complete trace", r == 0 && mod_sig[0][SIGNAL_LENGTH-1] / unit_f() > 2.90,
+              "ret %d, last x %.4f s", r, mod_sig[0][SIGNAL_LENGTH-1] / unit_f());
+        fpga_run = 0;
+        pthread_join(th, NULL);
+        printf("%d OK, %d FAIL\n", oks, fails);
+        _exit(fails ? 1 : 0);
+    }
     printf("INFO C with the v2.3.23 scope params: %s\n", v2323 ? "yes" : "no (older version)");
 
     /* ---- 6.1 Auto, window 1..3 s (xmin > 0) */

@@ -77,7 +77,8 @@ the last value comes back (up to v2.3.15 an emptied field sent 0).
   out1, out2). The fast inputs are seen with `in1`/`in2`.
 - **Ext Trig**: event used when the scope trigger *Source* is *External*: None, Pin (DIO0_P), Scan floor,
   Scan ceil, harmonic mod. (start of each modulation period), Out of lock, Jump trigger, Lock control trig
-  (the lock event; used by Capture Lock). *Square mod.* is not implemented.
+  (the lock event; used by Capture Lock). *Square mod.* is not implemented (always 0 in the FPGA) and is not in the
+  menu since v2.3.25.
   Since v2.3.24, picking an Ext Trig other than the current one and not *None* also sets the *Trigger* panel to
   *Source* = External and *Mode* = Normal (one POST). *None* changes nothing else; *Config load*, the end of a
   Capture Lock, *Reset zoom* and *AUTO* keep their own trigger settings.

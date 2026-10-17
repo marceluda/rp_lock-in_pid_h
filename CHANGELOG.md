@@ -70,6 +70,33 @@ Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE pro
 simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
 < 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
+## v2.3.25 - Single (select) completes a long acquisition; no "Square mod." in the Ext Trig menu (no FPGA change)
+
+Reported by testAgent (2026-10-16, v2.3.24 on RP2): with a 30 s scan in Normal, choosing *Mode = Single* in the
+select in the middle of the scan left the trace cut (at 27.42 s) and it never grew.
+
+### Fixed (controller, `src/worker.c`)
+- Choosing *Single* in the Mode select sends only `trig_mode` 2: `rp_set_params()` puts the worker in idle, and the
+  worker abandoned the long acquisition in progress (`trig_mode` is an acquisition key and the change also asked for
+  an FPGA update / scope reset), so no more data were published and the page kept the last partial trace. Now, when
+  the worker goes to idle with a long acquisition already triggered and the parameters differ only in `trig_mode`,
+  that acquisition is finished (the reads go on, the FPGA update is deferred to its end) and published as the
+  Single trace. The *Single* button, another mode or any other change abandons it as before. `scope_acq_state` is
+  set to 0 when an acquisition is abandoned (it stayed at 3, "acquiring").
+
+### Changed (web page, `resources/config_tool.py`, `control_finn.py`)
+- The "Square mod." Ext Trig (16) is no longer in the trigger menu: it is not implemented in this App (always 0 in
+  the FPGA). Also removed from `resources/config_tool.py`; labelled "0 (Square mod.)" in
+  `resources/remote_control/http_version/control_finn.py` (as in lock_in+pid_harmonic_hf / _harmonic2).
+- The `<title>` and page title of the source `index.html` said v2.3.22 (the Makefile writes the version in the
+  target); now v2.3.25.
+
+### Tests
+- `test/auto_set_c_sim/harness.c`: scenario `SIM_SINGLE=1 test/auto_set_c_sim/run.sh` (window 0..2.94 s, scan floor
+  every 3 s, Mode select -> Single at x = 2 s): checks S.1 trace completed up to xmax, S.2 `scope_acq_state` not left
+  at 3, S.3 Single button afterwards (2.3.24: S.1 and S.2 fail, trace frozen at 2.0 s).
+- `test/osc_presets_sim.js`: 4.7, the Ext Trig menu has no "Square mod.".
+
 ## v2.3.24 - Scope presets (OscA|OscB) and Ext Trig sets the Trigger panel (web page only, no FPGA / C change)
 
 ### Added (web page)

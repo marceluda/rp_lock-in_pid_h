@@ -7,6 +7,7 @@
 //      opens it once and does not send more than one POST; Accept saves the pair in localStorage, in the tooltip and in
 //      the configs (Config save, download json: elem.ui, never in elem.data / the POSTs); Config load of a config with
 //      the pair takes it (and stores it), an old config without it keeps the current one; page load reads localStorage.
+//   (v2.3.25: 4.7, the Ext Trig menu has no "Square mod.")
 //   3. Ext Trig changed by the user to a value that is not None: Trigger Source = External and Mode = Normal in the
 //      same POST (from Auto, from Single: polling again); to None: nothing else changes; Config load of a config with
 //      Ext Trig != None and Source/Mode Channel 1/Auto keeps the config values (the rule is only in the select handler).
@@ -468,6 +469,13 @@ console.log('=== scope presets / Ext Trig (' + file + ') ===');
   check('4.6 modal with OscA/OscB selects and Accept/Cancel', () =>
     /id="modal_osc_usr"/.test(html) && /<select id="osc_usr_a"/.test(html) && /<select id="osc_usr_b"/.test(html) &&
     /id="btn_osc_usr_accept"/.test(html) && /id="btn_osc_usr_cancel"/.test(html));
+  // v2.3.25: "Square mod." (16) is not implemented in this App (always 0 in the FPGA): not in the Ext Trig menu
+  check('4.7 (v2.3.25) Ext Trig menu: None, Pin, Scan floor, Scan ceil, harmonic mod., Out of lock, Jump trigger, Lock control trig (no Square mod.)', () => {
+    const sel = (html.match(/<select id="lock_trig_sw"[\s\S]*?<\/select>/) || [''])[0];
+    const opts = [...sel.matchAll(/<option[^>]*value="(\d+)"[^>]*>([^<]*)<\/option>/g)].map(m => m[1] + ':' + m[2].trim());
+    return J(opts) == J(['0:None', '1:Pin', '2:Scan floor', '4:Scan ceil', '8:harmonic mod.', '32:Out of lock', '64:Jump trigger', '128:Lock control trig']) &&
+           !/Square mod/.test(sel);
+  });
 }
 
 console.log(`=== ${n} checks, ${fails} failed ===`);

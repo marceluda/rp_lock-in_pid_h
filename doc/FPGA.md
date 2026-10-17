@@ -276,7 +276,7 @@ bit at a time ("Ext Trig" in the Oscilloscope panel).
 | 1 | 2 | Scan floor | Ramp reaches `ramp_low_lim` |
 | 2 | 4 | Scan ceil | Ramp reaches `ramp_hig_lim` |
 | 3 | 8 | harmonic mod. | Start of each period of the modulation |
-| 4 | 16 | Square mod. | Not implemented (always 0) |
+| 4 | 16 | Square mod. | Not implemented (always 0); not in the web menu since v2.3.25 |
 | 5 | 32 | Out of lock | Re-lock condition (debounced) |
 | 6 | 64 | Jump trigger | Start of the step of the step-response measurement |
 | 7 | 128 | Lock control trig | One-tick pulse when the lock state machine enters LOCKED (used by *Capture Lock*) |
