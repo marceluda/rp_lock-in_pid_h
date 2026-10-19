@@ -14,7 +14,7 @@ loop, controlled from a web page or remotely over HTTP.
 
 ## Version 2.3.x (Ecosystem 2.0)
 
-Current version: **2.3.25** (branch `master`).
+Current version: **2.3.26** (branch `master`).
 
 This version is **based on the 0.3.x series (v0.3.11), but with the FPGA design built in Vivado 2020.1**,
 using the project structure of [RedPitaya-FPGA](https://github.com/RedPitaya/RedPitaya-FPGA).
@@ -23,7 +23,7 @@ Since 2026-10-15 the branch `master` holds the 2.x series; the 0.3.x series (FPG
 0.9x / 1.0 ecosystems, stays in the tags `v0.3` .. `v0.3.11`.
 
 - Web interface and C controller: those of v0.3.11 plus the Ecosystem 2.0 changes of v2.3.10 and the
-  fixes of v2.3.12 to v2.3.25 (see [CHANGELOG](CHANGELOG.md))
+  fixes of v2.3.12 to v2.3.26 (see [CHANGELOG](CHANGELOG.md))
   (still built with Vivado 2015.2 SDK + Linaro toolchain).
 - FPGA: ported to Vivado 2020.1 (see [Building](#building)), oscilloscope of the Ecosystem 2.0 with the
   decimation widened to 20 bits (time ranges up to ~68 s).
@@ -70,6 +70,11 @@ Since 2026-10-15 the branch `master` holds the 2.x series; the 0.3.x series (FPG
 - v2.3.25: choosing *Mode = Single* in the trigger select during a long acquisition (e.g. a 30 s scan) completes the
   trace already being acquired (before, it stayed cut where it was); "Square mod." (not implemented) is no longer in
   the Ext Trig menu.
+- v2.3.26: **Auto** waits for the trigger (Ext Trig or the level of a channel) and forces an acquisition only if none
+  comes within max(0.25 s, 1.1 × window, 1.1 × period of the Ext Trig when known) + 50 ms: with Ext Trig = Scan floor
+  t = 0 is the scan floor in Auto too (before, Auto triggered at once, at any phase of the scan). Also: the option **Don't turn on PIDs and Ramp on config loading** (Config dialog) is now unchecked by
+  default: *Config → load* / *Load file* (and the restore after a Restart) bring back the ramp (Scan enable) and the
+  PIDs as saved, so a config saved while scanning loads scanning. Checking it keeps the previous protection.
 
 
 ## Features
