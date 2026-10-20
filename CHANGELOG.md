@@ -70,6 +70,40 @@ Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE pro
 simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
 < 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
+## v2.3.27 - "Load last config on init", Load last config / Reset to defaults; Lock Control below Outputs (web page only, no FPGA / C change)
+
+Requested by the user (2026-10-20): the App opened with the parameters of a previous session; the user wants to choose.
+
+### Changed (web page)
+- **Lock Control** panel moved right below **Outputs** in the left column (Oscilloscope, Outputs, Lock Control,
+  Lock-in modules, Ramp Controller, PIDs modules, Streaming). Only the position of its HTML changes.
+- The state that the page saves automatically (`saveState()`: the Config parameters, time window, exact streaming IP
+  and Capture Lock / Fire on click preferences, every ~2 s and after each POST) is now also kept in **localStorage**
+  (`lockin_last_state_<app_id>`, shared by the tabs, survives closing the browser): the **last config**. The tab state
+  (`sessionStorage`, used by *Restart*) is kept as before.
+- Config dialog, new checkbox **Load last config on init** (`#load_last_on_init`), **checked by default**, saved in
+  localStorage (`lockin_load_last_on_init_<app_id>`). When the page starts the App (opened from the main menu, a new
+  tab, F5): checked, the last config is restored (up to 2.3.26 the state of the tab was restored, so a new tab always
+  started with defaults); unchecked, only `def_params` are sent: the App runs with the defaults of `src/main.c`
+  (`rp_main_params`) loaded by its start. The ramp / PIDs of a restored config follow *Don't turn on PIDs and Ramp on
+  config loading* (unchecked by default); lock requests are never restored.
+- Config dialog, new buttons **Load last config** and **Reset to defaults**: they close the dialog and restart the App
+  (page reload; the App is stopped and started as when it is opened, the FPGA is reloaded) restoring the last config /
+  with the defaults, whatever the checkbox says. *Reset to defaults* therefore gives exactly the parameters of a fresh
+  App (no table of defaults in the page that could drift from `main.c`), with the lock open and no lock request.
+- Opened with the defaults (unchecked, or *Reset to defaults*) the last config is **kept** (hold,
+  `lockin_last_hold_<app_id>`) until the user changes a parameter (time window / Y axis alone do not count): *Load
+  last config* then still brings it back.
+- *Restart* (after "took control" and in the error dialogs) and the automatic restarts after the worker died still
+  restore the **tab state**, with the checkbox checked or not. An App already running when the page opens (another
+  tab, or a reload whose stop on unload was not sent) keeps its state as before; for *Load last config* / *Reset to
+  defaults* it is stopped and started.
+
+### Tests
+- New `test/last_config_sim.js` (35 checks: HTML and panel order, checkbox default and persistence, restore on init
+  checked / unchecked, hold, the two buttons, Restart and recoveries). It fails with the page of 2.3.26. The other node
+  tests unchanged and passing.
+
 ## v2.3.26 - Auto waits for the trigger (forced only after a time limit); "Don't turn on PIDs and Ramp on config loading" unchecked by default (no FPGA change)
 
 Requested by the user (2026-10-19): loading a config switched the scan off; it should start scanning if it was
