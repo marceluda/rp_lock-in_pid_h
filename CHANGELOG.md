@@ -70,6 +70,56 @@ Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE pro
 simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
 < 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
+## v2.3.28 - 2026-10-20 - Quick trigger buttons time / level / time+level in Lock Control (web page only, no FPGA / C change)
+
+Requested by the user (2026-10-20): one click on a button and one on the graph instead of Trigger type + Choose from
+graph + click + Trigger Lock.
+
+### Added (web page)
+- **Lock Control**: three small buttons stacked between **Trigger Lock** and **Lock Now**: **time** (orange),
+  **level** (blue), **time+level** (purple); dark border, light fill. A click on one of them sets the lock trigger
+  type for Trigger Lock (Time trigger / Level Trigger / Level+time Trigger) and waits for a click on the graph, as
+  *Choose from graph* (the *config* section is not opened). The button stays filled with its color while it waits,
+  the cursor over the scope is a crosshair, and a short message below the buttons says what the click will set (with
+  the red warning of *Choose from graph* when t = 0 of the plot is not the scan floor). The message is drawn over the
+  rows below (state label, checkboxes) with a border of the button color: the panel does not grow nor move while it
+  waits (testAgent 2026-10-20: the 2-line text pushed the checkboxes down), and clicks go through it.
+- Layout (user review of 2.3.27-68): *Trigger Lock*, the column of the three small buttons and *Lock Now* are one flex
+  row; the column is as tall as the big buttons and spreads the three in it, so the block is centered in height with
+  them. The small buttons are a bit smaller (16 px, 18 before) and *Trigger Lock* / *Lock Now* a bit larger (16 px
+  font, 60 px high instead of 48 px). In a narrow left column (container query, row narrower than 235 px, e.g. a
+  1366 px wide window) all of them are a bit smaller so that they stay in one row; in a very narrow one (below ~190 px)
+  *Lock Now* goes to a second line.
+- The click on the graph sets the trigger type and the time (from the scan floor) and / or the level, and fires
+  **Trigger Lock** at once, always (as *Fire on click*, whatever its checkbox says), with **Capture Lock** if it is
+  checked: one lock request (2 POSTs, as Fire on click).
+- While waiting nothing is sent: an ARMED / LOCKED lock stays as it is until the click; then it is released and armed
+  again with the new values (as Fire on click). A 2nd click on the same button, Esc or *Choose from graph* cancel;
+  another of the three buttons changes the type. On a frozen capture locked by level (lock time unknown) *time* keeps
+  waiting (warning) and *time+level* sets only the level, as *Choose from graph*.
+
+### Fixed (web page)
+- A click with *Choose from graph* + *Fire on click* while another POST was in flight (busy server, a change made just
+  before) lost the new time / level: `loadParams()` (`trigger_just_set`) wrote them into the server values, so they
+  looked sent and never were, and Trigger Lock fired with the old ones. Now only values already sent are protected;
+  pending ones are kept by `unsentChanges()` and sent after that POST (also the trigger type of the quick buttons).
+- With the lock **LOCKED** and a POST in flight at the click on the graph (quick buttons, or *Choose from graph* +
+  *Fire on click*), the new time reached the register but neither the release (`lock_ctrl_aux_launch_lock_trig` = 0)
+  nor the new request (1) was sent: the lock stayed at the old point, the counter did not change and "LOCKED but not
+  captured" appeared (testAgent on RP2, POST delayed 1.7 s). The send queued during a POST runs 100 ms after its
+  answer; in that gap `lockWhenIdle()` saw nothing busy, wrote the request 1 (the value the server already had) and
+  sent it, so the key was not in the POST and the 0 was never sent. Now that delayed send is kept in
+  `send_que_timer` and `lockWhenIdle()` waits for it: the release goes first, then the request.
+
+### Tests
+- New `test/lock_quick_trig_sim.js` (harness of `lock_capture_ui_sim.js`, handlers of the page): layout and
+  colors, each button sets its type and waits without POST, one click on the graph → values + one lock request,
+  LOCKED and captured (with Fire on click unchecked and trigger type OFF before), cancel (Esc / same button /
+  Choose from graph), another button, pressed while ARMED / LOCKED, Capture Lock off, frozen capture by level, POST in
+  flight (also *Choose from graph*), LOCKED + POST in flight of 150 ms / 1.7 s and at 60 moments around its answer
+  (buttons and Fire on click, with and without Capture Lock), the message does not move the layout, the row of the buttons (flex, centered). 57 checks;
+  with the v2.3.27 page: 51 fail. The other simulations pass.
+
 ## v2.3.27 - "Load last config on init", Load last config / Reset to defaults; Lock Control below Outputs (web page only, no FPGA / C change)
 
 Requested by the user (2026-10-20): the App opened with the parameters of a previous session; the user wants to choose.
