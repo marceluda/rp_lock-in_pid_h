@@ -70,6 +70,48 @@ Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE pro
 simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
 < 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
+## v2.3.29 - 2026-10-24 - Raw Mode: scope trigger level in ADC counts (C controller + web page, no FPGA change)
+
+Bug found in `rp_dummy2` (which inherited this code; fixed there in its 1.0.1), present in all earlier versions: with
+**Raw Mode** on, the *Level* of the scope trigger did not work.
+
+### Fixed (C controller)
+- In Raw Mode the page sends the level in ADC counts, but the controller passed it to `osc_fpga_update_params()`,
+  which converts **volts** to counts: 100 counts were taken as 100 V and the threshold saturated (8191 minus the
+  calibration offset; −3000 even wrapped to a positive threshold), so Normal / Single never triggered for a level other
+  than 0 (Auto was only forced after its time limit). Now `rp_osc_trig_level_v()` (`src/worker.c`) turns the counts
+  into the voltage that `osc_fpga_cnv_v_to_cnt()` maps back to exactly those counts (`osc_fpga_cnv_cnt_to_trig_v()`,
+  `src/fpga.c`, its inverse, with the calibration offset of the input selected by OscA / OscB and the user offset):
+  the threshold register gets the counts as they are. A level beyond 8191 − calibration offset saturates there, as in
+  volts mode.
+- AUTO in Raw Mode: the level used in its search left the calibration offset out, its result (in counts) was then
+  applied as volts by the acquisition (saturated), and its Y range (in counts) was scaled and clipped to ±1000 by the
+  limits of `min_y` / `max_y` (`_norm`). Now the same conversion in both modes, the Y range is not scaled in Raw Mode
+  and those limits are ±20000.
+- Volts mode unchanged.
+
+### Fixed (web page)
+- *Level* field, slider (and its drag) and trigger line: in counts in Raw Mode (whole counts, −8192 … 8191), in V
+  otherwise (± full scale, as before); the volts scale was applied and the level limited to ±1 also in Raw Mode.
+  Out-of-range values are limited before sending (the controller corrected them and logged "Incorrect parameters
+  value"). The unit next to the field says `counts` / `V`.
+- The **Raw Mode** button converts the level (counts = V × 8192 / full scale at gain 1), so the scope triggers at
+  about the same point (the Y axis already went to the Reset zoom range of the new units since v2.3.21).
+- *Config → load* of a config with the other Raw Mode: Y to the Reset zoom range of its mode (±1 V / ±8192), once;
+  its level is already in its units and is not converted. The page opened in Raw Mode starts with Y ±8192 (it was ±1
+  count).
+
+### Tests
+- `test/raw_trigger_sim.js` (new, 45 checks; with the page of v2.3.28, 31 fail): units of the level, the real Level
+  field, Raw Mode button and `config_load_storage()`, code checks of the page and of the controller.
+- `test/trig_level_test.c` (new): the real `src/fpga.c`, 393216 levels × full scales × calibration / user offsets give
+  the same counts in the threshold register.
+- `test/auto_set_c_sim` section 11 (10 checks): thresholds written by the real controller in Raw Mode (in1 / in2 with
+  calibration, internal signal without), volts unchanged, AUTO in Raw Mode; with the sources of v2.3.28, 6 fail.
+- `lock_capture_ui_sim.js`, `lock_ctrl_ui_sim.js`, `osc_presets_sim.js` load the new `[RAW TRIGGER]` block (used by
+  `loadParams()`).
+
+
 ## v2.3.28 - 2026-10-20 - Quick trigger buttons time / level / time+level in Lock Control (web page only, no FPGA / C change)
 
 Requested by the user (2026-10-20): one click on a button and one on the graph instead of Trigger type + Choose from

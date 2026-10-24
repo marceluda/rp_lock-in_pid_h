@@ -66,7 +66,7 @@ the last value comes back (up to v2.3.15 an emptied field sent 0).
 | Stop | Stops the acquisition. |
 | Save Data | Plot data as Python/Numpy, Matlab/Octave or CSV ([Saving data](#saving-data)). |
 | Config | Save / load configurations ([below](#saving-and-loading-configurations)). |
-| Raw Mode | Values in counts (`int`) instead of volts. |
+| Raw Mode | Values in counts (`int`) instead of volts. Also the *Level* of the scope trigger (field, slider and line; −8192 … 8191, unit `counts`): switching Raw Mode converts it (counts = V × 8192 / full scale) and sets Y to −8192 … 8192 / −1 … 1 V. Before v2.3.29 the level in Raw Mode was taken as volts by the controller (Normal / Single did not trigger). |
 | Averaging | Average inside the decimation. |
 | **AUTO** | Auto-set of the scope in the controller (time range, trigger, Y range). Ends a lock capture. Not the same as *Autoscale*. |
 
@@ -212,8 +212,8 @@ See the Outputs screenshot above.
 
 ![Harmonic Lock-in display and Monitor, with the loop closed](.Usage/panel_harmonic_lockin_display_locked.jpg)
 
-- **Trigger**: *Source* (Channel 1, Channel 2, External), *Mode* (Auto, Normal, Single), *Edge*, *Level*,
-  and the *Single* button. External uses the *Ext Trig* of the Oscilloscope panel.
+- **Trigger**: *Source* (Channel 1, Channel 2, External), *Mode* (Auto, Normal, Single), *Edge*, *Level* (in V, or in
+  ADC counts in Raw Mode, −8192 … 8191, since v2.3.29), and the *Single* button. External uses the *Ext Trig* of the Oscilloscope panel.
   **Auto** (since v2.3.26) waits for the trigger as *Normal* does (the *Level* of the source channel, or the
   *Ext Trig* with Source = External) and forces an acquisition only when no trigger comes within a time limit:
   the largest of 0.25 s, 1.1 × the window + 50 ms and, when the period of the Ext Trig is known (Scan floor /
