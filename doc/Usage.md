@@ -68,7 +68,7 @@ the last value comes back (up to v2.3.15 an emptied field sent 0).
 | Config | Save / load configurations ([below](#saving-and-loading-configurations)). |
 | Raw Mode | Values in counts (`int`) instead of volts. Also the *Level* of the scope trigger (field, slider and line; −8192 … 8191, unit `counts`): switching Raw Mode converts it (counts = V × 8192 / full scale) and sets Y to −8192 … 8192 / −1 … 1 V. Before v2.3.29 the level in Raw Mode was taken as volts by the controller (Normal / Single did not trigger). |
 | Averaging | Average inside the decimation. |
-| **AUTO** | Auto-set of the scope in the controller (time range, trigger, Y range). Ends a lock capture. Not the same as *Autoscale*. |
+| **AUTO** | Auto-set of the scope in the controller (time range, trigger, Y range). Ends a lock capture. Not the same as *Autoscale*. The trigger level is set to the middle of the signal (since v2.3.30 also with a calibration offset of the input; whole counts in Raw Mode). |
 
 ### Oscilloscope
 
