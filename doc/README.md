@@ -1,7 +1,16 @@
 # RP Lock-in+PID Harmonic — documentation
 
-Documentation of `lock_in+pid_harmonic` **v2.3.24** (branch `master`, Ecosystem 2.0, FPGA built with
-Vivado 2020.1). Back to the [project README](../README.md) · [CHANGELOG](../CHANGELOG.md).
+Documentation of `lock_in+pid_harmonic` **v2.3.31** (package 2.3.31-73, branch `master`, Ecosystem 2.0, FPGA built with
+Vivado 2020.1; the FPGA is the one of v2.3.23 … v2.3.30, v2.3.31 changes only the web page). Back to the
+[project README](../README.md) · [CHANGELOG](../CHANGELOG.md).
+
+New in v2.3.31 (the Ramp Controller of `lock_in+pid_plus` 2.2.0): the *Ramp Controller* of the web page sets the ramp by
+period (steps, or the whole period in `s` / `ms`) or by frequency / amplitude / offset, and *Lock osc. screen* shows the
+rising half of a triangle (one period of a sawtooth) and turns a time zoom of the scope into new ramp limits:
+[Usage.md](Usage.md#ramp-controller), formulas in [App.md](App.md#ramp-generator-scan). *Reset zoom* with Scan floor
+and a triangle alternates whole period / rising half
+([Usage.md](Usage.md#reset-zoom-whole-period--rising-half)); the *Force X* of the server is applied once
+([Structure.md](Structure.md#time-window-of-the-plot-and-force-x)).
 
 | Document | Contents |
 |---|---|

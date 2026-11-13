@@ -1,6 +1,6 @@
 # FPGA register map
 
-Register map of the FPGA design of `lock_in+pid_harmonic` **v2.3.24** (branch `master`, Vivado 2020.1,
+Register map of the FPGA design of `lock_in+pid_harmonic` **v2.3.31** (branch `master`, Vivado 2020.1; the FPGA image is the one of v2.3.23 … v2.3.30, v2.3.31 changes only the web page;
 RedPitaya-FPGA project `v0.94`, model Z10 / STEMlab 125-14).
 
 All registers are 32-bit words on the AXI general purpose bus of the Zynq, accessed from Linux through
@@ -76,7 +76,7 @@ requested (`sys_ren`, 2 clocks with the address already stable) the `_rd` copies
 `sys_rdata` is stable for 2 clocks: `prj/v0.94/sdc/red_pitaya.xdc` has a 2-cycle multicycle constraint to
 `i_lock/sys_rdata_reg` (l. 82-83). Same kind of fix as the one of the scope `sys_rdata` in v2.3.10. Test:
 `test/lock_bus_read_sim.sh` (simulation: 4000/4000 unstable reads with the `lock.v` of v2.3.16, 0 with v2.3.17).
-On the board (v2.3.17-34): 0 bad reads of `in1`/`oscA` in 2000 `monitor` reads per condition and in 8·10⁶ dense
+On the board (v2.3.17-34): 0 bad reads of `in1`/`oscA` in 2000 `monitor` reads per condition and in $8\cdot 10^{6}$ dense
 reads; out1, ctrl_A, pidA_in/out, ramp_A, error, references, in2, oscB, signal_i consistent; X/Y frozen by
 `read_ctrl[0]` identical in 2000 reads (`reportes/lock-in_pid_h.md`, v2.3.17). Before v2.3.17 the only affected
 registers seen were `in1` (0xD4) and `oscA` showing `in1` (0xE4); the bus design also changed the timing
@@ -100,7 +100,7 @@ report: worst path to `sys_rdata` −10.035 ns → +1.892 ns, design WNS −10.0
 | `0x018` | 6 | `lock_control` | RW | 11 | u | 0..2047 | 1148 (`0x47C`) | Command + configuration of the lock state machine. Never modified by the FPGA (v2.3.13). See [bit fields](#lock_control-0x018). |
 | `0x01C` | 7 | `lock_status` | R | 16 | u | 0..65535 | — | State of the lock (v2.3.13, replaced `lock_feedback`). See [bit fields](#lock_status-0x01c). |
 | `0x020` | 8 | `lock_trig_val` | RW | 14 | s | -8192..8191 | 0 | Threshold of the **level** trigger, compared with the signal selected by `lock_trig_sw`. |
-| `0x024` | 9 | `lock_trig_time` | RW | 32 | u | 0..2³²−1 (34.36 s) | 0 | Delay of the **time** trigger, in ticks of 8 ns counted from the last scan floor (`ramp_floor_trig`). See the note below the table. |
+| `0x024` | 9 | `lock_trig_time` | RW | 32 | u | 0..$2^{32}-1$ (34.36 s) | 0 | Delay of the **time** trigger, in ticks of 8 ns counted from the last scan floor (`ramp_floor_trig`). See the note below the table. |
 | `0x028` | 10 | `lock_trig_sw` | RW | 4 | u | 0..15 | 0 | Signal used by the level trigger. See [selector values](#lock-trigger-signal-lock_trig_sw). |
 | `0x02C` | 11 | `rl_error_threshold` | RW | 13 | u | 0..8191 | 0 | Re-lock: out of lock when `|error| > rl_error_threshold`. |
 | `0x030` | 12 | `rl_signal_sw` | RW | 3 | u | 0..7 | 0 | Re-lock: signal compared with `rl_signal_threshold` (0 in1, 1 in2, 2 in1−in2, 3 aux_A, 4 aux_B, 5..7 → 0). |
@@ -112,16 +112,16 @@ report: worst path to `sys_rdata` −10.035 ns → +1.892 ns, design WNS −10.0
 | `0x048` | 18 | `sf_config` | RW | 5 | u | 0..31 | 0 | Step response: `[0]` start, `[1]` freeze PID A output, `[2]` freeze PID A integrator, `[3]` freeze PID B output, `[4]` freeze PID B integrator (during the step). |
 
 Note on `lock_trig_time` (v2.3.15): the counter and the comparator of `lock/lock_ctrl.v` are 32 bits (l. 87-99,
-139, 151); up to v2.3.14 they were 31 bits, so values ≥ 2³¹ aliased to `value − 2³¹` and the counter wrapped at
-17.2 s. Since v2.3.23 the counter saturates at 2³²−1 instead of wrapping, and the time trigger (and the level
+139, 151); up to v2.3.14 they were 31 bits, so values ≥ $2^{31}$ aliased to `value − 2^31` and the counter wrapped at
+17.2 s. Since v2.3.23 the counter saturates at $2^{32}-1$ instead of wrapping, and the time trigger (and the level
 after time) only fires while `cnt_ok` = 1: the counter measures the time from a floor of a ramp that has been
 running since then (cleared while the effective ramp enable or the ramp generator, `ramp_run`, is off; set at the
 next floor; l. 101-115). A request armed after the ramp was stopped waits for the next floor. Written through the bus (`/lock`, `c/lock`) the value is exact (3000000000 and 4294967295 read back
 unchanged on the board). The C controller keeps its parameters as `float` (`src/main.h`), so a value written
 from the web page goes through float32: it is converted to the register with saturation
-(`lock_float_to_u32()`, `src/lock.c` l. 38 and 243), but above 2²⁴ ticks (134 ms) it is rounded to the float32
+(`lock_float_to_u32()`, `src/lock.c` l. 38 and 243), but above $2^{24}$ ticks (134 ms) it is rounded to the float32
 grid (steps of 2 to 256 ticks; error ≤ 128 ticks ≈ 1 µs at 34 s; e.g. "19 s" = 2375000000 → 2375000064). The
-read-back to the page is also a float (`src/lock.c` l. 407): 0xFFFFFFFF comes back as 2³², and the page clamps it
+read-back to the page is also a float (`src/lock.c` l. 407): 0xFFFFFFFF comes back as $2^{32}$, and the page clamps it
 to 4294967295 (v2.3.16). If the page later rewrites the lock registers it writes its rounded copy.
 
 ### Lock-in amplifier
@@ -130,8 +130,8 @@ to 4294967295 (v2.3.16). If the page later rewrites the lock registers it writes
 |---|---|---|---|---|---|---|---|---|
 | `0x04C` | 19 | `signal_sw` | RW | 3 | u | 0..7 | 0 (in1) | Input of the lock-in (`signal_i`). See [selector values](#lock-in-input-signal_sw). |
 | `0x050` | 20 | `signal_i` | R | 14 | s | -8192..8191 | — | Lock-in input. Frozen by `read_ctrl[0]`. |
-| `0x054` | 21 | `sg_amp0` | RW | 5 | u | 0..31 (UI: 0..19) | 0 | Gain of `Xo`, `Yo`: ×2^`sg_amp0`. |
-| `0x058` | 22 | `sg_amp1` | RW | 4 | u | 0..15 (UI: 0..9) | 0 | Gain of `F1o`: ×2^`sg_amp1`. |
+| `0x054` | 21 | `sg_amp0` | RW | 5 | u | 0..31 (UI: 0..19) | 0 | Gain of `Xo`, `Yo`: $\times 2^{\mathrm{sg\_amp0}}$. |
+| `0x058` | 22 | `sg_amp1` | RW | 4 | u | 0..15 (UI: 0..9) | 0 | Gain of `F1o`: $\times 2^{\mathrm{sg\_amp1}}$. |
 | `0x05C` | 23 | `sg_amp2` | RW | 4 | u | 0..15 (UI: 0..9) | 0 | Gain of `F2o`. |
 | `0x060` | 24 | `sg_amp3` | RW | 4 | u | 0..15 (UI: 0..9) | 0 | Gain of `F3o`. |
 | `0x064` | 25 | `lpf_F0` | RW | 6 | u | 0..63 | 32 | Low-pass filter of X and Y: `[3:0]` time constant, `[5:4]` order. See [bit fields](#lpf_f0-to-lpf_f3-0x064-0x070). |
@@ -141,8 +141,8 @@ to 4294967295 (v2.3.16). If the page later rewrites the lock registers it writes
 | `0x074` | 29 | `error_sw` | RW | 3 | u | 0..7 | 0 | Signal used as `error`. See [selector values](#error-signal-error_sw). |
 | `0x078` | 30 | `error_offset` | RW | 14 | s | -8192..8191 | 0 | Subtracted from the selected signal: `error = sel − error_offset` (no saturation, 14-bit wrap; `lock.v` l. 570-573). |
 | `0x07C` | 31 | `error` | R | 14 | s | -8192..8191 | — | Error signal. Frozen by `read_ctrl[0]`. |
-| `0x080` | 32 | `error_mean` | R | 32 | s | int32 | — | Sum of `error` over 2²⁷ ticks (1.074 s) / 2⁹. Mean in counts = `error_mean / 2^18` (`src/lock.c` l. 440). |
-| `0x084` | 33 | `error_std` | R | 32 | s | int32 | — | Sum of `|error|²` over 2²⁷ ticks / 2²². Mean square = `error_std / 32`; std = √(mean square − mean²) (`src/lock.c` l. 441-442). |
+| `0x080` | 32 | `error_mean` | R | 32 | s | int32 | — | Sum of `error` over $2^{27}$ ticks (1.074 s) / $2^{9}$. Mean in counts = `error_mean / 2^18` (`src/lock.c` l. 440). |
+| `0x084` | 33 | `error_std` | R | 32 | s | int32 | — | Sum of `|error|^2` over $2^{27}$ ticks / $2^{22}$. Mean square = `error_std / 32`; std = $\sqrt{\mathrm{mean\ square}-\mathrm{mean}^2}$ (`src/lock.c` l. 441-442). |
 | `0x088` | 34 | `mod_out1` | RW | 14 | s | -1..8191 | −1 | Amplitude of the modulation (`cos_ref`) added to OUT1. **Negative = off.** Added amplitude ≈ `mod_out1 / 2` counts (see [App.md](App.md#modulation-generator)). |
 | `0x08C` | 35 | `mod_out2` | RW | 14 | s | -1..8191 | −1 | Same for OUT2, with `sin_ref`. |
 | `0x090` | 36 | `gen_mod_phase` | RW | 12 | u | 0..2519 | 0 | Phase of `cos_1f`, `cos_2f`, `cos_3f` with respect to `cos_ref`, in units of 360°/2520 = 0.143°. |
@@ -152,11 +152,11 @@ to 4294967295 (v2.3.16). If the page later rewrites the lock registers it writes
 | `0x0C8` | 50 | `cos_1f` | R | 14 | s | ±4094 | — | Cosine at 1f, phase-shifted by `gen_mod_phase`. |
 | `0x0CC` | 51 | `cos_2f` | R | 14 | s | ±4094 | — | Cosine at 2f, phase-shifted. |
 | `0x0D0` | 52 | `cos_3f` | R | 14 | s | ±4094 | — | Cosine at 3f, phase-shifted. |
-| `0x0EC` | 59 | `X_28` | R | 28 | s | ±2²⁷ | — | Demodulated in-phase component (from **`cos_ref`**, `lock.v` l. 790), before `sg_amp0`. Frozen by `read_ctrl[0]`. |
-| `0x0F0` | 60 | `Y_28` | R | 28 | s | ±2²⁷ | — | Demodulated quadrature component (from **`sin_ref`**). Frozen. |
-| `0x0F4` | 61 | `F1_28` | R | 28 | s | ±2²⁷ | — | Demodulated with `cos_1f`. Frozen. |
-| `0x0F8` | 62 | `F2_28` | R | 28 | s | ±2²⁷ | — | Demodulated with `cos_2f`. Frozen. |
-| `0x0FC` | 63 | `F3_28` | R | 28 | s | ±2²⁷ | — | Demodulated with `cos_3f`. Frozen. |
+| `0x0EC` | 59 | `X_28` | R | 28 | s | $\pm 2^{27}$ | — | Demodulated in-phase component (from **`cos_ref`**, `lock.v` l. 790), before `sg_amp0`. Frozen by `read_ctrl[0]`. |
+| `0x0F0` | 60 | `Y_28` | R | 28 | s | $\pm 2^{27}$ | — | Demodulated quadrature component (from **`sin_ref`**). Frozen. |
+| `0x0F4` | 61 | `F1_28` | R | 28 | s | $\pm 2^{27}$ | — | Demodulated with `cos_1f`. Frozen. |
+| `0x0F8` | 62 | `F2_28` | R | 28 | s | $\pm 2^{27}$ | — | Demodulated with `cos_2f`. Frozen. |
+| `0x0FC` | 63 | `F3_28` | R | 28 | s | $\pm 2^{27}$ | — | Demodulated with `cos_3f`. Frozen. |
 
 The 28-bit outputs scale as `X_28 ≈ A · 2^11`, where `A` is the amplitude (in counts) of the component of
 `signal_i` in phase with `cos_ref` (derived from the RTL, `lock.v` l. 769-790; the same factor is used by
@@ -168,17 +168,23 @@ The 28-bit outputs scale as `X_28 ≈ A · 2^11`, where `A` is the amplitude (in
 |---|---|---|---|---|---|---|---|---|
 | `0x098` | 38 | `ramp_A` | R | 14 | s | -8192..8191 | — | Ramp output A. |
 | `0x09C` | 39 | `ramp_B` | R | 14 | s | -8192..8191 | — | Ramp output B = `ramp_A · ramp_B_factor / 4096`. |
-| `0x0A0` | 40 | `ramp_step` | RW | 32 | u | 0..2³²−1 | 0 | Ticks per ramp step **minus one**: each value of the ramp lasts `ramp_step + 1` ticks. |
+| `0x0A0` | 40 | `ramp_step` | RW | 32 | u | 0..$2^{32}-1$ | 0 | Ticks per ramp step **minus one**: each value of the ramp lasts `ramp_step + 1` ticks. |
 | `0x0A4` | 41 | `ramp_low_lim` | RW | 14 | s | -8192..8191 | −5000 | Lower limit of the ramp ("scan floor"). |
 | `0x0A8` | 42 | `ramp_hig_lim` | RW | 14 | s | -8192..8191 | 5000 | Upper limit of the ramp ("scan ceil"). |
 | `0x0AC` | 43 | `ramp_reset` | RW | 1 | u | 0..1 | 0 | 1 = hold the ramp at 0 (written as `|sys_wdata`: any non-zero value is 1). |
 | `0x0B0` | 44 | `ramp_enable` | RW | 1 | u | 0..1 | 0 | Ramp enable ("Scan enable" of the Ramp panel). The ramp runs only if this **and** the effective ramp enable of `lock_control` are 1. |
-| `0x0B4` | 45 | `ramp_direction` | RW | 1 | u | 0..1 | 0 | Starting direction (triangle) / direction of the sawtooth. |
+| `0x0B4` | 45 | `ramp_direction` | RW | 1 | u | 0..1 | 0 | Direction of the sawtooth (1 rising, 0 falling). In a triangle it only reverses the slope at the moment it changes: after each scan floor the triangle always rises (`gen_ramp.v` l. 157; [App.md](App.md#ramp-generator-scan)). |
 | `0x0B8` | 46 | `ramp_sawtooth` | RW | 1 | u | 0..1 | 0 | 1 = sawtooth, 0 = triangle. |
 | `0x0BC` | 47 | `ramp_B_factor` | RW | 14 | s | -4096..4096 (RTL: -8192..8191) | 4096 | Ratio `ramp_B / ramp_A`, 4096 = 1. |
 
-Ramp period: `T = (ramp_hig_lim − ramp_low_lim) · (ramp_step + 1) · 8 ns · (2 − ramp_sawtooth)`
-(`index.html` l. 1920, consistent with `gen_ramp.v`).
+Ramp period: `T = N · (ramp_step + 1) · 8 ns`, `f = 125 MHz / (N · (ramp_step + 1))`, with N = 2 · (ramp_hig_lim −
+ramp_low_lim) for the triangle and N = (ramp_hig_lim − ramp_low_lim) + 1 for the sawtooth (the jump back is one step)
+(CHANGELOG v2.3.31, `gen_ramp.v` l. 104-105; `rampPeriodCycles()` in `index.html` l. 3208). Up to v2.3.30 the page and
+this page used `(hig − low) · (step + 1) · 8 ns · (2 − sawtooth)`, one step short for the sawtooth. Since v2.3.31 the
+web page can also set the ramp by frequency, amplitude and offset, and *Ramp period* takes the whole period with
+units ([App.md](App.md#ramp-generator-scan)); the registers are the same. The page limits `ramp_step` to
+0 … 2147483520 ($2^{31}-128$) because the controller handles it as a float32; through `/lock` the register takes any
+32-bit value.
 
 ### Inputs, outputs and monitor values
 
@@ -191,7 +197,7 @@ Ramp period: `T = (ramp_hig_lim − ramp_low_lim) · (ramp_step + 1) · 8 ns · 
 | `0x0E4` | 57 | `oscA` | R | 14 | s | -8192..8191 | Signal sent to scope channel A. |
 | `0x0E8` | 58 | `oscB` | R | 14 | s | -8192..8191 | Signal sent to scope channel B. |
 | `0x100` | 64 | `cnt_clk` | R | 32 | u | — | Low 32 bits of a 50-bit tick counter (frozen by `read_ctrl[0]`; counts only while `read_ctrl[1] = 1`, otherwise 0). |
-| `0x104` | 65 | `cnt_clk2` | R | 32 | u | 0..2¹⁸−1 | High 18 bits of the same counter. |
+| `0x104` | 65 | `cnt_clk2` | R | 32 | u | 0..$2^{18}-1$ | High 18 bits of the same counter. |
 | `0x108` | 66 | `read_ctrl` | RW | 3 | u | 0..7 | `[0]` freeze the copies of `signal_i`, `error`, `X_28`..`F3_28`, `ctrl_A`, `ctrl_B`, `cnt_clk*` (v2.3.17: also held during each bus read); `[1]` run the tick counter; `[2]` unused. Reset 0. |
 | `0x174` | 93 | `aux_A` | RW | 14 | s | -8192..8191 | Constant usable as a signal in several selectors (and as a manual offset on an output). Reset 0. |
 | `0x178` | 94 | `aux_B` | RW | 14 | s | -8192..8191 | Same. Reset 0. |
@@ -204,9 +210,9 @@ PID B is identical to PID A at offset `+0x34` (indices +13).
 |---|---|---|---|---|---|---|---|---|
 | `0x10C` / `0x140` | 67 / 80 | `pidX_sw` | RW | 4 | u | 0..15 | 0 (error) | PID input (4-bit register since v2.3.15, the width of the selector `muxer4`; before it was 5 bits and 16..31 behaved as 0..15). Writing 17 reads back 1. See [selector values](#pid-inputs-pida_sw-pidb_sw). |
 | `0x110` / `0x144` | 68 / 81 | `pidX_PSR` | RW | 3 | u | 0..4 | 3 | Proportional divider: 0 /1, 1 /8, 2 /64, 3 /1024, 4 /4096. Others → /1. |
-| `0x114` / `0x148` | 69 / 82 | `pidX_ISR` | RW | 4 | u | 0..9 | 8 | Integrator divider 2^n, n = 0,3,6,10,13,16,20,23,26,30. Others → 2⁰. |
-| `0x118` / `0x14C` | 70 / 83 | `pidX_DSR` | RW | 3 | u | 0..5 | 0 | Derivative: averages 2^n samples, n = 0,3,6,10,13,16. Others → 2⁰. |
-| `0x11C` / `0x150` | 71 / 84 | `pidX_SAT` | RW | 14 (8 used) | u | 0..13 | 13 | Saturation of the integral term at ±2^`SAT` counts (13 → ±1 V). |
+| `0x114` / `0x148` | 69 / 82 | `pidX_ISR` | RW | 4 | u | 0..9 | 8 | Integrator divider $2^n$, n = 0,3,6,10,13,16,20,23,26,30. Others → $2^{0}$. |
+| `0x118` / `0x14C` | 70 / 83 | `pidX_DSR` | RW | 3 | u | 0..5 | 0 | Derivative: averages $2^n$ samples, n = 0,3,6,10,13,16. Others → $2^{0}$. |
+| `0x11C` / `0x150` | 71 / 84 | `pidX_SAT` | RW | 14 (8 used) | u | 0..13 | 13 | Saturation of the integral term at $\pm 2^{\mathrm{SAT}}$ counts (13 → ±1 V). |
 | `0x120` / `0x154` | 72 / 85 | `pidX_sp` | RW | 14 | s | -8192..8191 | 0 | Set point. |
 | `0x124` / `0x158` | 73 / 86 | `pidX_kp` | RW | 14 | s | -8192..8191 | 0 | Proportional gain. |
 | `0x128` / `0x15C` | 74 / 87 | `pidX_ki` | RW | 14 | s | -8192..8191 | 0 | Integral gain. |
@@ -220,7 +226,7 @@ PID B is identical to PID A at offset `+0x34` (indices +13).
 
 | Offset | Idx | Name | R/W | Bits | s/u | Range | Reset | Function |
 |---|---|---|---|---|---|---|---|---|
-| `0x17C` | 95 | `stream_ip` | RW | 32 | u | IPv4 | 0 | IP of the computer that receives the stream, little-endian: `a.b.c.d` = `a + b·2⁸ + c·2¹⁶ + d·2²⁴`. |
+| `0x17C` | 95 | `stream_ip` | RW | 32 | u | IPv4 | 0 | IP of the computer that receives the stream, little-endian: `a.b.c.d` = $a + b\cdot 2^{8} + c\cdot 2^{16} + d\cdot 2^{24}$. |
 | `0x180` | 96 | `stream_port` | RW | 32 | u | 0..65535 | 6000 | TCP port of the receiver. |
 | `0x184` | 97 | `stream_rate` | RW | 17 | u | 64..65536 | 128 | Decimation of the scope while streaming (the UI offers 64, 128, 256, 512, 1024, 8192, 65536). |
 | `0x188` | 98 | `stream_cmd` | RW | 32 | u | 0..1 | 0 | 1 = streaming running. Bit 0 also tells the scope to use `stream_rate` as decimation. |
@@ -293,7 +299,7 @@ a filter is bypassed when bits `[5:4]` of its own 6-bit `tau` input are not 00.
 | 10 | active | active | 2 |
 | 11 | active | bypass | 1 (not offered by the UI) |
 
-`[3:0]` = n: time constant τ = 8 ns · 2^(14+n) (131 µs .. 4.29 s), cut-off f = 1/(2πτ) (1.21 kHz .. 37 mHz).
+`[3:0]` = n: time constant $\tau = 8\ \mathrm{ns}\cdot 2^{14+n}$ (131 µs .. 4.29 s), cut-off $f = 1/(2\pi\tau)$ (1.21 kHz .. 37 mHz).
 The C controller writes `order << 4 | tau` (`src/lock.c` l. 276-279). Reset value 32 = order 2, n = 0.
 
 ### Selector values

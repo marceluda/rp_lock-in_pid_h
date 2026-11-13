@@ -1,6 +1,6 @@
 # The App: instruments and specifications
 
-`lock_in+pid_harmonic` ("Harmonic Lock-in+PID") **v2.3.24** for the Red Pitaya STEMlab 125-14,
+`lock_in+pid_harmonic` ("Harmonic Lock-in+PID") **v2.3.31** for the Red Pitaya STEMlab 125-14,
 Ecosystem 2.0 (tested on RedPitaya_OS 2.04-35). Branch `master`.
 
 This page describes what the App contains and its technical data. How to use it from the web page is in
@@ -34,7 +34,7 @@ with selectors, so that a measurement or a feedback loop is configured instead o
 | **Inputs / outputs** | Routing of 16 signals to the fast outputs OUT1/OUT2, with optional modulation added | `out1_sw`, `out2_sw`, `mod_out1`, `mod_out2` |
 | **Modulation generator** | Harmonic local oscillator: `sin_ref`, `cos_ref` and `cos_1f`, `cos_2f`, `cos_3f` with adjustable phase, 3 Hz – 49.6 kHz | `gen_mod_hp`, `gen_mod_phase` |
 | **Harmonic lock-in** | Demodulation of one input at 1f (X, Y and F1 at an arbitrary phase), 2f (F2) and 3f (F3), with 1st/2nd order low-pass filters and gains | `signal_sw`, `lpf_F*`, `sg_amp*` |
-| **Ramp generator** | Triangle or sawtooth scan on two outputs with a fixed ratio (A and B) | `ramp_*` |
+| **Ramp generator** | Triangle or sawtooth scan on two outputs with a fixed ratio (A and B); set from the page by period or by frequency, amplitude and offset (v2.3.31) | `ramp_*` |
 | **Two PIDs** | PID A and PID B, wide range of gains and time constants, integrator saturation, freeze and reset | `pidA_*`, `pidB_*`, `error_sw`, `error_offset` |
 | **Lock control** | Automatic transition from scan (open loop) to lock (closed loop) at a time, a level or immediately, executed by the FPGA in one clock | `lock_control`, `lock_status`, `lock_trig_*` |
 | **Re-lock / step response** | Out-of-lock detection; a step added to the control signals to measure the loop response | `rl_*`, `sf_*` |
@@ -72,7 +72,7 @@ the ADCs). See [FPGA.md](FPGA.md#oscilloscope-0x40100000).
 | Trigger sources | Channel 1, Channel 2, External; modes Auto, Normal, Single; edge rising/falling |
 | External trigger | Any of: pin DIO0_P, scan floor, scan ceil, start of the modulation period, out of lock, jump (step response), lock event ("Lock control trig") — `trig_sw` |
 | Other | Averaging at decimation, anti-aliasing (equalization) filter bypass per channel, Raw mode (values in counts), save data as Python / Matlab / CSV |
-| Web page tools | Reset zoom to the period of the trigger source (v2.3.21; 0.98 × T for T ≥ 1.5 s, v2.3.23), mouse wheel zoom on both axes / time only (SHIFT) / Y only (ALT) (v2.3.22), OscA\|OscB presets (v2.3.24): [Usage.md](Usage.md#toolbar) |
+| Web page tools | Reset zoom to the period of the trigger source (v2.3.21; 0.98 × T for T ≥ 1.5 s, v2.3.23; with Scan floor and a triangle each click alternates the whole period and the rising half 0 … T/2, v2.3.31), mouse wheel zoom on both axes / time only (SHIFT) / Y only (ALT) (v2.3.22), OscA\|OscB presets (v2.3.24): [Usage.md](Usage.md#toolbar) |
 | Slow windows (≥ 1.5 s) | read while the FPGA writes them; only samples of the current acquisition are shown, never an older lap of the memory (v2.3.23, `src/worker.c`): [Usage.md](Usage.md#slow-scans) |
 
 The time span of the 68.7 s range was verified on the board (v2.3.10, `reportes/lock-in_pid_h.md`).
@@ -122,13 +122,13 @@ signal_i ─┬─ × cos_ref ─ LPF(F0) ─ X_28 ─ ×2^sg_amp0 ─ sat ─ X
 |---|---|
 | Input `signal_i` | in1, in2, in1−in2, cos_ref, sin_ref, cos_1f, aux_A, Ramp A |
 | Outputs | `Xo`, `Yo` (1f, phase 0 and 90°), `F1o` (1f at `gen_mod_phase`), `F2o` (2f), `F3o` (3f); 14-bit, saturated |
-| Scale | with gain ×1 the outputs read the **amplitude** (in counts) of the component of the input in phase with each reference: an input `A·cos_ref/4094` gives `Xo ≈ A`, `Yo ≈ 0`; an input in phase with `sin_ref` gives `Yo ≈ A` (φ = +90°). Times 2^`sg_amp`. Derived from the RTL (reference ±4094 ≈ 2^12, products shifted 21 bits) and consistent with the loopback test OUT1 → IN1: `cos_ref` → X = 461 mV, φ = 1.6°; `sin_ref` → Y = R = 461 mV, φ = 91.6° (`reportes/lock-in_pid_h.md`) |
-| Gains | `sg_amp0` ×1 .. ×512k (UI; register up to 2^31); `sg_amp1..3` ×1 .. ×512 (UI; register up to 2^15) |
+| Scale | with gain ×1 the outputs read the **amplitude** (in counts) of the component of the input in phase with each reference: an input `A·cos_ref/4094` gives `Xo ≈ A`, `Yo ≈ 0`; an input in phase with `sin_ref` gives `Yo ≈ A` (φ = +90°). Times $2^{\mathrm{sg\_amp}}$. Derived from the RTL (reference ±4094 ≈ $2^{12}$, products shifted 21 bits) and consistent with the loopback test OUT1 → IN1: `cos_ref` → X = 461 mV, φ = 1.6°; `sin_ref` → Y = R = 461 mV, φ = 91.6° (`reportes/lock-in_pid_h.md`) |
+| Gains | `sg_amp0` ×1 .. ×512k (UI; register up to $2^{31}$); `sg_amp1..3` ×1 .. ×512 (UI; register up to $2^{15}$) |
 | Low-pass filters | 4 independent: X&Y share `lpf_F0`, then F1, F2, F3. Order 0 (off), 1 or 2 (cascade of identical 1st-order stages) |
 | Latency | v2.3.19: outputs 2 clocks (16 ns) later than in v2.3.18, the generator 1 clock later, the PID outputs and `out1`/`out2` 1 clock each ([`lock_latency.md`](../lock_in+pid_harmonic/doc/lock_latency.md)) |
-| Time constants | τ = 8 ns · 2^(14+n), n = 0..15 |
-| R and φ | computed in the web page from X and Y: R = √(X² + Y²), φ = atan2(Y, X) |
-| Registers with more resolution | `X_28`, `Y_28`, `F1_28`..`F3_28` (28 bit, before the gain): `X_28 ≈ A·cos φ · 2^11` |
+| Time constants | $\tau = 8\ \mathrm{ns}\cdot 2^{14+n}$, n = 0..15 |
+| R and φ | computed in the web page from X and Y: $R = \sqrt{X^2+Y^2}$, φ = atan2(Y, X) |
+| Registers with more resolution | `X_28`, `Y_28`, `F1_28`..`F3_28` (28 bit, before the gain): $X_{28} \approx A\cos\varphi\cdot 2^{11}$ |
 
 Low-pass filter table (`LP_filter3.v`, also the labels of the UI):
 
@@ -149,18 +149,34 @@ configuration `lock_mode`).
 
 ## Ramp generator (scan)
 
-`lock/gen_ramp.v`.
+`lock/gen_ramp.v`. The ramp of the FPGA did not change in v2.3.31; that version only adds ways of setting it from the
+web page (tabs *period* / *freq*, *Lock osc. screen*: [Usage.md](Usage.md#ramp-controller)). `gen_ramp.v` is the same
+file as in `lock_in+pid_plus` (same md5). The relations below are those of CHANGELOG v2.3.31, checked against a cycle
+model of `gen_ramp.v` (`test/ramp_ui_sim.js`) and on the RTL (`test/ramp_mod_period_sim.sh`); in the page they are the
+`[RAMP CALC]` block of `index.html` (l. 3405-3631; the period, `rampPeriodCycles()`, l. 3208).
 
 | Item | Value |
 |---|---|
-| Shape | triangle (`ramp_sawtooth` = 0) or sawtooth (1); starting direction / direction of the sawtooth with `ramp_direction` |
-| Limits | `ramp_low_lim` .. `ramp_hig_lim`, −8192..8191 (±1 V); default ±5000 (±610 mV) |
-| Step | one count every `ramp_step + 1` ticks |
-| Period | T = (hig − low) · (`ramp_step` + 1) · 8 ns · (2 − sawtooth); e.g. ±5000, `ramp_step` = 400 triangle → 64.16 ms (test configurations, seen on the board, [panel](Usage.md#ramp-controller)); `ramp_step` = 187499 triangle → 30.00 s ([slow scans](Usage.md#slow-scans)) |
+| Shape | triangle (`ramp_sawtooth` = 0) or sawtooth (1). `ramp_direction`: direction of the sawtooth (1: rises from low and jumps back to low; 0: jumps from low to high and falls to low). A **triangle always rises after the scan floor** (`gen_ramp.v` l. 157: `floor ? ramp_signal + 1`), whatever `ramp_direction`, which only reverses the slope at the moment it is changed (checked with the cycle model of `test/ramp_ui_sim.js` 7.1): the first half period after the Scan floor trigger is always the rise |
+| Limits | `ramp_low_lim` .. `ramp_hig_lim`, −8192..8191 (±1 V, 8192 counts = 1 V); default ±5000 (±610 mV) |
+| Step | the output moves one count every `ramp_step + 1` clock cycles of 8 ns (`gen_ramp.v` l. 104-105: `go` when the counter reaches `ramp_step`; step 0: every cycle) |
+| Steps per period N | triangle **N = 2 · (hig − low)**; sawtooth **N = (hig − low) + 1** (the jump back is one step). One period goes from scan floor to scan floor |
+| Period, frequency | **T = N · (`ramp_step` + 1) · 8 ns**, **f = 125 MHz / (N · (`ramp_step` + 1))**. E.g. ±5000, `ramp_step` = 400, triangle → 64.16 ms, 15.586 Hz (test configurations, [panel](Usage.md#ramp-controller)); `ramp_step` = 187499 triangle → 30.00 s ([slow scans](Usage.md#slow-scans)); Amp. 8000 triangle, step 77 → 100.1603 Hz (board test v2.3.31) |
+| Frequency range | from 125 MHz / (N · $2^{31}$) (largest step used by the page) to 125 MHz / N (step 0): for ±5000 (N = 20000, triangle) 2.9 µHz … 6.25 kHz. The resolution is that of the integer step: coarse near step 0 (e.g. Amp. 8000: 7812.5, 3906, 2604 Hz for steps 0, 1, 2) |
+| Amplitude, offset (tab *freq*) | Amp. p-p = hig − low (counts; mVpp = Amp · 1000 / 8192); Offset = floor((hig + low) / 2). Inverse: low = Offset − floor(Amp / 2), hig = low + Amp (exact round trip, odd amplitudes too) (`rampAmpOffOf()` / `rampLimsOf()`, `index.html` l. 3478-3485) |
+| `ramp_step` as a parameter | the C controller keeps it as a float32 (`src/main.c` l. 365, parameter table of `float` values) and `lock.c` writes `(int)value` (l. 291): above $2^{24}$ only the integers of a float32 reach the register (2, 4 … 128 apart). The page only uses such steps, at most $2^{31}-128$ = 2147483520 (`ramp_step_max`, `index.html` l. 3417), in both tabs. The register itself is 32 bits (`lock.v` l. 65) |
 | Second output | `ramp_B = ramp_A · ramp_B_factor / 4096` (factor −4096..4096 in the UI, i.e. −1..1) |
-| Triggers | "Scan floor" (low limit reached) and "Scan ceil" (high limit), for the scope and for the time trigger of the lock |
+| Triggers | "Scan floor" (low limit reached) and "Scan ceil" (high limit), for the scope and for the time trigger of the lock (`gen_ramp.v` l. 173-174) |
 | Enable | runs while `ramp_enable` (Ramp panel, "Scan enable" checkbox) **and** the ramp enable of the lock control ("Scan enable" button) are on; `ramp_reset` holds it at 0 |
 | Digital output | ramp direction on DIO6_N |
+
+Web page tools of the ramp (v2.3.31; details in [Usage.md](Usage.md#ramp-controller)):
+
+| Tool | What it does |
+|---|---|
+| Tab *period* | `ramp_step`, hig / low limits in machine units (wheel ±1, SHIFT ×10, CTRL ×100, both ×1000); τ / f of the whole period shown below. *Ramp period* also takes the whole period with a unit (`10 ms`, `0.5 s`; `s`, `seg`, `ms`, `us`): the step of the nearest T = N · (step + 1) · 8 ns, sent with Enter / leaving the field, 0 … 2147483520 |
+| Tab *freq* | **Frequency** (Hz, or `2.5 kHz`, `500 mHz`, `1e3`): the step of the nearest reachable frequency; wheel ±1 / 10 / 100 / 1000 Hz (none / SHIFT / CTRL / both) from the nominal frequency, or one step of the register where the step can not move that little. **Amp. p-p**, **Offset**: counts or `mV` / `V`; changing the amplitude (or the waveform) keeps the nominal frequency |
+| *Lock osc. screen* | scope on Scan floor (External, Normal); window 0 … T/2 (the rise) with a triangle, 0 … T (0.98 T for T ≥ 1.5 s) with a sawtooth; a time zoom of the plot sets new ramp limits (the values of the rise / of the sawtooth at the ends of the zoomed window) at the same frequency of the whole period. Not saved in the configs |
 
 ## Error signal and PIDs
 
@@ -179,15 +195,15 @@ out = kp·e / 2^P  +  Σ(ki·e) / 2^I  +  kd·(slope of e) / 2^6
 |---|---|---|
 | `kp`, `ki`, `kd`, `sp` | −8192..8191 | 14-bit signed |
 | Proportional divider P (PSR) | /1, /8, /64, /1024, /4096 | default /1024 (`kp` = 1024 → gain 1) |
-| Integrator (ISR) | 2^I, I = 0,3,6,10,13,16,20,23,26,30 → UI labels 8 ns, 64 ns, 512 ns, 8 us, 65 us, 524 us, 8 ms, 67 ms, 537 ms, 9 s (the "65 us" label said "6 us" up to v2.3.14) | characteristic time τ_i = 8 ns · 2^I / |ki|; default I = 26 (537 ms) |
-| Derivative (DSR) | slope over averages of 2^D samples, D = 0,3,6,10,13,16 → UI 7.5 ns .. 491.5 µs | τ_d = 7.5 ns · 2^D · |kd| (UI formula) |
-| Integrator saturation (SAT) | integral term limited to ±2^SAT counts: ±122 µV (0) .. ±1 V (13) | default 13 |
+| Integrator (ISR) | $2^I$, I = 0,3,6,10,13,16,20,23,26,30 → UI labels 8 ns, 64 ns, 512 ns, 8 us, 65 us, 524 us, 8 ms, 67 ms, 537 ms, 9 s (the "65 us" label said "6 us" up to v2.3.14) | characteristic time $\tau_i = 8\ \mathrm{ns}\cdot 2^I/\lvert k_i\rvert$; default I = 26 (537 ms) |
+| Derivative (DSR) | slope over averages of $2^D$ samples, D = 0,3,6,10,13,16 → UI 7.5 ns .. 491.5 µs | $\tau_d = 7.5\ \mathrm{ns}\cdot 2^D\cdot\lvert k_d\rvert$ (UI formula) |
+| Integrator saturation (SAT) | integral term limited to $\pm 2^{\mathrm{SAT}}$ counts: ±122 µV (0) .. ±1 V (13) | default 13 |
 | Output | sum saturated to 14 bits (±1 V) | |
 | Controls | integrator reset, freeze output, freeze integrator (`pidX_ctrl`) | also frozen during a step (`sf_config`) |
 | Enable | the output is forced to 0 and the integrator reset while the PID is disabled by the lock control | `lock.v` l. 962 |
 
 Example (test configuration `lock_mode`): PID A, kp = −250 with /1024 → −0.244; ki = −20 with 537 ms →
-τ_i = 26.8 ms (seen in the [PID panel](Usage.md#pids-modules)).
+$\tau_i$ = 26.8 ms (seen in the [PID panel](Usage.md#pids-modules)).
 
 ## Lock control (auto-lock)
 
@@ -200,7 +216,7 @@ The lock sequence runs in the FPGA (`lock/lock_ctrl.v`, since v2.3.13). Full des
 | In IDLE / ARMED | ramp, PID A, PID B follow the manual enables ("Scan enable", "PID A enable", "PID B enable") |
 | In LOCKED | they follow the "config" enables (usually: ramp off, PID A on) |
 | Requests | Lock Now (immediate), Trigger Lock (arm, lock on the trigger) |
-| Triggers | **Time**: `lock_trig_time` ticks (8 ns) after the scan floor, 0..2³²−1 (up to 34.36 s; 32-bit counter since v2.3.15, it was 17.18 s; since v2.3.23 the counter saturates and the time trigger only fires after a floor of a running ramp, [FPGA.md](FPGA.md#lock-control-auto-lock)); **Level**: a signal crosses `lock_trig_val` upwards or downwards; **Level+time**: level crossing after the time |
+| Triggers | **Time**: `lock_trig_time` ticks (8 ns) after the scan floor, 0..$2^{32}-1$ (up to 34.36 s; 32-bit counter since v2.3.15, it was 17.18 s; since v2.3.23 the counter saturates and the time trigger only fires after a floor of a running ramp, [FPGA.md](FPGA.md#lock-control-auto-lock)); **Level**: a signal crosses `lock_trig_val` upwards or downwards; **Level+time**: level crossing after the time |
 | Latency | the change happens in the same clock tick as the trigger (8 ns); since v2.3.19 a lock-in output used as signal for trigger is itself 16 ns later than before ([`lock_latency.md`](../lock_in+pid_harmonic/doc/lock_latency.md)) |
 | Status | `lock_status`: armed, locked, effective enables, count of locks |
 | Capture | the lock event is a scope trigger source ("Lock control trig"); the web page uses it to capture the closing of the loop ([`lock_capture.md`](../lock_in+pid_harmonic/doc/lock_capture.md)) |
@@ -225,12 +241,12 @@ procedure of `test_files/lock_test.md`, v2.3.11 to v2.3.17; `reportes/lock-in_pi
   (`lock/gen_ramp_relock.v`). `rl_state` is not implemented (reads 0). The behaviour of the search has not
   been tested on the 2.0 version: **a confirmar**.
 - **Step response** (`sf_*`): "Start Step Responce" adds `sf_jumpA`/`sf_jumpB` to `ctrl_A`/`ctrl_B`
-  2¹⁶ ticks (524 µs) after the start (`jump_control`, N = 16), and can freeze the outputs or integrators
+  $2^{16}$ ticks (524 µs) after the start (`jump_control`, N = 16), and can freeze the outputs or integrators
   of the PIDs during the step. "Jump trigger" is a scope trigger source. Not tested on 2.0: **a confirmar**.
 
 ## Monitor
 
-`error_mean` and `error_std` are computed in the FPGA over 2²⁷ ticks (1.074 s) and shown in the Monitor
+`error_mean` and `error_std` are computed in the FPGA over $2^{27}$ ticks (1.074 s) and shown in the Monitor
 panel in counts (`src/lock.c` l. 440-442).
 
 ## Streaming

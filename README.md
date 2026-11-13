@@ -14,7 +14,7 @@ loop, controlled from a web page or remotely over HTTP.
 
 ## Version 2.3.x (Ecosystem 2.0)
 
-Current version: **2.3.31** (branch `master`).
+Current version: **2.3.31** (branch `master`; package `archive/lock_in+pid_harmonic-2.3.31-73-devbuild`).
 
 This version is **based on the 0.3.x series (v0.3.11), but with the FPGA design built in Vivado 2020.1**,
 using the project structure of [RedPitaya-FPGA](https://github.com/RedPitaya/RedPitaya-FPGA).
@@ -91,7 +91,11 @@ Since 2026-10-15 the branch `master` holds the 2.x series; the 0.3.x series (FPG
 - v2.3.31: **Ramp Controller** of lock_in+pid_plus 2.2.0 (web page only): tabs *period* / *freq* (Frequency in Hz with
   the nearest reachable value, Amp. p-p / Offset), *Ramp period* in s / ms (whole period), *Lock osc. screen* (scope
   locked on the ramp: rising half of a triangle, the time zoom sets the ramp limits), *Reset zoom* alternating whole
-  period / rising half (Scan floor, triangle), no stale *Force X* of `GET /data`.
+  period / rising half (Scan floor, triangle), no stale *Force X* of `GET /data`; the four ramp checkboxes in two
+  columns, no "-0 mV" labels. Same FPGA and C sources as v2.3.30; tested on RP2. See
+  [doc/Usage.md](doc/Usage.md#ramp-controller) and [doc/App.md](doc/App.md#ramp-generator-scan).
+
+![Ramp Controller of v2.3.31: tab freq (100 Hz triangle, Amp. p-p 8000) and Lock osc. screen: the scope on Scan floor with the window 0 … T/2 (the rise of the ramp): the peak of in1 appears once](.README/ramp_controller_lock_osc_screen_v2.3.31.jpg)
 
 
 ## Features
@@ -102,7 +106,8 @@ Since 2026-10-15 the branch `master` holds the 2.x series; the 0.3.x series (FPG
   - Demodulatión for double and triple frequency
 - Harmonic modulation from 3 Hz to 49.6 kHz, added to the outputs
 - Two PID filters, for loop back stabilization
-- Ramp/Scan controller for response analysis
+- Ramp/Scan controller for response analysis, set by period or by frequency / amplitude / offset, with a *Lock osc.
+  screen* mode that turns a zoom of the scope into new scan limits
 - Lock control for automatic scan-stop / PID start (time, level or immediate trigger, run by the FPGA)
 - Two-channel oscilloscope on any internal signal, triggered by internal events (scan floor, lock, ...)
 - Streaming system for continued acquisition of two channels

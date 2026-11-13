@@ -111,7 +111,14 @@ Frequency / Demod. phase, `input_wrap`) are not ported.
   `lock_ctrl_ui_sim`, `osc_presets_sim` take the `[FORCEX]` block. All 15 node sims pass; `auto_set_c_sim` 64/64,
   `trig_level_test` PASS, `ramp_mod_period_sim.sh` PASS.
 - Pending (as in pid_plus 2.2.0): *Ramp hig / low lim* do not take mV / V; the wheel over *Ramp period* does not move
-  the step above $2^{24}$ (float32). Board test (testAgent) pending.
+  the step above $2^{24}$ (float32).
+- Board test (testAgent, RP2, package 2.3.31-73, 2026-11-13; `reportes/lock-in_pid_h/2026-11-13_1439_v2331.md` in the
+  Apps folder): **PASS**. Tabs, *freq* tab (100 Hz → step 77, 100.1603 Hz; wheel 1/10/100/1000 Hz; `2.5 kHz`,
+  `500 mHz`, `500 mV`, `0.1 V`), *Ramp period* `10 ms` → 77 (triangle) / 155 (sawtooth), clamp 2147483520, no "-0 mV",
+  no tooltips, Lock osc. screen (0 … 4.992 ms in triangle, 0 … 9.985 ms in sawtooth, zoom → limits as the model, 0.2 Hz
+  continuous update, Single turns it off), Reset zoom 9.984 / 4.992 / 9.984 / 4.992 ms, Force X 10/10; Reset zoom with
+  harmonic mod. still one period of the modulation (20.16 µs); no console errors.
+- Documentation (`doc/*.md`, README) updated for v2.3.31 in the commit that carries the tag `v2.3.31`.
 
 ## v2.3.30 - 2026-10-24 - AUTO trigger level at the middle of the signal with a calibration offset or a full scale other than 1 V; Raw Mode half counts (C controller; page: version and comments only; no FPGA change)
 
