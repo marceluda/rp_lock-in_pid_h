@@ -70,6 +70,27 @@ Every version below was tested on a board (RP OS 2.04-35) with the LOCK MODE pro
 simulated by `dummy_simulator` on a second board. Lock metrics were identical in all of them: lock in
 < 50 ms, IN1 at 1.01-1.03 x the peak, error std ~7-8 mV.
 
+## v2.3.32 - 2026-11-13 - Force X of a retried POST: the 2nd click of Reset Zoom is no longer lost (web page only, no FPGA / C change; from lock_in+pid_plus 2.2.1)
+
+Port of the fix of `rp_lock-in_pid_plus` v2.2.1 (`a8d4b0b`; see its CHANGELOG). Only `index.html` and
+`test/forcex_race_sim.js`; FPGA and C sources unchanged (`controllerhf.so` only rebuilt). In `index.html` the new code
+is marked `v2.3.32 (plus 2.2.1)`. Bug found by testAgent in lock_in+pid 2.2.16 (Force X 19 of 21) and lock_in+pid_harmonic2
+2.4.14 (27 of 28): `reportes/lock-in_pid/2026-11-13_1806_v2216.md`.
+- **Fixed — the 2nd click of Reset Zoom lost when the POST of the 1st one is retried.** nginx hangs ~2 s every
+  ~3 min; if the POST of the 1st click (0 … T) falls in a hang it gets no answer in `post_chunk_timeout` (2 s) and is
+  sent again with the same body, while the 2nd click (0 … T/2) waits. The answer of the retry (`forcex_flag` 1 with
+  0 … T) put the axis back to 0 … T and the waiting POST sent 0 … T again. Now (`[FORCEX]` block) the answer of a POST
+  during which the page set the X window itself (`xwin_gen` moved) does not set the window: `forceXStaleKeep()` keeps
+  the window of the page in the units of the answer and `xwin_resend` makes the next POST send it; no forceX of a GET
+  /data is applied while a window of the page is not sent yet (`xwin_pending`), and a forceX of a GET that is not
+  applied does not change the time units of the page (`forceXUnitsKeep()`). The retry keeps the same body on purpose
+  (the timed-out POST may have been served in other units).
+- **Fixed — a parameter changed back to its previous value during a POST in flight was lost** (a GET answered meanwhile
+  carried the old server value). `post_sent`: for the keys of the POST in flight a GET answer does not replace
+  `params.local` and `unsent_base` keeps the sent value.
+- Tests: `test/forcex_race_sim.js` case 5 (timeout + retry + 2nd click during the wait, 12 runs, kp changed during the
+  wait): 12/12; with the previous `index.html` (`--old`) 5c and 5e fail.
+
 ## v2.3.31 - 2026-11-13 - Ramp Controller of lock_in+pid_plus 2.2.0: tabs period / freq, Ramp period in s / ms, Lock osc. screen, Reset zoom whole / half, no stale Force X (web page only, no FPGA / C change)
 
 Port of the Ramp Controller of `rp_lock-in_pid_plus` v2.2.0 (`8f7246d`; rc1 … rc4, see its CHANGELOG). Only

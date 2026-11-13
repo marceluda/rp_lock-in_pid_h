@@ -14,7 +14,7 @@ loop, controlled from a web page or remotely over HTTP.
 
 ## Version 2.3.x (Ecosystem 2.0)
 
-Current version: **2.3.31** (branch `master`; package `archive/lock_in+pid_harmonic-2.3.31-73-devbuild`).
+Current version: **2.3.32** (branch `master`; package `archive/lock_in+pid_harmonic-2.3.32-74-devbuild`).
 
 This version is **based on the 0.3.x series (v0.3.11), but with the FPGA design built in Vivado 2020.1**,
 using the project structure of [RedPitaya-FPGA](https://github.com/RedPitaya/RedPitaya-FPGA).
@@ -94,6 +94,9 @@ Since 2026-10-15 the branch `master` holds the 2.x series; the 0.3.x series (FPG
   period / rising half (Scan floor, triangle), no stale *Force X* of `GET /data`; the four ramp checkboxes in two
   columns, no "-0 mV" labels. Same FPGA and C sources as v2.3.30; tested on RP2. See
   [doc/Usage.md](doc/Usage.md#ramp-controller) and [doc/App.md](doc/App.md#ramp-generator-scan).
+- v2.3.32: no lost 2nd click of *Reset zoom* when the POST of the 1st one is retried after a timeout (nginx
+  hang): the answer of that POST no longer brings back the old window (*Force X*); a value changed back during a slow POST
+  is no longer lost. Web page only.
 
 ![Ramp Controller of v2.3.31: tab freq (100 Hz triangle, Amp. p-p 8000) and Lock osc. screen: the scope on Scan floor with the window 0 … T/2 (the rise of the ramp): the peak of in1 appears once](.README/ramp_controller_lock_osc_screen_v2.3.31.jpg)
 
