@@ -23,7 +23,7 @@ Since 2026-10-15 the branch `master` holds the 2.x series; the 0.3.x series (FPG
 0.9x / 1.0 ecosystems, stays in the tags `v0.3` .. `v0.3.11`.
 
 - Web interface and C controller: those of v0.3.11 plus the Ecosystem 2.0 changes of v2.3.10 and the
-  fixes of v2.3.12 to v2.3.31 (see [CHANGELOG](CHANGELOG.md))
+  fixes of v2.3.12 to v2.3.32 (see [CHANGELOG](CHANGELOG.md))
   (still built with Vivado 2015.2 SDK + Linaro toolchain).
 - FPGA: ported to Vivado 2020.1 (see [Building](#building)), oscilloscope of the Ecosystem 2.0 with the
   decimation widened to 20 bits (time ranges up to ~68 s).
@@ -96,7 +96,8 @@ Since 2026-10-15 the branch `master` holds the 2.x series; the 0.3.x series (FPG
   [doc/Usage.md](doc/Usage.md#ramp-controller) and [doc/App.md](doc/App.md#ramp-generator-scan).
 - v2.3.32: no lost 2nd click of *Reset zoom* when the POST of the 1st one is retried after a timeout (nginx
   hang): the answer of that POST no longer brings back the old window (*Force X*); a value changed back during a slow POST
-  is no longer lost. Web page only.
+  is no longer lost; the page checks that the server took the window it sent and sends it again if not. Web page only;
+  tested on RP2 (PASS). See [doc/Structure.md](doc/Structure.md#time-window-of-the-plot-and-force-x).
 
 ![Ramp Controller of v2.3.31: tab freq (100 Hz triangle, Amp. p-p 8000) and Lock osc. screen: the scope on Scan floor with the window 0 … T/2 (the rise of the ramp): the peak of in1 appears once](.README/ramp_controller_lock_osc_screen_v2.3.31.jpg)
 

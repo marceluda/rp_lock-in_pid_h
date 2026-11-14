@@ -1,6 +1,6 @@
 # Development: building and modifying the App
 
-How to build, modify, test and install `lock_in+pid_harmonic` v2.3.31 (branch `master`). The internal
+How to build, modify, test and install `lock_in+pid_harmonic` v2.3.32 (branch `master`). The internal
 structure is explained in [Structure.md](Structure.md) and the registers in [FPGA.md](FPGA.md).
 
 - [Source tree](#source-tree)
@@ -271,13 +271,16 @@ the bus reads: see [test/](#simulations-and-tests-test).
 - Syntax check: extract the scripts and run `node --check` (as devAgent does), and run the node
   simulations of `test/`, which load the functions of `index.html`.
 - Blocks marked with comments like `[LOCK CAPTURE BEGIN]` / `[TRIG FROM GRAPH BEGIN]` are used by the
-  simulations; keep the markers. Those of v2.3.31: `[RAMP CALC]` (l. 3405-3631) and `[RAMP UI]` (l. 3633-3943), the
-  Ramp Controller; `[RESET ZOOM]` (l. 3293-3403, with the whole / half cycle); `[FORCEX]` (l. 325-352; see
-  [Structure.md](Structure.md#time-window-of-the-plot-and-force-x)).
+  simulations; keep the markers. Those of v2.3.31: `[RAMP CALC]` (l. 3512-3738) and `[RAMP UI]` (l. 3740-4050), the
+  Ramp Controller; `[RESET ZOOM]` (l. 3400-3510, with the whole / half cycle); `[FORCEX]` (l. 326-459; extended in v2.3.32:
+  retried POSTs, check of the window sent; see [Structure.md](Structure.md#time-window-of-the-plot-and-force-x)).
 - The comments of the code ported from `lock_in+pid_plus` 2.2.0 are marked `v2.3.31 (plus 2.2.0-rcN)`; the same port
   went to `lock_in+pid` 2.2.16, `lock_in+pid_harmonic_hf` 2.3.21, `lock_in+pid_harmonic2` 2.4.14 and
   `lock_in+pid_square` 2.0.10 (`devAgent.md`, 2026-11-13). The localStorage key of the tab is
-  `'lockin_ramp_tab_' + app_id`, so the same code serves every App.
+  `'lockin_ramp_tab_' + app_id`, so the same code serves every App. The Force X fix of v2.3.32 (from `lock_in+pid_plus`
+  2.2.1, two rounds) is marked `v2.3.32 (plus 2.2.1)` (35 occurrences); the same port went to `lock_in+pid` 2.2.16,
+  `lock_in+pid_harmonic_hf` 2.3.22, `lock_in+pid_harmonic2` 2.4.15 and `lock_in+pid_square` 2.0.11 (`devAgent.md`,
+  2026-11-13 18:45 and 23:05).
 
 ## Registers and `config_tool.py`
 
@@ -327,7 +330,7 @@ After adding or changing a register: run the tool, rebuild FPGA + controller + t
 | `lock_quick_trig_sim.js` | `node test/lock_quick_trig_sim.js [index.html]` | the quick trigger buttons time / level / time+level of Lock Control: type set, pending click without POST, one click on the graph → values + one Trigger Lock (Capture Lock), cancel, ARMED / LOCKED, POST in flight (also LOCKED + POST in flight: release then request), message without layout shift, buttons in one centered flex row; uses the harness of `lock_capture_ui_sim.js` (v2.3.28, 57 checks) |
 | `raw_trigger_sim.js` | `node test/raw_trigger_sim.js [index.html]` | the scope trigger level in Raw Mode (ADC counts): `[RAW TRIGGER]` block, Level field, Raw Mode button, Config → load, code checks of the page and of `src/` (v2.3.29, 45 checks; v2.3.30: half counts rounded as the controller and AUTO code checks, 53 checks) |
 | `ramp_ui_sim.js` | `node test/ramp_ui_sim.js [index.html]` | the `[RAMP CALC]` / `[RAMP UI]` blocks of the page (v2.3.31, 73 checks): cycle model of `gen_ramp.v` (period and value after the scan floor, triangle / sawtooth, both directions; the triangle rises after the floor in both directions), f → step (nearest frequency, float32 steps, limits), amplitude / offset round trip and clamps, parsers, wheel targets (1/10/100/1000 Hz, minimum move), zoom → limits (rising half of the triangle), UI flows (tabs, no drift on amplitude changes, sawtooth, Lock osc. screen on / zoom / follow / slow scan / capture / off / Single), *Ramp period* in s / ms, clamp, "-0 mV", half window, no tooltips, box of the tabs, tolerance $10^{-4}$ of the window. Reads the localStorage key from the page |
-| `forcex_race_sim.js` | `node test/forcex_race_sim.js [index.html] [--old]` | the `[FORCEX]` block (v2.3.31): harness of `lock_capture_ui_sim.js` with the real `sendParams()` / `doGetData()` / `loadParams()` / `resetZoom()` and a model of the time range code of `src/main.c` whose `forcex_flag` stays until the next POST (GET answers carry the server params of when they started): 2nd Reset zoom at 25 moments of the polling, wheel zoom from t = 0 at 25 moments, forceX of another client, forceX of the POST answer (7/7; `--old` on v2.3.30: 4/6) |
+| `forcex_race_sim.js` | `node test/forcex_race_sim.js [index.html] [--old]` | the `[FORCEX]` block (v2.3.31, v2.3.32; from `lock_in+pid_plus` 2.2.0-rc4 / 2.2.1): harness of `lock_capture_ui_sim.js` with the real `sendParams()` / `doGetData()` / `loadParams()` / `resetZoom()` / `postParamsChunks()` and a model of the time range code of `src/main.c` (since v2.3.32 it follows `main.c`: `forcex_state`, ratio 0.03, `FORCEX_STALE_MS` 1500 ms, `GUI_XMIN` / `GUI_XMAX` compared as float32, POST without a window; GET answers carry the server params of when they started). Cases 1-4 (v2.3.31): 2nd Reset zoom at 25 moments of the polling, wheel zoom from t = 0 at 25 moments, forceX of another client, forceX of the POST answer. Case 5 (v2.3.32): the POST of the 1st click times out (nginx hung 2.5 s) and is retried, the 2nd click comes during the wait, 12 runs (timed-out POST lost / served at the end of the hang / plus a GET in the new units), the retry goes without `xmin` / `xmax`, kp changed during the wait, also back to the old value. Case 6 (v2.3.32, 2nd round): the POST is served at once and only its answer is lost (hook `__serve = true` of the board test), from s and from µs, 2nd click at 100 / 350 / 1000 / 1900 ms with 1 lost answer and at 2300 / 3000 ms with 2, plus 2 runs not served (16 runs); no units on the other side of ms, at most 12 POSTs per run. Case 7: a zoom 100× smaller right after a forceX, ignored by the server and sent again after `forcex_hold_ms`. **19 checks**, 19/19; `--old` on the first round of v2.3.32 fails 6b, 6c and 7b (with the sim of the first round, `--old` on v2.3.31 failed 5c and 5e) |
 | `trig_level_test.c` | `gcc -Wall -Werror -Isrc -o /tmp/trig_level_test test/trig_level_test.c src/fpga.c -lm && /tmp/trig_level_test` | `osc_fpga_cnv_cnt_to_trig_v()` is the inverse of `osc_fpga_cnv_v_to_cnt()` for every 14-bit level (real `src/fpga.c`, v2.3.29); levels with a fraction rounded as the page, Math.round (v2.3.30) |
 
 Run them from `lock_in+pid_harmonic/`. All exit with code 1 on failure. `--old` runs a check against the code of
@@ -344,7 +347,11 @@ sims pass (`ramp_ui_sim` 73/73, `forcex_race_sim` 7/7, `reset_zoom_sim` 55/55, `
 38, `plot_wheel_sim` 59, `raw_trigger_sim` 53, `lock_quick_trig_sim` 57, `last_config_sim` 35, `config_load_block_sim`
 10, `trig_from_graph_sim` 0 failures); `auto_set_c_sim` 64/64; `trig_level_test` ALL PASS; `ramp_mod_period_sim.sh`
 PASS. `config_load_window_sim`, `lock_capture_ui_sim`, `lock_ctrl_ui_sim` and `osc_presets_sim` take the `[FORCEX]`
-block (they use the real `sendParams()`).
+block (they use the real `sendParams()`). v2.3.32 (CHANGELOG, `devAgent.md` 2026-11-13 18:45 and 23:05):
+`forcex_race_sim` **19/19** (cases 5-7 new); the other node sims pass (source and target `index.html`); `node --check`
+OK. The C and RTL tests were not run again (no C nor FPGA change). Board test of v2.3.32: PASS
+(`reportes/lock-in_pid_h/2026-11-13_2312_forcex_retry2.md`, Apps folder; see
+[Structure.md](Structure.md#a-post-retried-after-a-timeout-and-a-window-that-the-server-does-not-take-v2332)).
 
 The Python client `control_finn.py` was tested by devAgent against a fake HTTP server of the board (Lua argument
 order, `c/lock`/`c/osc`, 2.0 scope with trigger lock, a model of the C worker, `/data` that only answers a body
@@ -359,7 +366,7 @@ with `dummy_simulator` on a second board; reports in `reportes/lock-in_pid_h_loc
 From a package (`archive/*.tar.gz` or `.zip`, or a GitHub release):
 
 ```bash
-tar -xzf lock_in+pid_harmonic-2.3.31-<build>-devbuild.tar.gz
+tar -xzf lock_in+pid_harmonic-2.3.32-<build>-devbuild.tar.gz
 ./upload_app.sh rp-XXXXXX.local          # -p <ssh port>; -w uploads only index.html, js, css
 ```
 
@@ -386,14 +393,15 @@ Notes for Ecosystem 2.0 (`testAgent.md`):
 
 ## Versioning and packages
 
-- Version: `lock_in+pid_harmonic/info/info.json` (`"version": "2.3.31-BUILD_NUMBER"`), `CHANGELOG.md`, `README.md`
+- Version: `lock_in+pid_harmonic/info/info.json` (`"version": "2.3.32-BUILD_NUMBER"`), `CHANGELOG.md`, `README.md`
   ("Current version"). Since v2.3.19 the build writes the version of `info.json` in `<title>` and in the page title
   of `target/…/index.html` (Makefile l. 101-102); the title in the source `index.html` (`Harmonic lock-in+PID (v2.3.31)`,
-  l. 19) does not matter. Build number: `_build_number`.
+  l. 19, not updated in v2.3.32) does not matter. Build number: `_build_number`.
   Revision: `REVISION` (default `devbuild`).
 - Package name: `lock_in+pid_harmonic-<VER>-<BUILD_NUMBER>-<REVISION>.{zip,tar.gz}` in `archive/`.
 - Branches: since 2026-10-15 `master` is the 2.3.x line (FPGA Vivado 2020.1, Ecosystem 2.0); the 0.3.x series
-  (FPGA Vivado 2015.2, 0.9x / 1.0 ecosystems) stays in the tags `v0.3` .. `v0.3.11`. Tags `v2.3.11` .. `v2.3.31`.
+  (FPGA Vivado 2015.2, 0.9x / 1.0 ecosystems) stays in the tags `v0.3` .. `v0.3.11`. Tags `v2.3.11` .. `v2.3.32`.
   `devel2.0` is left as it was (up to its last commit) and is no longer used.
-- Package of v2.3.31: `archive/lock_in+pid_harmonic-2.3.31-73-devbuild.{zip,tar.gz}`, with the same `fpga.bit.bin`
-  (`d19dbce3…`) as v2.3.23 … v2.3.30: only the web page (and the rebuilt `controllerhf.so`, same sources) changed.
+- Package of v2.3.32: `archive/lock_in+pid_harmonic-2.3.32-74-devbuild.{zip,tar.gz}` (tar.gz md5 `9c5d67e4…`, the build of
+  the second round; v2.3.31: `-2.3.31-73-devbuild`), with the same `fpga.bit.bin` (`d19dbce3…`) as v2.3.23 … v2.3.31:
+  only the web page (and the rebuilt `controllerhf.so`, same sources) changed.

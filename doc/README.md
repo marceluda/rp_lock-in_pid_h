@@ -1,7 +1,7 @@
 # RP Lock-in+PID Harmonic — documentation
 
-Documentation of `lock_in+pid_harmonic` **v2.3.31** (package 2.3.31-73, branch `master`, Ecosystem 2.0, FPGA built with
-Vivado 2020.1; the FPGA is the one of v2.3.23 … v2.3.30, v2.3.31 changes only the web page). Back to the
+Documentation of `lock_in+pid_harmonic` **v2.3.32** (package 2.3.32-74, branch `master`, Ecosystem 2.0, FPGA built with
+Vivado 2020.1; the FPGA is the one of v2.3.23 … v2.3.30, v2.3.31 and v2.3.32 change only the web page). Back to the
 [project README](../README.md) · [CHANGELOG](../CHANGELOG.md).
 
 New in v2.3.31 (the Ramp Controller of `lock_in+pid_plus` 2.2.0): the *Ramp Controller* of the web page sets the ramp by
@@ -11,6 +11,11 @@ rising half of a triangle (one period of a sawtooth) and turns a time zoom of th
 and a triangle alternates whole period / rising half
 ([Usage.md](Usage.md#reset-zoom-whole-period--rising-half)); the *Force X* of the server is applied once
 ([Structure.md](Structure.md#time-window-of-the-plot-and-force-x)).
+
+New in v2.3.32 (from `lock_in+pid_plus` 2.2.1): a POST retried after a timeout of nginx no longer undoes a time window
+set meanwhile (the second click of *Reset zoom*), the page checks that the server took the window it sent and sends it
+again if not, and a value changed back during a POST in flight is kept
+([Structure.md](Structure.md#a-post-retried-after-a-timeout-and-a-window-that-the-server-does-not-take-v2332)).
 
 | Document | Contents |
 |---|---|
